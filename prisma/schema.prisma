@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Student {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  name           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  phone          String?
+  cpf            String?
+  profilePicture String?
+  ladvUploaded   Boolean  @default(false)
+
+  lessons        Lesson[]
+  payments       Payment[]
+}
+
+model Instructor {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  name           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  phone          String?
+  cpf            String?
+  profilePicture String?
+  
+  bio            String?
+  instructorType String?  // 'Credenciado' or 'Autônomo'
+  location       String?
+  pricePerClass  Float?
+  rating         Float    @default(0)
+  reviewsCount   Int      @default(0)
+
+  vehicles       Vehicle[]
+  availabilities Availability[]
+  lessons        Lesson[]
+}
+
+model Vehicle {
+  id           String   @id @default(uuid())
+  plate        String   @unique
+  model        String
+  year         String?
+  transmission String?  // 'Manual' | 'Automatic'
+  vehiclePhoto String?
+
+  instructorId String
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  lessons      Lesson[]
+}
+
+model Availability {
+  id           String   @id @default(uuid())
+  dayOfWeek    Int      // 0 to 6 (Sunday to Saturday)
+  startTime    String   // ex: "08:00"
+  endTime      String   // ex: "18:00"
+  isEnabled    Boolean  @default(true)
+
+  instructorId String
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+}
+
+model Lesson {
+  id           String   @id @default(uuid())
+  studentId    String
+  instructorId String
+  vehicleId    String?
+  
+  date         DateTime
+  startTime    String
+  endTime      String
+  price        Float?
+
+  status       String   @default("upcoming") // 'upcoming' | 'in-progress' | 'completed' | 'cancelled'
+  
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  durationMinutes Int?
+
+  instructorFeedback    String?
+  studentFeedbackRating Int?
+  studentFeedbackText   String?
+
+  student      Student    @relation(fields: [studentId], references: [id])
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  vehicle      Vehicle?   @relation(fields: [vehicleId], references: [id])
+  payment      Payment?
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  amount    Float
+  status    String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  studentId String
+  lessonId  String?  @unique
+
+  student   Student @relation(fields: [studentId], references: [id])
+  lesson    Lesson? @relation(fields: [lessonId], references: [id])
+}
