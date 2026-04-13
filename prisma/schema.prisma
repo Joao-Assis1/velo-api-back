@@ -7,102 +7,89 @@ datasource db {
 }
 
 model Student {
-  id             String   @id @default(uuid())
-  email          String   @unique
+  id             String    @id @default(uuid())
+  email          String    @unique
   name           String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   phone          String?
   cpf            String?
   profilePicture String?
-  ladvUploaded   Boolean  @default(false)
-
+  ladvUploaded   Boolean   @default(false)
   lessons        Lesson[]
   payments       Payment[]
 }
 
 model Instructor {
-  id             String   @id @default(uuid())
-  email          String   @unique
+  id             String         @id @default(uuid())
+  email          String         @unique
   name           String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   phone          String?
   cpf            String?
   profilePicture String?
-  
   bio            String?
-  instructorType String?  // 'Credenciado' or 'Autônomo'
+  instructorType String?
   location       String?
   pricePerClass  Float?
-  rating         Float    @default(0)
-  reviewsCount   Int      @default(0)
-
-  vehicles       Vehicle[]
+  rating         Float          @default(0)
+  reviewsCount   Int            @default(0)
   availabilities Availability[]
   lessons        Lesson[]
+  vehicles       Vehicle[]
 }
 
 model Vehicle {
-  id           String   @id @default(uuid())
-  plate        String   @unique
+  id           String     @id @default(uuid())
+  plate        String     @unique
   model        String
-  year         String?
-  transmission String?  // 'Manual' | 'Automatic'
-  vehiclePhoto String?
-
   instructorId String
-  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  transmission String?
+  vehiclePhoto String?
+  year         String?
   lessons      Lesson[]
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
 }
 
 model Availability {
-  id           String   @id @default(uuid())
-  dayOfWeek    Int      // 0 to 6 (Sunday to Saturday)
-  startTime    String   // ex: "08:00"
-  endTime      String   // ex: "18:00"
-  isEnabled    Boolean  @default(true)
-
+  id           String     @id @default(uuid())
+  startTime    String
+  endTime      String
   instructorId String
+  dayOfWeek    Int
+  isEnabled    Boolean    @default(true)
   instructor   Instructor @relation(fields: [instructorId], references: [id])
 }
 
 model Lesson {
-  id           String   @id @default(uuid())
-  studentId    String
-  instructorId String
-  vehicleId    String?
-  
-  date         DateTime
-  startTime    String
-  endTime      String
-  price        Float?
-
-  status       String   @default("upcoming") // 'upcoming' | 'in-progress' | 'completed' | 'cancelled'
-  
-  checkInTime  DateTime?
-  checkOutTime DateTime?
-  durationMinutes Int?
-
+  id                    String     @id @default(uuid())
+  studentId             String
+  instructorId          String
+  vehicleId             String?
+  startTime             String
+  endTime               String
+  status                String     @default("upcoming")
+  checkInTime           DateTime?
+  checkOutTime          DateTime?
+  date                  DateTime
+  durationMinutes       Int?
   instructorFeedback    String?
+  price                 Float?
   studentFeedbackRating Int?
   studentFeedbackText   String?
-
-  student      Student    @relation(fields: [studentId], references: [id])
-  instructor   Instructor @relation(fields: [instructorId], references: [id])
-  vehicle      Vehicle?   @relation(fields: [vehicleId], references: [id])
-  payment      Payment?
+  instructor            Instructor @relation(fields: [instructorId], references: [id])
+  student               Student    @relation(fields: [studentId], references: [id])
+  vehicle               Vehicle?   @relation(fields: [vehicleId], references: [id])
+  payment               Payment?
 }
 
 model Payment {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   amount    Float
-  status    String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  status    String  @default("PENDING")
   studentId String
-  lessonId  String?  @unique
-
-  student   Student @relation(fields: [studentId], references: [id])
+  lessonId  String? @unique
   lesson    Lesson? @relation(fields: [lessonId], references: [id])
+  student   Student @relation(fields: [studentId], references: [id])
 }
