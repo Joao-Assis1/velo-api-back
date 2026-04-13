@@ -5,3 +5,7 @@ dist
 .env.*
 !.env.example
 .DS_Store
+tlc-spec-driven
+.specs
+/generated/prisma
+FLOW_AND_FEATURES.md

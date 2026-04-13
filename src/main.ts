@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -14,11 +15,29 @@ async function bootstrap() {
     }),
   );
 
+  const config = new DocumentBuilder()
+    .setTitle('Velo API')
+    .setDescription('The Velo API for Driving School Management')
+    .setVersion('1.0')
+    .addTag('users')
+    .addTag('vehicles')
+    .addTag('availability')
+    .addTag('lessons')
+    .addTag('payments')
+    .build();
+  
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
   const port = Number(process.env.PORT ?? 3000);
 
   await app.listen(port);
   Logger.log(
-    `🚀 VELO-api rodando em: http://localhost:${port}/api/v1/health`,
+    `🚀 VELO-api rodando em: http://localhost:${port}/api/v1`,
+    'Bootstrap',
+  );
+  Logger.log(
+    `📚 Swagger Documentation rodando em: http://localhost:${port}/api/docs`,
     'Bootstrap',
   );
 }
