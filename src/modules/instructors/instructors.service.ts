@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 
@@ -25,5 +25,43 @@ export class InstructorsService {
       omit: this.omitPassword,
       include: { vehicles: true, availabilities: true },
     });
+  }
+
+  async update(id: string, data: any) {
+    return this.prisma.instructor.update({
+      where: { id },
+      data,
+      omit: this.omitPassword,
+    });
+  }
+
+  async getEarnings(id: string, month?: string, year?: string) {
+    const where: any = {
+      instructorId: id,
+      status: 'completed',
+    };
+
+    if (month && year) {
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 1);
+      where.date = {
+        gte: startDate,
+        lt: endDate,
+      };
+    }
+
+    const result = await this.prisma.lesson.aggregate({
+      _sum: {
+        price: true,
+      },
+      where,
+    });
+
+    return {
+      instructorId: id,
+      earnings: result._sum.price || 0,
+      month,
+      year,
+    };
   }
 }
