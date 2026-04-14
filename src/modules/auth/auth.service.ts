@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+﻿import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -20,20 +20,13 @@ export class AuthService {
       user = await this.prisma.instructor.findUnique({ where: { email: loginDto.email } });
     }
 
-    if (!user) {
+    if (!user || !user.password) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    if (!user.password) {
-      // For existing users before authentication feature
-      if (loginDto.password !== '123456') { // Fallback password for old users
-        throw new UnauthorizedException('Credenciais inválidas');
-      }
-    } else {
-      const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-      if (!isPasswordValid) {
-        throw new UnauthorizedException('Credenciais inválidas');
-      }
+    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Credenciais inválidas');
     }
 
     const payload = { sub: user.id, email: user.email, role };
@@ -70,7 +63,7 @@ export class AuthService {
           },
         });
       }
-    } catch (e) {
+    } catch (e: any) {
       if (e.code === 'P2002') {
         throw new BadRequestException('E-mail já está em uso.');
       }
