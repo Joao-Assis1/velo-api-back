@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 
@@ -19,6 +19,14 @@ export class StudentsService {
   async findOne(id: string) {
     return this.prisma.student.findUnique({
       where: { id },
+      omit: this.omitPassword,
+    });
+  }
+
+  async update(id: string, data: any) {
+    return this.prisma.student.update({
+      where: { id },
+      data,
       omit: this.omitPassword,
     });
   }
