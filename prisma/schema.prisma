@@ -7,39 +7,46 @@ datasource db {
 }
 
 model Student {
-  id             String    @id @default(uuid())
-  email          String    @unique
-  name           String
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  phone          String?
-  cpf            String?
-  profilePicture String?
-  password       String?
-  ladvUploaded   Boolean   @default(false)
-  lessons        Lesson[]
-  payments       Payment[]
+  id              String    @id @default(uuid())
+  email           String    @unique
+  name            String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  phone           String?
+  cpf             String?
+  profilePicture  String?
+  password        String?
+  ladvUploaded    Boolean   @default(false)
+  termsAcceptedAt DateTime?
+  lessons         Lesson[]
+  payments        Payment[]
 }
 
 model Instructor {
-  id             String         @id @default(uuid())
-  email          String         @unique
-  name           String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  phone          String?
-  cpf            String?
-  profilePicture String?
-  password       String?
-  bio            String?
-  instructorType String?
-  location       String?
-  pricePerClass  Float?
-  rating         Float          @default(0)
-  reviewsCount   Int            @default(0)
-  availabilities Availability[]
-  lessons        Lesson[]
-  vehicles       Vehicle[]
+  id              String         @id @default(uuid())
+  email           String         @unique
+  name            String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  phone           String?
+  cpf             String?
+  profilePicture  String?
+  password        String?
+  bio             String?
+  instructorType  String?
+  location        String?
+  pricePerClass   Float?
+  rating          Float          @default(0)
+  reviewsCount    Int            @default(0)
+  termsAcceptedAt DateTime?
+  cnhNumber       String?
+  cnhCategory     String?
+  cnhExpiry       String?
+  cnhEar          Boolean        @default(false)
+  certidaoNegativa String?
+  availabilities  Availability[]
+  lessons         Lesson[]
+  vehicles        Vehicle[]
 }
 
 model Vehicle {
@@ -84,6 +91,8 @@ model Lesson {
   student               Student    @relation(fields: [studentId], references: [id])
   vehicle               Vehicle?   @relation(fields: [vehicleId], references: [id])
   payment               Payment?
+
+  @@unique([instructorId, date, startTime], name: "unique_booking_slot")
 }
 
 model Payment {
