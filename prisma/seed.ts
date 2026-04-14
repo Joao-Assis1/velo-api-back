@@ -19,12 +19,16 @@ async function main() {
   await prisma.student.deleteMany();
 
   // 2. Criar Alunos
+  const bcrypt = require('bcrypt');
+  const defaultPassword = await bcrypt.hash('123456', 10);
+
   const student1 = await prisma.student.create({
     data: {
       name: 'Gabriel Silva',
       email: 'gabriel@email.com',
       phone: '(11) 98888-7777',
       cpf: '123.456.789-00',
+      password: defaultPassword,
       ladvUploaded: true,
       profilePicture: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150',
     },
@@ -36,6 +40,7 @@ async function main() {
       email: 'maria@email.com',
       phone: '(11) 97777-6666',
       cpf: '987.654.321-11',
+      password: defaultPassword,
       ladvUploaded: false,
     },
   });
@@ -46,6 +51,7 @@ async function main() {
       name: 'Roberto Souza',
       email: 'roberto@email.com',
       phone: '(11) 91111-2222',
+      password: defaultPassword,
       bio: 'Especialista em alunos com medo de dirigir. 15 anos de experiência.',
       instructorType: 'Autônomo',
       location: 'Centro, São Paulo',

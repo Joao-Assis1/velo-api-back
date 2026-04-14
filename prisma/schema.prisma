@@ -15,6 +15,7 @@ model Student {
   phone          String?
   cpf            String?
   profilePicture String?
+  password       String?
   ladvUploaded   Boolean   @default(false)
   lessons        Lesson[]
   payments       Payment[]
@@ -29,6 +30,7 @@ model Instructor {
   phone          String?
   cpf            String?
   profilePicture String?
+  password       String?
   bio            String?
   instructorType String?
   location       String?
