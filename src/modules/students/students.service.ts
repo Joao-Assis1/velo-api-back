@@ -6,15 +6,20 @@ import { CreateStudentDto } from './dto/create-student.dto';
 export class StudentsService {
   constructor(private prisma: PrismaService) {}
 
+  private readonly omitPassword = { password: true } as const;
+
   async create(data: CreateStudentDto) {
-    return this.prisma.student.create({ data });
+    return this.prisma.student.create({ data, omit: this.omitPassword });
   }
 
   async findAll() {
-    return this.prisma.student.findMany();
+    return this.prisma.student.findMany({ omit: this.omitPassword });
   }
 
   async findOne(id: string) {
-    return this.prisma.student.findUnique({ where: { id } });
+    return this.prisma.student.findUnique({
+      where: { id },
+      omit: this.omitPassword,
+    });
   }
 }
