@@ -10,6 +10,8 @@ import { AvailabilityModule } from './modules/availability/availability.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { BusySlotsModule } from './modules/busy-slots/busy-slots.module';
+import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { AuthModule } from './modules/auth/auth.module';
     LessonsModule,
     PaymentsModule,
     AuthModule,
+    BusySlotsModule,
+    PaymentMethodsModule,
   ],
 })
 export class AppModule {}

@@ -17,9 +17,12 @@ model Student {
   profilePicture  String?
   password        String?
   ladvUploaded    Boolean   @default(false)
+  ladv_document_url String?
+  ladv_validation_date DateTime?
   termsAcceptedAt DateTime?
   lessons         Lesson[]
   payments        Payment[]
+  paymentMethods  PaymentMethod[]
 }
 
 model Instructor {
@@ -47,6 +50,7 @@ model Instructor {
   availabilities  Availability[]
   lessons         Lesson[]
   vehicles        Vehicle[]
+  busySlots       BusySlot[]
 }
 
 model Vehicle {
@@ -69,6 +73,22 @@ model Availability {
   dayOfWeek    Int
   isEnabled    Boolean    @default(true)
   instructor   Instructor @relation(fields: [instructorId], references: [id])
+}
+
+model BusySlot {
+  id            String     @id @default(uuid())
+  instructorId  String
+  date          DateTime
+  startTime     String     // "14:00"
+  endTime       String     // "16:00"
+  reason        String
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  instructor    Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+
+  @@unique([instructorId, date, startTime])
+  @@index([instructorId])
+  @@index([instructorId, date])
 }
 
 model Lesson {
@@ -95,12 +115,33 @@ model Lesson {
   @@unique([instructorId, date, startTime], name: "unique_booking_slot")
 }
 
-model Payment {
-  id        String  @id @default(uuid())
-  amount    Float
-  status    String  @default("PENDING")
-  studentId String
-  lessonId  String? @unique
-  lesson    Lesson? @relation(fields: [lessonId], references: [id])
-  student   Student @relation(fields: [studentId], references: [id])
+model PaymentMethod {
+  id              String    @id @default(uuid())
+  studentId       String
+  token           String    // Stripe/Token mock
+  last4           String
+  cardholderName  String
+  expiryMonth     String
+  expiryYear      String
+  isDefault       Boolean   @default(false)
+  isDeleted       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  student         Student   @relation(fields: [studentId], references: [id])
+  payments        Payment[]
+
+  @@unique([studentId, token])
 }
+
+model Payment {
+  id              String         @id @default(uuid())
+  amount          Float
+  status          String         @default("PENDING")
+  studentId       String
+  lessonId        String?        @unique
+  paymentMethodId String?
+  lesson          Lesson?        @relation(fields: [lessonId], references: [id])
+  student         Student        @relation(fields: [studentId], references: [id])
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+}
+
