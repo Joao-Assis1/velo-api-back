@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBusySlotDto, UpdateBusySlotDto } from './dtos';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class BusySlotsService {
@@ -103,7 +103,7 @@ export class BusySlotsService {
     // Criar bloqueio
     return this.prisma.busySlot.create({
       data: {
-        id: uuidv4(),
+        id: randomUUID(),
         ...dto,
         createdAt: new Date(),
         updatedAt: new Date(),

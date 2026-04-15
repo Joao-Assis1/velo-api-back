@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentMethodDto } from './dtos';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class PaymentMethodsService {
@@ -54,7 +54,7 @@ export class PaymentMethodsService {
       throw new NotFoundException('Aluno não encontrado. Verifique se sua conta é de Aluno.');
     }
 
-    const token = `tok_${uuidv4().replace(/-/g, '')}`;
+    const token = `tok_${randomUUID().replace(/-/g, '')}`;
     const last4 = dto.cardNumber.slice(-4);
 
     return this.prisma.paymentMethod.create({
