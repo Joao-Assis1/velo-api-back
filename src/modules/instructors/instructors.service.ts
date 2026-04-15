@@ -1,6 +1,7 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
+import { UpdateInstructorDto } from './dto/update-instructor.dto';
 
 @Injectable()
 export class InstructorsService {
@@ -22,12 +23,35 @@ export class InstructorsService {
   async findOne(id: string) {
     return this.prisma.instructor.findUnique({
       where: { id },
-      omit: this.omitPassword,
-      include: { vehicles: true, availabilities: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        cpf: true,
+        profilePicture: true,
+        bio: true,
+        instructorType: true,
+        location: true,
+        pricePerClass: true,
+        rating: true,
+        reviewsCount: true,
+        termsAcceptedAt: true,
+        cnhNumber: true,
+        cnhCategory: true,
+        cnhExpiry: true,
+        cnhEar: true,
+        certidaoNegativa: true,
+        createdAt: true,
+        updatedAt: true,
+        vehicles: true,
+        availabilities: true,
+        busySlots: true,
+      },
     });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: UpdateInstructorDto) {
     return this.prisma.instructor.update({
       where: { id },
       data,

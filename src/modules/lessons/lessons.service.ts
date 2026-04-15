@@ -1,4 +1,4 @@
-﻿import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
@@ -17,8 +17,9 @@ export class LessonsService {
         throw new BadRequestException('Student not found');
       }
 
-      if (!student.ladvUploaded) {
-        throw new BadRequestException('LADV upload is required to book a lesson');
+      const canBook = (student as any).ladvUploaded;
+      if (!canBook) {
+        throw new BadRequestException('Student must upload LADV before booking lessons');
       }
 
       const existingLesson = await tx.lesson.findFirst({
@@ -30,7 +31,25 @@ export class LessonsService {
       });
 
       if (existingLesson) {
-        throw new ConflictException('Slot is already occupied');
+        throw new ConflictException('Slot is already occupied by another lesson');
+      }
+
+      const busySlots = await tx.busySlot.findMany({
+        where: {
+          instructorId: createLessonDto.instructorId,
+          date: new Date(createLessonDto.date),
+        },
+      });
+
+      const lessonStart = createLessonDto.startTime;
+      const lessonEnd = createLessonDto.endTime;
+
+      const isBusyConflict = busySlots.some((bs) => {
+        return (lessonStart < bs.endTime && lessonEnd > bs.startTime);
+      });
+
+      if (isBusyConflict) {
+        throw new ConflictException('Instructor is busy at this time (blocked slot)');
       }
 
       return tx.lesson.create({

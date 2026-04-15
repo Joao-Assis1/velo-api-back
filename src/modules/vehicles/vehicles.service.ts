@@ -12,6 +12,39 @@ export class VehiclesService {
     });
   }
 
+  async upsertByInstructor(
+    instructorId: string,
+    vehicleData: Partial<CreateVehicleDto>,
+  ) {
+    const existingVehicle = await this.prisma.vehicle.findFirst({
+      where: { instructorId },
+    });
+
+    if (existingVehicle) {
+      return this.prisma.vehicle.update({
+        where: { id: existingVehicle.id },
+        data: {
+          model: vehicleData.model,
+          plate: vehicleData.plate,
+          year: vehicleData.year,
+          transmission: vehicleData.transmission,
+          vehiclePhoto: vehicleData.vehiclePhoto,
+        },
+      });
+    }
+
+    return this.prisma.vehicle.create({
+      data: {
+        instructorId,
+        model: vehicleData.model ?? '',
+        plate: vehicleData.plate ?? '',
+        year: vehicleData.year,
+        transmission: vehicleData.transmission,
+        vehiclePhoto: vehicleData.vehiclePhoto,
+      },
+    });
+  }
+
   async findAll(instructorId?: string) {
     if (instructorId) {
       return this.prisma.vehicle.findMany({

@@ -1,7 +1,8 @@
-﻿import { Controller, Get, Post, Body, Param, Query, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Patch } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { InstructorsService } from './instructors.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
+import { UpdateInstructorDto } from './dto/update-instructor.dto';
 
 @ApiTags('instructors')
 @Controller('instructors')
@@ -24,7 +25,7 @@ export class InstructorsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateData: any) {
+  update(@Param('id') id: string, @Body() updateData: UpdateInstructorDto) {
     return this.instructorsService.update(id, updateData);
   }
 

@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  Patch,
+  Param,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
@@ -11,6 +19,14 @@ export class VehiclesController {
   @Post()
   create(@Body() createVehicleDto: CreateVehicleDto) {
     return this.vehiclesService.create(createVehicleDto);
+  }
+
+  @Patch('instructor/:instructorId')
+  upsertByInstructor(
+    @Param('instructorId') instructorId: string,
+    @Body() vehicleData: Partial<CreateVehicleDto>,
+  ) {
+    return this.vehiclesService.upsertByInstructor(instructorId, vehicleData);
   }
 
   @Get()
