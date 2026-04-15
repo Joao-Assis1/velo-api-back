@@ -1,8 +1,10 @@
 import { Module, Global } from '@nestjs/common';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 export const jwtSecret = process.env.JWT_SECRET || 'MUITO_SECRETO';
 
@@ -10,6 +12,7 @@ export const jwtSecret = process.env.JWT_SECRET || 'MUITO_SECRETO';
 @Module({
   imports: [
     PrismaModule,
+    PassportModule,
     JwtModule.register({
       global: true,
       secret: jwtSecret,
@@ -17,7 +20,7 @@ export const jwtSecret = process.env.JWT_SECRET || 'MUITO_SECRETO';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, JwtStrategy],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

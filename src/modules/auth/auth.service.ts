@@ -1,4 +1,8 @@
-﻿import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -15,16 +19,25 @@ export class AuthService {
   async login(loginDto: LoginDto, role: 'student' | 'instructor') {
     let user;
     if (role === 'student') {
-      user = await this.prisma.student.findUnique({ where: { email: loginDto.email } });
+      user = await this.prisma.student.findUnique({
+        where: { email: loginDto.email },
+        include: { paymentMethods: true },
+      });
     } else {
-      user = await this.prisma.instructor.findUnique({ where: { email: loginDto.email } });
+      user = await this.prisma.instructor.findUnique({
+        where: { email: loginDto.email },
+        include: { availabilities: true, busySlots: true, vehicles: true },
+      });
     }
 
     if (!user || !user.password) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
@@ -52,7 +65,12 @@ export class AuthService {
             email: registerDto.email,
             name: registerDto.name,
             password: hashedPassword,
+            phone: registerDto.phone,
+            cpf: registerDto.cpf,
+            profilePicture: registerDto.profilePicture,
+            ladvUploaded: registerDto.ladvUploaded,
           },
+          include: { paymentMethods: true },
         });
       } else {
         user = await this.prisma.instructor.create({
@@ -60,7 +78,20 @@ export class AuthService {
             email: registerDto.email,
             name: registerDto.name,
             password: hashedPassword,
+            phone: registerDto.phone,
+            cpf: registerDto.cpf,
+            profilePicture: registerDto.profilePicture,
+            instructorType: registerDto.instructorType,
+            bio: registerDto.bio,
+            location: registerDto.location,
+            pricePerClass: registerDto.pricePerClass,
+            cnhNumber: registerDto.cnhNumber,
+            cnhCategory: registerDto.cnhCategory,
+            cnhExpiry: registerDto.cnhExpiry,
+            cnhEar: registerDto.cnhEar,
+            certidaoNegativa: registerDto.certidaoNegativa,
           },
+          include: { availabilities: true, busySlots: true, vehicles: true },
         });
       }
     } catch (e: any) {
