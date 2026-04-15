@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Put, Param } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AvailabilityService } from './availability.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
@@ -11,6 +11,17 @@ export class AvailabilityController {
   @Post()
   create(@Body() createAvailabilityDto: CreateAvailabilityDto) {
     return this.availabilityService.create(createAvailabilityDto);
+  }
+
+  @Put('instructor/:instructorId')
+  updateByInstructor(
+    @Param('instructorId') instructorId: string,
+    @Body() availabilities: any[],
+  ) {
+    return this.availabilityService.replaceInstructorAvailability(
+      instructorId,
+      availabilities,
+    );
   }
 
   @Get()

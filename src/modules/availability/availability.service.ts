@@ -18,6 +18,31 @@ export class AvailabilityService {
     });
   }
 
+  async replaceInstructorAvailability(
+    instructorId: string,
+    availabilities: any[],
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.availability.deleteMany({
+        where: { instructorId },
+      });
+
+      if (availabilities && availabilities.length > 0) {
+        await tx.availability.createMany({
+          data: availabilities.map((availability) => ({
+            instructorId,
+            dayOfWeek: availability.dayOfWeek,
+            startTime: availability.startTime,
+            endTime: availability.endTime,
+            isEnabled: availability.isEnabled ?? true,
+          })),
+        });
+      }
+
+      return tx.availability.findMany({ where: { instructorId } });
+    });
+  }
+
   async findAll(instructorId?: string) {
     if (instructorId) {
       return this.prisma.availability.findMany({
