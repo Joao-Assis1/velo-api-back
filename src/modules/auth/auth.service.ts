@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { Student, Instructor } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +18,7 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto, role: 'student' | 'instructor') {
-    let user;
+    let user: Student | Instructor | null;
     if (role === 'student') {
       user = await this.prisma.student.findUnique({
         where: { email: loginDto.email },
@@ -46,7 +47,8 @@ export class AuthService {
     const access_token = await this.jwtService.signAsync(payload);
 
     // Remove password before returning
-    const { password, ...userWithoutPassword } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...userWithoutPassword } = user;
 
     return {
       access_token,
@@ -57,7 +59,7 @@ export class AuthService {
   async register(registerDto: RegisterDto, role: 'student' | 'instructor') {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-    let user;
+    let user: Student | Instructor;
     try {
       if (role === 'student') {
         user = await this.prisma.student.create({
@@ -69,6 +71,10 @@ export class AuthService {
             cpf: registerDto.cpf,
             profilePicture: registerDto.profilePicture,
             ladvUploaded: registerDto.ladvUploaded,
+            birthDate: registerDto.birthDate,
+            motherName: registerDto.motherName,
+            ufDomicile: registerDto.ufDomicile,
+            intendedCategory: registerDto.intendedCategory,
           },
           include: { paymentMethods: true },
         });
@@ -90,12 +96,23 @@ export class AuthService {
             cnhExpiry: registerDto.cnhExpiry,
             cnhEar: registerDto.cnhEar,
             certidaoNegativa: registerDto.certidaoNegativa,
+            birthDate: registerDto.birthDate,
+            educationLevel: registerDto.educationLevel,
+            renachNumber: registerDto.renachNumber,
+            vehicles: (registerDto.vehiclePlate && registerDto.vehicleModel) ? {
+              create: {
+                plate: registerDto.vehiclePlate,
+                model: registerDto.vehicleModel,
+                year: registerDto.vehicleYear,
+                transmission: registerDto.transmission,
+              }
+            } : undefined,
           },
           include: { availabilities: true, busySlots: true, vehicles: true },
         });
       }
-    } catch (e: any) {
-      if (e.code === 'P2002') {
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
         throw new BadRequestException('E-mail já está em uso.');
       }
       throw e;
@@ -104,7 +121,8 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role };
     const access_token = await this.jwtService.signAsync(payload);
 
-    const { password, ...userWithoutPassword } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...userWithoutPassword } = user;
 
     return {
       access_token,

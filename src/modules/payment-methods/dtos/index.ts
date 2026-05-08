@@ -19,7 +19,9 @@ export class CreatePaymentMethodDto {
   @Length(2, 60)
   cardholderName: string;
 
-  @Matches(/^(0[1-9]|1[0-2])$/, { message: 'Mês de expiração inválido (01-12)' })
+  @Matches(/^(0[1-9]|1[0-2])$/, {
+    message: 'Mês de expiração inválido (01-12)',
+  })
   expiryMonth: string;
 
   @Matches(/^\d{4}$/, { message: 'Ano de expiração inválido (YYYY)' })

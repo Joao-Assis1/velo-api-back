@@ -31,7 +31,9 @@ export class PaymentsService {
     });
 
     if (!pm || pm.studentId !== dto.studentId || pm.isDeleted) {
-      throw new BadRequestException('Método de pagamento inválido ou não pertencente ao aluno');
+      throw new BadRequestException(
+        'Método de pagamento inválido ou não pertencente ao aluno',
+      );
     }
 
     // Criar o pagamento (Simulando sucesso imediato no MVP)

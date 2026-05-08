@@ -1,8 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { randomUUID } from 'crypto';
+
+interface AuthResBody {
+  user: { id: string };
+}
+
+interface IdResBody {
+  id: string;
+}
 
 describe('Student flow (e2e)', () => {
   let app: INestApplication;
@@ -51,7 +60,7 @@ describe('Student flow (e2e)', () => {
       }),
     );
 
-    studentId = studentResponse.body.user.id;
+    studentId = (studentResponse.body as AuthResBody).user.id;
 
     const instructorResponse = await request(app.getHttpServer())
       .post(`${prefix}/auth/register/instructor`)
@@ -73,7 +82,7 @@ describe('Student flow (e2e)', () => {
       }),
     );
 
-    instructorId = instructorResponse.body.user.id;
+    instructorId = (instructorResponse.body as AuthResBody).user.id;
   });
 
   it('should create a lesson for the student and verify it is persisted', async () => {
@@ -103,7 +112,7 @@ describe('Student flow (e2e)', () => {
       }),
     );
 
-    lessonId = lessonResponse.body.id;
+    lessonId = (lessonResponse.body as IdResBody).id;
 
     const lessonListResponse = await request(app.getHttpServer())
       .get(`${prefix}/lessons`)

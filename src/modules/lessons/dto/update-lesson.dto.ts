@@ -4,4 +4,8 @@ export class UpdateLessonDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @IsString()
+  @IsOptional()
+  integrityHash?: string;
 }
