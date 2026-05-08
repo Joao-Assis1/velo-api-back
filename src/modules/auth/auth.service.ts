@@ -6,8 +6,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Student, Instructor } from '@prisma/client';
 
 @Injectable()
@@ -128,5 +131,95 @@ export class AuthService {
       access_token,
       user: userWithoutPassword,
     };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; token?: string }> {
+    const message = 'Se esse e-mail estiver cadastrado, você receberá um link em breve.';
+
+    let userId: string | null = null;
+    let userRole: 'student' | 'instructor' | null = null;
+
+    const student = await this.prisma.student.findUnique({ where: { email: dto.email } });
+    if (student) {
+      userId = student.id;
+      userRole = 'student';
+    } else {
+      const instructor = await this.prisma.instructor.findUnique({ where: { email: dto.email } });
+      if (instructor) {
+        userId = instructor.id;
+        userRole = 'instructor';
+      }
+    }
+
+    if (!userId || !userRole) {
+      return { message };
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3_600_000); // 1h
+
+    if (userRole === 'student') {
+      await this.prisma.student.update({
+        where: { id: userId },
+        data: { passwordResetToken: token, passwordResetExpires: expires },
+      });
+    } else {
+      await this.prisma.instructor.update({
+        where: { id: userId },
+        data: { passwordResetToken: token, passwordResetExpires: expires },
+      });
+    }
+
+    return { message, token };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    const errorMessage = 'Token inválido ou expirado.';
+
+    let userId: string | null = null;
+    let userRole: 'student' | 'instructor' | null = null;
+    let resetExpires: Date | null = null;
+
+    const student = await this.prisma.student.findFirst({
+      where: { passwordResetToken: dto.token },
+    });
+    if (student) {
+      userId = student.id;
+      userRole = 'student';
+      resetExpires = student.passwordResetExpires;
+    } else {
+      const instructor = await this.prisma.instructor.findFirst({
+        where: { passwordResetToken: dto.token },
+      });
+      if (instructor) {
+        userId = instructor.id;
+        userRole = 'instructor';
+        resetExpires = instructor.passwordResetExpires;
+      }
+    }
+
+    if (!userId || !userRole) {
+      throw new BadRequestException(errorMessage);
+    }
+
+    if (!resetExpires || resetExpires < new Date()) {
+      throw new BadRequestException(errorMessage);
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+
+    if (userRole === 'student') {
+      await this.prisma.student.update({
+        where: { id: userId },
+        data: { password: hashedPassword, passwordResetToken: null, passwordResetExpires: null },
+      });
+    } else {
+      await this.prisma.instructor.update({
+        where: { id: userId },
+        data: { password: hashedPassword, passwordResetToken: null, passwordResetExpires: null },
+      });
+    }
+
+    return { message: 'Senha redefinida com sucesso.' };
   }
 }
