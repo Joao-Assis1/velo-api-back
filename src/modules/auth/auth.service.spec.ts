@@ -81,6 +81,19 @@ describe('AuthService', () => {
 
       expect(mockPrisma.student.update).toHaveBeenCalledTimes(2);
     });
+
+    it('should generate token and update instructor when email found', async () => {
+      mockPrisma.student.findUnique.mockResolvedValue(null);
+      mockPrisma.instructor.findUnique.mockResolvedValue({ id: 'instructor-1', email: 'instrutor@test.com' });
+      mockPrisma.instructor.update.mockResolvedValue({});
+
+      const result = await service.forgotPassword({ email: 'instrutor@test.com' });
+
+      expect(result.token).toHaveLength(64);
+      expect(mockPrisma.instructor.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'instructor-1' } }),
+      );
+    });
   });
 
   describe('resetPassword', () => {
@@ -90,19 +103,16 @@ describe('AuthService', () => {
 
       await expect(
         service.resetPassword({ token: 'invalid-token', newPassword: 'newpass123' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(new BadRequestException('Token inválido ou expirado.'));
     });
 
     it('should throw 400 when token is expired', async () => {
-      mockPrisma.student.findFirst.mockResolvedValue({
-        id: 'student-1',
-        passwordResetToken: 'valid-token',
-        passwordResetExpires: new Date(Date.now() - 1000), // expired
-      });
+      mockPrisma.student.findFirst.mockResolvedValue(null);
+      mockPrisma.instructor.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.resetPassword({ token: 'valid-token', newPassword: 'newpass123' }),
-      ).rejects.toThrow(BadRequestException);
+        service.resetPassword({ token: 'expired-token', newPassword: 'newpass123' }),
+      ).rejects.toThrow(new BadRequestException('Token inválido ou expirado.'));
     });
 
     it('should update password and clear reset fields on success', async () => {
@@ -123,6 +133,26 @@ describe('AuthService', () => {
             passwordResetToken: null,
             passwordResetExpires: null,
           }),
+        }),
+      );
+    });
+
+    it('should update instructor password on success', async () => {
+      mockPrisma.student.findFirst.mockResolvedValue(null);
+      mockPrisma.instructor.findFirst.mockResolvedValue({
+        id: 'instructor-1',
+        passwordResetToken: 'valid-token',
+        passwordResetExpires: new Date(Date.now() + 3_600_000),
+      });
+      mockPrisma.instructor.update.mockResolvedValue({});
+
+      const result = await service.resetPassword({ token: 'valid-token', newPassword: 'newpass123' });
+
+      expect(result.message).toBe('Senha redefinida com sucesso.');
+      expect(mockPrisma.instructor.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'instructor-1' },
+          data: expect.objectContaining({ passwordResetToken: null, passwordResetExpires: null }),
         }),
       );
     });

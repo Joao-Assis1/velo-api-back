@@ -170,7 +170,10 @@ export class AuthService {
       });
     }
 
-    return { message, token };
+    return {
+      message,
+      ...(process.env.NODE_ENV !== 'production' && { token }),
+    };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
@@ -178,31 +181,30 @@ export class AuthService {
 
     let userId: string | null = null;
     let userRole: 'student' | 'instructor' | null = null;
-    let resetExpires: Date | null = null;
 
     const student = await this.prisma.student.findFirst({
-      where: { passwordResetToken: dto.token },
+      where: {
+        passwordResetToken: dto.token.trim(),
+        passwordResetExpires: { gt: new Date() },
+      },
     });
     if (student) {
       userId = student.id;
       userRole = 'student';
-      resetExpires = student.passwordResetExpires;
     } else {
       const instructor = await this.prisma.instructor.findFirst({
-        where: { passwordResetToken: dto.token },
+        where: {
+          passwordResetToken: dto.token.trim(),
+          passwordResetExpires: { gt: new Date() },
+        },
       });
       if (instructor) {
         userId = instructor.id;
         userRole = 'instructor';
-        resetExpires = instructor.passwordResetExpires;
       }
     }
 
     if (!userId || !userRole) {
-      throw new BadRequestException(errorMessage);
-    }
-
-    if (!resetExpires || resetExpires < new Date()) {
       throw new BadRequestException(errorMessage);
     }
 
