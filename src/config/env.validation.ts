@@ -14,6 +14,22 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   NODE_ENV?: string;
+
+  @IsOptional()
+  @IsString()
+  ASAAS_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  ASAAS_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  ASAAS_WEBHOOK_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  PLATFORM_FEE_PERCENT?: string;
 }
 
 export function validate(config: Record<string, unknown>) {
