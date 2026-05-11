@@ -46,6 +46,11 @@ export class LessonsController {
     return this.lessonsService.checkOut(id);
   }
 
+  @Patch(':id/cancel')
+  cancelLesson(@Param('id') id: string) {
+    return this.lessonsService.cancelLesson(id);
+  }
+
   @Patch(':id/feedback-instructor')
   giveInstructorFeedback(
     @Param('id') id: string,

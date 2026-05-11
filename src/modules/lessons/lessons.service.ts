@@ -163,6 +163,23 @@ export class LessonsService {
     });
   }
 
+  async cancelLesson(id: string): Promise<Lesson> {
+    const lesson = await this.prisma.lesson.findUnique({ where: { id } });
+    if (!lesson) {
+      throw new BadRequestException('Lesson not found');
+    }
+    if (lesson.status === 'in-progress') {
+      throw new BadRequestException('Cannot cancel a lesson that is in progress');
+    }
+    if (lesson.status === 'completed' || lesson.status === 'cancelled') {
+      throw new BadRequestException(`Cannot cancel a lesson with status "${lesson.status}"`);
+    }
+    return this.prisma.lesson.update({
+      where: { id },
+      data: { status: 'cancelled' },
+    });
+  }
+
   async giveInstructorFeedback(id: string, feedback: string): Promise<Lesson> {
     return this.prisma.lesson.update({
       where: { id },
