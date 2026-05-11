@@ -62,6 +62,7 @@ npm run jwt-key          # gera novo JWT secret
 
 ## Regras Importantes
 
+- **Novas funcionalidades:** SEMPRE iniciar com `/tlc-spec-driven` antes de escrever qualquer codigo — gera spec, tasks e plano de implementacao
 - **LADV OCR:** Tesseract.js exige keywords de CNH com >50% de confianca para aprovar aluno
 - **Biometria 3 pontos:** check-in GPS obrigatorio no inicio, meio e fim da aula dentro de 50 m (Haversine em `common/utils/geo.utils.ts`)
 - **Hash de integridade:** telemetria selada com SHA-256 via Shield service; hash imutavel apos disputa aberta
@@ -79,6 +80,29 @@ Validadas no startup via `src/config/env.validation.ts`:
 | `ASAAS_API_KEY` | Credenciais do gateway de pagamento |
 | `PORT` | Opcional; padrao: 3001 |
 
+## Dados de Seed (prisma/seed.ts)
+
+Executar com `npx prisma db seed`. Cria os seguintes registros de teste (senha padrao: `123456`):
+
+| Tipo | Nome | Email |
+|------|------|-------|
+| Student | Gabriel Silva | gabriel@email.com |
+| Student | Maria Oliveira | maria@email.com |
+| Instructor | Roberto Souza | roberto@email.com |
+
+- **Veiculo:** Hyundai HB20 2023, placa ABC-1234, manual — vinculado ao Roberto
+- **Disponibilidade:** seg–sex 08:00–18:00
+- **Aulas:** 1 upcoming (2026-04-15 14h) + 1 completed com feedback (2026-04-10 09h)
+
+## Sessao 2026-05-09 — Reset e Seed do Banco
+
+**Estado atual do banco (Neon `velo-api`, `winter-frost-18826420`):**
+- Todas as 13 tabelas da app (`public` schema) foram truncadas via MCP com `TRUNCATE ... CASCADE`
+- `_prisma_migrations` e schema `neon_auth` preservados
+- Banco repopulado com `npx prisma db seed`
+
+**Branch ativa:** `feat/telemetry-compliance` com alteracoes nao commitadas no modulo `compliance/` (novos arquivos: `compliance.controller.ts`, `compliance.service.ts`, `compliance.service.spec.ts`, `dto/`) e modificacoes em `lessons.controller.ts`, `lessons.service.ts`, `compliance.module.ts`.
+
 ---
 
-Ultima atualizacao: 2026-05-08
+Ultima atualizacao: 2026-05-09

@@ -47,7 +47,10 @@ prisma/seed.ts
 .gemini/
 .gemini_security/
 GEMINI.md
-
+CLAUDE.md
+.claude/
+tsconfig.tsbuildinfo
+doc
 # Uploads
 uploads/
 !uploads/.gitkeep
