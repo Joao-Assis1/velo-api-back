@@ -1,8 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Query,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LessonsService } from './lessons.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
+import { RegisterBiometryDto } from './dto/register-biometry.dto';
 
 @ApiTags('lessons')
 @Controller('lessons')
@@ -37,6 +46,11 @@ export class LessonsController {
     return this.lessonsService.checkOut(id);
   }
 
+  @Patch(':id/cancel')
+  cancelLesson(@Param('id') id: string) {
+    return this.lessonsService.cancelLesson(id);
+  }
+
   @Patch(':id/feedback-instructor')
   giveInstructorFeedback(
     @Param('id') id: string,
@@ -52,5 +66,16 @@ export class LessonsController {
     @Body('text') text: string,
   ) {
     return this.lessonsService.giveStudentFeedback(id, rating, text);
+  }
+
+  @Post(':id/biometry')
+  @ApiOperation({ summary: 'Registrar validação biométrica com geofencing' })
+  @ApiResponse({ status: 201, description: 'Biometria registrada com sucesso' })
+  @ApiResponse({ status: 403, description: 'Fora do raio de 50m (Geofencing)' })
+  registerBiometry(
+    @Param('id') id: string,
+    @Body() registerBiometryDto: RegisterBiometryDto,
+  ) {
+    return this.lessonsService.registerBiometry(id, registerBiometryDto);
   }
 }

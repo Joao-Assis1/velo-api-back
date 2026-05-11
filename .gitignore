@@ -5,6 +5,34 @@ dist
 .env.*
 !.env.example
 .DS_Store
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# OS
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Project specific
 tlc-spec-driven
 .specs
 /generated/prisma
@@ -13,5 +41,16 @@ API_DATA_FLOW.md
 Design-System-Velo.drawio
 DESIGN_SYSTEM_SPEC.md
 .agent
+.agents
 prisma/seed.ts
 .agents/workflows
+.gemini/
+.gemini_security/
+GEMINI.md
+CLAUDE.md
+.claude/
+tsconfig.tsbuildinfo
+doc
+# Uploads
+uploads/
+!uploads/.gitkeep

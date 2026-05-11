@@ -78,4 +78,40 @@ export class RegisterDto {
   @IsString()
   @IsOptional()
   certidaoNegativa?: string;
+
+  @IsString()
+  @IsOptional()
+  birthDate?: string;
+
+  @IsString()
+  @IsOptional()
+  motherName?: string;
+
+  @IsString()
+  @IsOptional()
+  ufDomicile?: string;
+
+  @IsString()
+  @IsOptional()
+  intendedCategory?: string;
+
+  @IsString()
+  @IsOptional()
+  educationLevel?: string;
+
+  @IsString()
+  @IsOptional()
+  renachNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  vehiclePlate?: string;
+
+  @IsString()
+  @IsOptional()
+  vehicleYear?: string;
+
+  @IsString()
+  @IsOptional()
+  transmission?: string;
 }

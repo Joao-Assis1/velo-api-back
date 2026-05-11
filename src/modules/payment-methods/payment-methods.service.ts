@@ -28,19 +28,25 @@ export class PaymentMethodsService {
   private validateExpiration(month: string, year: string) {
     const now = new Date();
     const expDate = new Date(parseInt(year), parseInt(month), 0);
-    if (expDate < now && (now.getMonth() + 1 !== parseInt(month) || now.getFullYear() !== parseInt(year))) {
-       if (expDate < now) throw new BadRequestException('Cartão expirado');
+    if (
+      expDate < now &&
+      (now.getMonth() + 1 !== parseInt(month) ||
+        now.getFullYear() !== parseInt(year))
+    ) {
+      if (expDate < now) throw new BadRequestException('Cartão expirado');
     }
   }
 
   async create(dto: CreatePaymentMethodDto) {
-    const isTestCard = 
-      dto.cardNumber === '1'.repeat(16) || 
-      dto.cardNumber === '4'.repeat(16) || 
+    const isTestCard =
+      dto.cardNumber === '1'.repeat(16) ||
+      dto.cardNumber === '4'.repeat(16) ||
       dto.cardNumber.startsWith('4242');
 
     if (!isTestCard && !this.luhnCheck(dto.cardNumber)) {
-      throw new BadRequestException('Número de cartão inválido (Luhn check failed)');
+      throw new BadRequestException(
+        'Número de cartão inválido (Luhn check failed)',
+      );
     }
 
     this.validateExpiration(dto.expiryMonth, dto.expiryYear);
@@ -51,7 +57,9 @@ export class PaymentMethodsService {
     });
 
     if (!student) {
-      throw new NotFoundException('Aluno não encontrado. Verifique se sua conta é de Aluno.');
+      throw new NotFoundException(
+        'Aluno não encontrado. Verifique se sua conta é de Aluno.',
+      );
     }
 
     const token = `tok_${randomUUID().replace(/-/g, '')}`;
@@ -83,7 +91,9 @@ export class PaymentMethodsService {
     });
 
     if (!pm) {
-      throw new NotFoundException('Cartão não encontrado ou não pertence a este aluno');
+      throw new NotFoundException(
+        'Cartão não encontrado ou não pertence a este aluno',
+      );
     }
 
     await this.prisma.paymentMethod.updateMany({
@@ -103,7 +113,9 @@ export class PaymentMethodsService {
     });
 
     if (!pm) {
-      throw new NotFoundException('Cartão não encontrado ou não pertence a este aluno');
+      throw new NotFoundException(
+        'Cartão não encontrado ou não pertence a este aluno',
+      );
     }
 
     return this.prisma.paymentMethod.update({

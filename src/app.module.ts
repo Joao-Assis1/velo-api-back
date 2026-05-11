@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { validate } from './config/env.validation';
 import { HealthModule } from './modules/health/health.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
@@ -12,6 +13,9 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BusySlotsModule } from './modules/busy-slots/busy-slots.module';
 import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
+import { TelemetriaModule } from './modules/telemetria/telemetria.module';
+import { ComplianceModule } from './modules/compliance/compliance.module';
+import { AcademyModule } from './modules/academy/academy.module';
 
 @Module({
   imports: [
@@ -19,6 +23,7 @@ import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.
       isGlobal: true,
       validate,
     }),
+    ScheduleModule.forRoot(),
     HealthModule,
     PrismaModule,
     StudentsModule,
@@ -30,6 +35,9 @@ import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.
     AuthModule,
     BusySlotsModule,
     PaymentMethodsModule,
+    TelemetriaModule,
+    ComplianceModule,
+    AcademyModule,
   ],
 })
 export class AppModule {}

@@ -9,20 +9,24 @@ import { map } from 'rxjs/operators';
 import { ApiResponse } from '../interfaces/api-response.interface';
 
 @Injectable()
-export class ResponseInterceptor<T>
-  implements NestInterceptor<T, ApiResponse<T>>
-{
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  ApiResponse<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
-      map((data) => ({
-        success: true,
-        message: 'Operação realizada com sucesso',
-        data: data || null,
-        timestamp: new Date().toISOString(),
-      })),
+      map((data: T) => {
+        const response: ApiResponse<T> = {
+          success: true,
+          message: 'Operação realizada com sucesso',
+          data: (data ?? null) as any,
+          timestamp: new Date().toISOString(),
+        };
+        return response;
+      }),
     );
   }
 }

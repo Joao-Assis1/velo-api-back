@@ -1,58 +1,30 @@
-# VELO-api
+# Velo API - Sistema de Gestão de Autoescolas
 
-Setup inicial da API em NestJS com padronização em MVP (Model-View-Presenter), focado em organização por módulo e evolução para produção.
+Bem-vindo à documentação oficial da **Velo API**. Este projeto foi desenvolvido para modernizar o processo de aprendizagem em autoescolas, garantindo segurança jurídica e conformidade com as resoluções do CONTRAN.
 
-## Stack
+## 🚀 Tecnologias Utilizadas
+- **Framework**: NestJS (Node.js)
+- **Banco de Dados**: PostgreSQL (Hospedado na Neon DB)
+- **ORM**: Prisma
+- **Processamento de Imagem**: Tesseract.js (OCR de LADV)
+- **Pagamentos**: Asaas (Escrow e Webhooks)
+- **Segurança**: SHA-256 para integridade de telemetria
 
-- NestJS 11
-- TypeScript
-- Configuração global com `@nestjs/config`
-- Validação global com `class-validator` e `class-transformer`
+## 📚 Estrutura da Documentação
+1. [Arquitetura do Sistema](./docs/architecture.md) - Visão técnica e decisões de design.
+2. [Referência da API](./docs/api-reference.md) - Endpoints, parâmetros e retornos.
+3. [Regras de Negócio e Compliance](./docs/business-logic.md) - Detalhes sobre CONTRAN 1.020/2025.
+4. [Modelo de Dados](./docs/database.md) - Entidades e relacionamentos do banco de dados.
 
-## Estrutura base (MVP)
-
-```text
-src/
-  common/
-    interfaces/
-      api-response.interface.ts
-  config/
-    env.validation.ts
-  modules/
-    health/
-      application/
-        get-health.use-case.ts
-      domain/
-        health-status.model.ts
-      presentation/
-        health.controller.ts
-        health.presenter.ts
-      health.module.ts
-  app.module.ts
-  main.ts
-```
-
-## Como rodar
-
+## 🛠️ Como Iniciar
 ```bash
+# Instalar dependências
 npm install
+
+# Configurar o banco de dados
+npx prisma generate
+npx prisma db push
+
+# Rodar o projeto
 npm run start:dev
 ```
-
-API disponível em:
-
-- `GET /api/v1/health`
-
-## Scripts
-
-- `npm run start:dev` → desenvolvimento com watch
-- `npm run build` → build de produção
-- `npm run test` → testes unitários
-- `npm run test:e2e` → testes end-to-end
-
-## Próximos passos sugeridos
-
-1. Criar módulos de negócio em `src/modules/*` seguindo o mesmo padrão MVP.
-2. Adicionar DTOs e validações por endpoint.
-3. Integrar banco de dados (Prisma/TypeORM).
-4. Adicionar autenticação (JWT + Guards).

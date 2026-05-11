@@ -1,12 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
+import { Availability } from '@prisma/client';
+
+interface AvailabilityInput {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isEnabled?: boolean;
+}
 
 @Injectable()
 export class AvailabilityService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createAvailabilityDto: CreateAvailabilityDto) {
+  async create(
+    createAvailabilityDto: CreateAvailabilityDto,
+  ): Promise<Availability> {
     return this.prisma.availability.create({
       data: {
         dayOfWeek: createAvailabilityDto.dayOfWeek,
@@ -20,8 +30,8 @@ export class AvailabilityService {
 
   async replaceInstructorAvailability(
     instructorId: string,
-    availabilities: any[],
-  ) {
+    availabilities: AvailabilityInput[],
+  ): Promise<Availability[]> {
     return this.prisma.$transaction(async (tx) => {
       await tx.availability.deleteMany({
         where: { instructorId },
@@ -43,7 +53,7 @@ export class AvailabilityService {
     });
   }
 
-  async findAll(instructorId?: string) {
+  async findAll(instructorId?: string): Promise<Availability[]> {
     if (instructorId) {
       return this.prisma.availability.findMany({
         where: { instructorId },

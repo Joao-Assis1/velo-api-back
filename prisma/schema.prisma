@@ -20,9 +20,47 @@ model Student {
   ladv_document_url String?
   ladv_validation_date DateTime?
   termsAcceptedAt DateTime?
+  birthDate       String?
+  motherName      String?
+  ufDomicile      String?
+  intendedCategory String?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
   lessons         Lesson[]
   payments        Payment[]
   paymentMethods  PaymentMethod[]
+  checklist       StudentChecklist?
+  simulados       StudentSimuladoHistory[]
+}
+
+model Question {
+  id        String   @id @default(uuid())
+  text      String
+  category  String   // Legislacao, Direcao Defensiva, Primeiros Socorros, Meio Ambiente, Mecanica
+  options   String[] // Array of strings
+  correct   Int      // Index of correct option
+  createdAt DateTime @default(now())
+}
+
+model StudentSimuladoHistory {
+  id          String   @id @default(uuid())
+  studentId   String
+  score       Int      // 0-30
+  passed      Boolean
+  startedAt   DateTime
+  submittedAt DateTime
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model StudentChecklist {
+  id              String   @id @default(uuid())
+  studentId       String   @unique
+  medico          Boolean  @default(false)
+  psicotecnico    Boolean  @default(false)
+  teorico         Boolean  @default(false)
+  pratico         Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model Instructor {
@@ -47,6 +85,12 @@ model Instructor {
   cnhExpiry       String?
   cnhEar          Boolean        @default(false)
   certidaoNegativa String?
+  birthDate       String?
+  educationLevel  String?
+  renachNumber    String?
+  isActive        Boolean        @default(true)
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
   availabilities  Availability[]
   lessons         Lesson[]
   vehicles        Vehicle[]
@@ -92,13 +136,13 @@ model BusySlot {
 }
 
 model Lesson {
-  id                    String     @id @default(uuid())
+  id                    String            @id @default(uuid())
   studentId             String
   instructorId          String
   vehicleId             String?
   startTime             String
   endTime               String
-  status                String     @default("upcoming")
+  status                String            @default("upcoming")
   checkInTime           DateTime?
   checkOutTime          DateTime?
   date                  DateTime
@@ -107,12 +151,56 @@ model Lesson {
   price                 Float?
   studentFeedbackRating Int?
   studentFeedbackText   String?
-  instructor            Instructor @relation(fields: [instructorId], references: [id])
-  student               Student    @relation(fields: [studentId], references: [id])
-  vehicle               Vehicle?   @relation(fields: [vehicleId], references: [id])
+  integrityHash         String?           // Hash de integridade (Escudo)
+  
+  // Rastreamento de Biometria em 3 Tempos
+  biometryStartStatus   String?           // PENDING, SUCCESS, FAILED
+  biometryStartAt       DateTime?
+  biometryMidStatus     String?
+  biometryMidAt         DateTime?
+  biometryEndStatus     String?
+  biometryEndAt         DateTime?
+
+  // Financeiro e Disputas
+  paymentReleased       Boolean           @default(false)
+  disputeOpened         Boolean           @default(false)
+  disputeReason         String?
+
+  instructor            Instructor        @relation(fields: [instructorId], references: [id])
+  student               Student           @relation(fields: [studentId], references: [id])
+  vehicle               Vehicle?          @relation(fields: [vehicleId], references: [id])
   payment               Payment?
+  telemetry             LessonTelemetry[] // Relacionamento com Telemetria
+  events                LessonEvent[]     // Eventos de orientação (Navegador)
 
   @@unique([instructorId, date, startTime], name: "unique_booking_slot")
+}
+
+model LessonTelemetry {
+  id        String   @id @default(uuid())
+  lessonId  String
+  timestamp DateTime @default(now())
+  lat       Float
+  lng       Float
+  velocity  Float    @default(0)
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
+  @@index([timestamp])
+}
+
+model LessonEvent {
+  id        String   @id @default(uuid())
+  lessonId  String
+  type      String   // SPEED_LIMIT, HARSH_BRAKING, ROUTE_DEVIATION, ENGINE_ON, ENGINE_OFF
+  message   String
+  lat       Float
+  lng       Float
+  timestamp DateTime @default(now())
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
+  @@index([type])
 }
 
 model PaymentMethod {
@@ -140,6 +228,7 @@ model Payment {
   studentId       String
   lessonId        String?        @unique
   paymentMethodId String?
+  asaasId         String?        @unique // ID externo do Asaas
   lesson          Lesson?        @relation(fields: [lessonId], references: [id])
   student         Student        @relation(fields: [studentId], references: [id])
   paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
