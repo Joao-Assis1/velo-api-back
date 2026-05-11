@@ -26,6 +26,7 @@ model Student {
   intendedCategory String?
   passwordResetToken   String?
   passwordResetExpires DateTime?
+  asaasCustomerId String?   @unique
   lessons         Lesson[]
   payments        Payment[]
   paymentMethods  PaymentMethod[]
@@ -91,6 +92,10 @@ model Instructor {
   isActive        Boolean        @default(true)
   passwordResetToken   String?
   passwordResetExpires DateTime?
+  pixKey          String?
+  bankCode        String?
+  bankAgency      String?
+  bankAccount     String?
   availabilities  Availability[]
   lessons         Lesson[]
   vehicles        Vehicle[]
@@ -229,6 +234,8 @@ model Payment {
   lessonId        String?        @unique
   paymentMethodId String?
   asaasId         String?        @unique // ID externo do Asaas
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   lesson          Lesson?        @relation(fields: [lessonId], references: [id])
   student         Student        @relation(fields: [studentId], references: [id])
   paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
