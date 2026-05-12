@@ -20,8 +20,8 @@ export class CreateStudentDto {
   phone?: string;
 
   @IsString()
-  @IsOptional()
-  cpf?: string;
+  @IsNotEmpty()
+  cpf: string;
 
   @IsString()
   @IsOptional()

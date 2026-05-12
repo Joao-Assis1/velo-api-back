@@ -76,7 +76,7 @@ export class AuthService {
             name: registerDto.name,
             password: hashedPassword,
             phone: registerDto.phone,
-            cpf: registerDto.cpf,
+            cpf: registerDto.cpf!,
             profilePicture: registerDto.profilePicture,
             ladvUploaded: registerDto.ladvUploaded,
             birthDate: registerDto.birthDate,

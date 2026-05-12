@@ -51,6 +51,8 @@ CLAUDE.md
 .claude/
 tsconfig.tsbuildinfo
 doc
+.tlc/specs
 # Uploads
 uploads/
 !uploads/.gitkeep
+doc/VELO_ESTRATEGIA_NEGOCIO_V2.md
