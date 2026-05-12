@@ -2,9 +2,11 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { AsaasService } from '../payments/asaas.service';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { LoginDto } from './dto/login.dto';
@@ -15,9 +17,12 @@ import { Student, Instructor } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly asaasService: AsaasService,
   ) {}
 
   async login(loginDto: LoginDto, role: 'student' | 'instructor') {
@@ -119,6 +124,23 @@ export class AuthService {
         throw new BadRequestException('E-mail já está em uso.');
       }
       throw e;
+    }
+
+    if (role === 'student') {
+      try {
+        const customer = await this.asaasService.createCustomer({
+          name: user.name,
+          email: user.email,
+          cpfCnpj: (user as Student).cpf ?? undefined,
+          phone: (user as Student).phone ?? undefined,
+        });
+        await this.prisma.student.update({
+          where: { id: user.id },
+          data: { asaasCustomerId: customer.id },
+        });
+      } catch (err) {
+        this.logger.error(`Failed to create ASAAS customer for student ${user.id}: ${err}`);
+      }
     }
 
     const payload = { sub: user.id, email: user.email, role };

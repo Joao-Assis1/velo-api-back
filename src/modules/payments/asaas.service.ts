@@ -87,9 +87,16 @@ export class AsaasService {
 
   async refundCharge(
     asaasId: string,
+    value?: number,
   ): Promise<{ id: string; status: string; [key: string]: any }> {
-    this.logger.log(`Refunding charge: ${asaasId}`);
-    return this.request('POST', `/payments/${asaasId}/refund`);
+    this.logger.log(
+      `Refunding charge: ${asaasId}${value !== undefined ? ` (partial: R$${value.toFixed(2)})` : ' (full)'}`,
+    );
+    return this.request(
+      'POST',
+      `/payments/${asaasId}/refund`,
+      value !== undefined ? { value } : undefined,
+    );
   }
 
   async createTransfer(
@@ -99,9 +106,4 @@ export class AsaasService {
     return this.request('POST', '/transfers', dto);
   }
 
-  async handleWebhook(body: any) {
-    const { event, payment } = body;
-    this.logger.log(`Received Asaas Webhook: ${event} for payment ${payment.id}`);
-    return { success: true };
-  }
 }

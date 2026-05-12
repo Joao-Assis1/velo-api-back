@@ -106,3 +106,5 @@ Executar com `npx prisma db seed`. Cria os seguintes registros de teste (senha p
 ---
 
 Ultima atualizacao: 2026-05-09
+
+@~/.claude/RTK.md

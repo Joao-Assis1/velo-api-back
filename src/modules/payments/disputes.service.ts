@@ -1,9 +1,18 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AsaasService } from './asaas.service';
 
 @Injectable()
 export class DisputesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private asaasService: AsaasService,
+  ) {}
 
   async openDispute(lessonId: string, reason: string) {
     const lesson = await this.prisma.lesson.findUnique({
@@ -15,7 +24,9 @@ export class DisputesService {
     }
 
     if (lesson.status !== 'completed') {
-      throw new BadRequestException('Dispute can only be opened for completed lessons');
+      throw new BadRequestException(
+        'Dispute can only be opened for completed lessons',
+      );
     }
 
     // C-018: 48h limit
@@ -25,7 +36,9 @@ export class DisputesService {
       const diffMs = now.getTime() - checkOutTime.getTime();
       const diffHours = diffMs / (1000 * 60 * 60);
       if (diffHours > 48) {
-        throw new ForbiddenException('Dispute window expired (max 48h after checkout)');
+        throw new ForbiddenException(
+          'Dispute window expired (max 48h after checkout)',
+        );
       }
     }
 
@@ -34,12 +47,26 @@ export class DisputesService {
       data: {
         disputeOpened: true,
         disputeReason: reason,
-        paymentReleased: false, // Bloquear fundos
+        paymentReleased: false,
       },
     });
   }
 
   async resolveDispute(lessonId: string, released: boolean) {
+    if (!released) {
+      const payment = await this.prisma.payment.findFirst({
+        where: { lessonId },
+      });
+
+      if (payment?.asaasId && payment.status !== 'REFUNDED') {
+        await this.asaasService.refundCharge(payment.asaasId);
+        await this.prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'REFUNDED' },
+        });
+      }
+    }
+
     return this.prisma.lesson.update({
       where: { id: lessonId },
       data: {

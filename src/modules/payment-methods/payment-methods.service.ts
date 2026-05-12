@@ -2,14 +2,21 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AsaasService } from '../payments/asaas.service';
 import { CreatePaymentMethodDto } from './dtos';
 import { randomUUID } from 'crypto';
 
 @Injectable()
 export class PaymentMethodsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(PaymentMethodsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private asaasService: AsaasService,
+  ) {}
 
   private luhnCheck(cardNumber: string): boolean {
     let sum = 0;
@@ -37,13 +44,16 @@ export class PaymentMethodsService {
     }
   }
 
-  async create(dto: CreatePaymentMethodDto) {
-    const isTestCard =
-      dto.cardNumber === '1'.repeat(16) ||
-      dto.cardNumber === '4'.repeat(16) ||
-      dto.cardNumber.startsWith('4242');
+  private isTestCard(cardNumber: string): boolean {
+    return (
+      cardNumber === '1'.repeat(16) ||
+      cardNumber === '4'.repeat(16) ||
+      cardNumber.startsWith('4242')
+    );
+  }
 
-    if (!isTestCard && !this.luhnCheck(dto.cardNumber)) {
+  async create(dto: CreatePaymentMethodDto) {
+    if (!this.isTestCard(dto.cardNumber) && !this.luhnCheck(dto.cardNumber)) {
       throw new BadRequestException(
         'Número de cartão inválido (Luhn check failed)',
       );
@@ -51,7 +61,6 @@ export class PaymentMethodsService {
 
     this.validateExpiration(dto.expiryMonth, dto.expiryYear);
 
-    // No esquema atual, Student ID é a identidade primária
     const student = await this.prisma.student.findUnique({
       where: { id: dto.studentId },
     });
@@ -62,7 +71,54 @@ export class PaymentMethodsService {
       );
     }
 
-    const token = `tok_${randomUUID().replace(/-/g, '')}`;
+    let token: string;
+
+    if (this.isTestCard(dto.cardNumber)) {
+      token = `tok_test_${randomUUID().replace(/-/g, '')}`;
+    } else {
+      let asaasCustomerId = student.asaasCustomerId;
+
+      if (!asaasCustomerId) {
+        try {
+          const customer = await this.asaasService.createCustomer({
+            name: student.name,
+            email: student.email,
+            cpfCnpj: student.cpf ?? undefined,
+          });
+          asaasCustomerId = customer.id;
+          await this.prisma.student.update({
+            where: { id: student.id },
+            data: { asaasCustomerId },
+          });
+        } catch (err) {
+          this.logger.error(
+            `Failed to create ASAAS customer for student ${student.id}: ${err}`,
+          );
+          throw new BadRequestException(
+            'Não foi possível vincular o cliente ao gateway de pagamento.',
+          );
+        }
+      }
+
+      const tokenResult = await this.asaasService.tokenizeCreditCard({
+        customer: asaasCustomerId,
+        creditCard: {
+          holderName: dto.cardholderName,
+          number: dto.cardNumber,
+          expiryMonth: dto.expiryMonth,
+          expiryYear: dto.expiryYear,
+          ccv: dto.cvv,
+        },
+        creditCardHolderInfo: {
+          name: student.name,
+          email: student.email,
+          cpfCnpj: student.cpf ?? '',
+        },
+      });
+
+      token = tokenResult.creditCardToken;
+    }
+
     const last4 = dto.cardNumber.slice(-4);
 
     return this.prisma.paymentMethod.create({

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { AsaasService } from '../payments/asaas.service';
 import { BadRequestException } from '@nestjs/common';
 
 const mockPrisma = {
@@ -21,6 +22,8 @@ const mockPrisma = {
 
 const mockJwt = { signAsync: jest.fn().mockResolvedValue('mock-token') };
 
+const mockAsaas = { createCustomer: jest.fn() };
+
 describe('AuthService', () => {
   let service: AuthService;
 
@@ -31,6 +34,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
+        { provide: AsaasService, useValue: mockAsaas },
       ],
     }).compile();
     service = module.get<AuthService>(AuthService);
@@ -38,6 +42,63 @@ describe('AuthService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('register (student)', () => {
+    const registerDto = {
+      email: 'aluno@test.com',
+      name: 'Aluno Test',
+      password: 'pass123',
+      phone: '11999999999',
+      cpf: '12345678901',
+      profilePicture: null,
+      ladvUploaded: false,
+      birthDate: null,
+      motherName: null,
+      ufDomicile: null,
+      intendedCategory: null,
+    };
+
+    const createdStudent = {
+      id: 'student-uuid',
+      email: 'aluno@test.com',
+      name: 'Aluno Test',
+      password: 'hashed',
+      cpf: '12345678901',
+      phone: '11999999999',
+      paymentMethods: [],
+    };
+
+    it('should call createCustomer with student data and update asaasCustomerId', async () => {
+      mockPrisma.student.create.mockResolvedValue(createdStudent);
+      mockAsaas.createCustomer.mockResolvedValue({ id: 'asaas-cust-id' });
+      mockPrisma.student.update.mockResolvedValue({});
+
+      const result = await service.register(registerDto as any, 'student');
+
+      expect(mockAsaas.createCustomer).toHaveBeenCalledWith({
+        name: createdStudent.name,
+        email: createdStudent.email,
+        cpfCnpj: createdStudent.cpf,
+        phone: createdStudent.phone,
+      });
+      expect(mockPrisma.student.update).toHaveBeenCalledWith({
+        where: { id: createdStudent.id },
+        data: { asaasCustomerId: 'asaas-cust-id' },
+      });
+      expect(result.access_token).toBe('mock-token');
+      expect(result.user).not.toHaveProperty('password');
+    });
+
+    it('should still return success when createCustomer throws', async () => {
+      mockPrisma.student.create.mockResolvedValue(createdStudent);
+      mockAsaas.createCustomer.mockRejectedValue(new Error('ASAAS unavailable'));
+
+      const result = await service.register(registerDto as any, 'student');
+
+      expect(result.access_token).toBe('mock-token');
+      expect(mockPrisma.student.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('forgotPassword', () => {

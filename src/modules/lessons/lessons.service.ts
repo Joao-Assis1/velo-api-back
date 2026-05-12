@@ -3,6 +3,7 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
@@ -11,12 +12,16 @@ import { Lesson, Prisma } from '@prisma/client';
 import { ShieldService } from '../telemetria/shield.service';
 import { RegisterBiometryDto } from './dto/register-biometry.dto';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
+import { AsaasService } from '../payments/asaas.service';
 
 @Injectable()
 export class LessonsService {
+  private readonly logger = new Logger(LessonsService.name);
+
   constructor(
     private prisma: PrismaService,
     private shield: ShieldService,
+    private asaasService: AsaasService,
   ) {}
 
   async create(createLessonDto: CreateLessonDto): Promise<Lesson> {
@@ -95,16 +100,19 @@ export class LessonsService {
         student: true,
         instructor: true,
         vehicle: true,
+        payment: { select: { status: true } },
       },
     });
   }
 
   async update(id: string, updateLessonDto: UpdateLessonDto): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
-    
+
     // C-019: Bloqueio de alteração se houver disputa aberta
     if (lesson?.disputeOpened && updateLessonDto.integrityHash) {
-      throw new ForbiddenException('Cannot modify integrity hash while a dispute is open');
+      throw new ForbiddenException(
+        'Cannot modify integrity hash while a dispute is open',
+      );
     }
 
     return this.prisma.lesson.update({
@@ -138,19 +146,9 @@ export class LessonsService {
       );
     }
 
-    // Generate integrity hash based on telemetry collected during the lesson
     const integrityHash = await this.shield.generateLessonHash(id);
 
-    const instructor = await this.prisma.instructor.findUnique({
-      where: { id: lesson.instructorId },
-    });
-
-    // Financeiro (Tarefa 2): Liberação de fundos
-    // C-016: Regra de 50min de duração por aula
-    // C-017: Instrutor deve estar ativo
-    const paymentReleased =
-      !!(durationMinutes && durationMinutes >= 50 && instructor?.isActive);
-
+    // paymentReleased is NOT set here — EscrowService cron is the sole source of truth
     return this.prisma.lesson.update({
       where: { id },
       data: {
@@ -158,7 +156,6 @@ export class LessonsService {
         checkOutTime,
         durationMinutes,
         integrityHash,
-        paymentReleased,
       },
     });
   }
@@ -169,11 +166,56 @@ export class LessonsService {
       throw new BadRequestException('Lesson not found');
     }
     if (lesson.status === 'in-progress') {
-      throw new BadRequestException('Cannot cancel a lesson that is in progress');
+      throw new BadRequestException(
+        'Cannot cancel a lesson that is in progress',
+      );
     }
     if (lesson.status === 'completed' || lesson.status === 'cancelled') {
-      throw new BadRequestException(`Cannot cancel a lesson with status "${lesson.status}"`);
+      throw new BadRequestException(
+        `Cannot cancel a lesson with status "${lesson.status}"`,
+      );
     }
+
+    const payment = await this.prisma.payment.findFirst({
+      where: { lessonId: id },
+    });
+
+    if (
+      payment?.asaasId &&
+      ['PENDING', 'COMPLETED'].includes(payment.status)
+    ) {
+      const lessonDateTime = new Date(lesson.date);
+      const [h, m] = lesson.startTime.split(':').map(Number);
+      lessonDateTime.setHours(h, m, 0, 0);
+      const hoursUntilLesson =
+        (lessonDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
+
+      const lateFeePercent = parseFloat(
+        process.env.LATE_CANCELLATION_FEE_PERCENT ?? '0.07',
+      );
+      const isLateCancellation = hoursUntilLesson <= 24;
+
+      this.logger.log(
+        `Cancelling lesson ${id}: ${hoursUntilLesson.toFixed(1)}h until start, late=${isLateCancellation}`,
+      );
+
+      const refundAmount = isLateCancellation
+        ? payment.amount * (1 - lateFeePercent)
+        : payment.amount;
+
+      try {
+        await this.asaasService.refundCharge(payment.asaasId, refundAmount);
+        await this.prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'REFUNDED' },
+        });
+      } catch (err) {
+        this.logger.error(
+          `Failed to refund payment ${payment.id} on cancellation: ${err}`,
+        );
+      }
+    }
+
     return this.prisma.lesson.update({
       where: { id },
       data: { status: 'cancelled' },

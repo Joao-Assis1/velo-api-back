@@ -1,5 +1,6 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AsaasService } from './asaas.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 
 interface ProcessPaymentData {
@@ -11,7 +12,12 @@ interface ProcessPaymentData {
 
 @Injectable()
 export class PaymentsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(PaymentsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private asaasService: AsaasService,
+  ) {}
 
   async create(createPaymentDto: CreatePaymentDto) {
     return this.prisma.payment.create({
@@ -25,7 +31,6 @@ export class PaymentsService {
   }
 
   async processPayment(dto: ProcessPaymentData) {
-    // Validar se o método de pagamento pertence ao aluno
     const pm = await this.prisma.paymentMethod.findUnique({
       where: { id: dto.paymentMethodId },
     });
@@ -36,14 +41,35 @@ export class PaymentsService {
       );
     }
 
-    // Criar o pagamento (Simulando sucesso imediato no MVP)
+    const student = await this.prisma.student.findUnique({
+      where: { id: dto.studentId },
+    });
+
+    if (!student?.asaasCustomerId) {
+      throw new BadRequestException(
+        'Aluno sem cadastro no gateway de pagamento. Verifique seu perfil.',
+      );
+    }
+
+    const dueDate = new Date().toISOString().split('T')[0];
+
+    const charge = await this.asaasService.createCharge({
+      customer: student.asaasCustomerId,
+      billingType: 'CREDIT_CARD',
+      value: dto.amount,
+      dueDate,
+      creditCardToken: pm.token,
+      externalReference: dto.lessonId,
+    });
+
     return this.prisma.payment.create({
       data: {
         amount: dto.amount,
         studentId: dto.studentId,
         lessonId: dto.lessonId,
         paymentMethodId: dto.paymentMethodId,
-        status: 'COMPLETED',
+        status: 'PENDING',
+        asaasId: charge.id,
       },
     });
   }
@@ -54,8 +80,11 @@ export class PaymentsService {
         where: { studentId },
         include: {
           paymentMethod: true,
-          lesson: true,
+          lesson: {
+            include: { instructor: true },
+          },
         },
+        orderBy: { createdAt: 'desc' },
       });
     }
     return this.prisma.payment.findMany({
@@ -63,6 +92,69 @@ export class PaymentsService {
         student: true,
         lesson: true,
       },
+      orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async findOne(id: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      include: { paymentMethod: true, lesson: true },
+    });
+    if (!payment) return null;
+
+    let asaasStatus: string | null = null;
+    if (payment.asaasId) {
+      try {
+        const asaasCharge = await this.asaasService.getCharge(payment.asaasId);
+        asaasStatus = asaasCharge.status;
+      } catch {
+        // return local data if ASAAS is unavailable
+      }
+    }
+
+    return { ...payment, asaasStatus };
+  }
+
+  async handleAsaasWebhook(body: any) {
+    const { event, payment } = body;
+    if (!payment?.id) return { success: true };
+
+    const localPayment = await this.prisma.payment.findUnique({
+      where: { asaasId: payment.id },
+    });
+
+    if (!localPayment) return { success: true };
+
+    const statusMap: Record<string, string> = {
+      PAYMENT_CONFIRMED: 'COMPLETED',
+      PAYMENT_RECEIVED: 'COMPLETED',
+      PAYMENT_OVERDUE: 'OVERDUE',
+      PAYMENT_REFUNDED: 'REFUNDED',
+    };
+
+    const newStatus = statusMap[event];
+
+    if (!newStatus) {
+      this.logger.log(`Webhook event ${event} received — no status change`);
+      return { success: true };
+    }
+
+    if (
+      (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') &&
+      localPayment.status === 'COMPLETED'
+    ) {
+      return { success: true };
+    }
+
+    await this.prisma.payment.update({
+      where: { asaasId: payment.id },
+      data: { status: newStatus },
+    });
+
+    this.logger.log(
+      `Webhook: updated payment ${localPayment.id} to ${newStatus}`,
+    );
+    return { success: true };
   }
 }

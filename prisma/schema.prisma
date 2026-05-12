@@ -13,7 +13,7 @@ model Student {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   phone           String?
-  cpf             String?
+  cpf             String
   profilePicture  String?
   password        String?
   ladvUploaded    Boolean   @default(false)

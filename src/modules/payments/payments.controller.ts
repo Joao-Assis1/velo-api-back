@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
@@ -31,5 +39,10 @@ export class PaymentsController {
   @Get()
   findAll(@Query('studentId') studentId?: string): Promise<Payment[]> {
     return this.paymentsService.findAll(studentId);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.paymentsService.findOne(id);
   }
 }

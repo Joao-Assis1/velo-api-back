@@ -1,17 +1,40 @@
-import { Controller, Post, Body, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Headers,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { AsaasService } from './asaas.service';
+import { ConfigService } from '@nestjs/config';
+import { PaymentsService } from './payments.service';
 
 @ApiTags('webhooks')
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
+  private readonly webhookToken: string;
 
-  constructor(private readonly asaasService: AsaasService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly configService: ConfigService,
+  ) {
+    this.webhookToken =
+      this.configService.get<string>('ASAAS_WEBHOOK_TOKEN') ?? '';
+  }
 
   @Post('asaas')
-  handleAsaasWebhook(@Body() body: any) {
-    this.logger.log('Received webhook from Asaas');
-    return this.asaasService.handleWebhook(body);
+  async handleAsaasWebhook(
+    @Headers('asaas-access-token') token: string,
+    @Body() body: any,
+  ) {
+    if (this.webhookToken && token !== this.webhookToken) {
+      throw new UnauthorizedException('Invalid webhook token');
+    }
+    this.logger.log(
+      `Received webhook: ${body?.event} for payment ${body?.payment?.id}`,
+    );
+    return this.paymentsService.handleAsaasWebhook(body);
   }
 }

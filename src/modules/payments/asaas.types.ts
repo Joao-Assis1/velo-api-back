@@ -17,12 +17,12 @@ export interface AsaasTokenizeCardDto {
     name: string;
     email: string;
     cpfCnpj: string;
-    postalCode: string;
-    addressNumber: string;
+    postalCode?: string;
+    addressNumber?: string;
     phone?: string;
   };
   customer: string;
-  remoteIp: string;
+  remoteIp?: string;
 }
 
 export interface AsaasCreateChargeDto {
