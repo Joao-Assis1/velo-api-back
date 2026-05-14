@@ -141,8 +141,8 @@ async function main() {
     },
   });
 
-  // STAGE 2: RENACH_PENDING (curso teórico iniciado)
-  await prisma.student.upsert({
+  // STAGE 2: RENACH_PENDING (curso teórico iniciado, processo aberto mas não concluído)
+  const renachStudent = await prisma.student.upsert({
     where: { email: 'student-renach@email.com' },
     update: {},
     create: {
@@ -152,6 +152,15 @@ async function main() {
       password: journeyPassword,
       theoryCourseStartedAt: pastDate(3),
       journeyStage: 'RENACH_PENDING',
+    },
+  });
+  await prisma.renachProcess.upsert({
+    where: { studentId: renachStudent.id },
+    update: {},
+    create: {
+      studentId: renachStudent.id,
+      ufDetran: 'SP',
+      status: 'PENDING',
     },
   });
 
