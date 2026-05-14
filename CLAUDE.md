@@ -23,6 +23,7 @@ src/
 ├── auth/              # login/register de alunos e instrutores
 ├── students/          # ciclo de vida do aluno, OCR LADV
 ├── instructors/       # perfis, avaliacoes, ganhos mensais
+├── journey/           # orquestrador da jornada CONTRAN 1.020/2025 (estados + gates)
 ├── lessons/           # agendamento, biometria 3 pontos, hash SHA-256
 ├── telemetria/        # deteccao GPS (excesso de velocidade, freada brusca)
 ├── availability/      # slots semanais do instrutor (replace-all)
