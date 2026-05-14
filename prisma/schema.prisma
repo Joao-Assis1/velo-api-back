@@ -27,11 +27,32 @@ model Student {
   passwordResetToken   String?
   passwordResetExpires DateTime?
   asaasCustomerId String?   @unique
-  lessons         Lesson[]
-  payments        Payment[]
-  paymentMethods  PaymentMethod[]
-  checklist       StudentChecklist?
-  simulados       StudentSimuladoHistory[]
+
+  // === Journey Foundation ===
+  journeyStage             String    @default("REGISTERED")
+  theoryCourseStartedAt    DateTime?
+  readyForPracticalExamAt  DateTime?
+
+  // === LADV extras ===
+  ladvNumber               String?
+  ladvIssuedAt             DateTime?
+  ladvValidUntil           DateTime?
+  ladvOcrConfidence        Float?
+  ladvOcrStatus            String?
+
+  // === Stripe (preparação) ===
+  stripeCustomerId         String?   @unique
+
+  // Relations
+  lessons               Lesson[]
+  payments              Payment[]
+  paymentMethods        PaymentMethod[]
+  checklist             StudentChecklist?
+  simulados             StudentSimuladoHistory[]
+  renachProcess         RenachProcess?
+  medicalExam           MedicalExam?
+  psychologicalExam     PsychologicalExam?
+  officialTheoryExam    OfficialTheoryExam?
 }
 
 model Question {
@@ -96,6 +117,17 @@ model Instructor {
   bankCode        String?
   bankAgency      String?
   bankAccount     String?
+  // === Credenciamento DETRAN (Resolução 1.020/2025) ===
+  detranCredentialNumber String?
+  detranCredentialUf     String?
+  credentialValidUntil   DateTime?
+  credentialStatus       String    @default("PENDING")
+
+  // === Stripe Connect (preparação) ===
+  stripeAccountId        String?   @unique
+  stripeAccountStatus    String    @default("PENDING")
+  stripePayoutsEnabled   Boolean   @default(false)
+
   availabilities  Availability[]
   lessons         Lesson[]
   vehicles        Vehicle[]
@@ -239,5 +271,97 @@ model Payment {
   lesson          Lesson?        @relation(fields: [lessonId], references: [id])
   student         Student        @relation(fields: [studentId], references: [id])
   paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+}
+
+// ============================================================================
+// Journey Foundation — tabelas novas (CONTRAN 1.020/2025)
+// ============================================================================
+
+model RenachProcess {
+  id              String    @id @default(uuid())
+  studentId       String    @unique
+  renachNumber    String?
+  ufDetran        String
+  biometryDoneAt  DateTime?
+  status          String    @default("PENDING")
+  proofUrl        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+model Clinic {
+  id          String    @id @default(uuid())
+  name        String
+  type        String
+  city        String
+  uf          String
+  address     String
+  phone       String?
+  price       Float
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  medicalExams       MedicalExam[]
+  psychologicalExams PsychologicalExam[]
+
+  @@index([uf, city, type])
+}
+
+model MedicalExam {
+  id              String    @id @default(uuid())
+  studentId       String    @unique
+  clinicId        String?
+  protocolCode    String    @unique
+  scheduledAt     DateTime?
+  performedAt     DateTime?
+  result          String?
+  restrictions    String?
+  validUntil      DateTime?
+  laudoUrl        String?
+  status          String    @default("PENDING")
+  rejectionReason String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  clinic          Clinic?   @relation(fields: [clinicId], references: [id])
+
+  @@index([status])
+}
+
+model PsychologicalExam {
+  id              String    @id @default(uuid())
+  studentId       String    @unique
+  clinicId        String?
+  protocolCode    String    @unique
+  scheduledAt     DateTime?
+  performedAt     DateTime?
+  result          String?
+  restrictions    String?
+  validUntil      DateTime?
+  laudoUrl        String?
+  status          String    @default("PENDING")
+  rejectionReason String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  clinic          Clinic?   @relation(fields: [clinicId], references: [id])
+
+  @@index([status])
+}
+
+model OfficialTheoryExam {
+  id          String    @id @default(uuid())
+  studentId   String    @unique
+  takenAt     DateTime
+  score       Int?
+  passed      Boolean
+  proofUrl    String?
+  createdAt   DateTime  @default(now())
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([passed])
 }
 
