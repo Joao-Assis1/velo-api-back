@@ -16,6 +16,7 @@ import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.
 import { TelemetriaModule } from './modules/telemetria/telemetria.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { AcademyModule } from './modules/academy/academy.module';
+import { JourneyModule } from './modules/journey/journey.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AcademyModule } from './modules/academy/academy.module';
     TelemetriaModule,
     ComplianceModule,
     AcademyModule,
+    JourneyModule,
   ],
 })
 export class AppModule {}
