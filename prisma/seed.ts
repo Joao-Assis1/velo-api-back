@@ -10,8 +10,9 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('🌱 Iniciando populamento de dados...');
 
-  // 1. Limpar banco (Opcional, mas seguro para seed)
+  // 1. Limpar banco (ordem respeita FK constraints)
   await prisma.payment.deleteMany();
+  await prisma.paymentMethod.deleteMany();
   await prisma.lesson.deleteMany();
   await prisma.availability.deleteMany();
   await prisma.vehicle.deleteMany();
@@ -114,6 +115,196 @@ async function main() {
       instructorFeedback: 'Excelente controle de embreagem hoje!',
       studentFeedbackRating: 5,
       studentFeedbackText: 'O instrutor Roberto é muito calmo.',
+    },
+  });
+
+  // ============================================================================
+  // Journey Foundation seed — 1 aluno em cada stage
+  // ============================================================================
+
+  const journeyPassword = await bcrypt.hash('123456', 10);
+  const futureDate = (days: number) =>
+    new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  const pastDate = (days: number) =>
+    new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  // STAGE 1: REGISTERED
+  await prisma.student.upsert({
+    where: { email: 'student-registered@email.com' },
+    update: {},
+    create: {
+      email: 'student-registered@email.com',
+      name: 'Aluno Recém-Cadastrado',
+      cpf: '11111111111',
+      password: journeyPassword,
+      journeyStage: 'REGISTERED',
+    },
+  });
+
+  // STAGE 2: RENACH_PENDING (curso teórico iniciado)
+  await prisma.student.upsert({
+    where: { email: 'student-renach@email.com' },
+    update: {},
+    create: {
+      email: 'student-renach@email.com',
+      name: 'Aluno Aguardando RENACH',
+      cpf: '22222222222',
+      password: journeyPassword,
+      theoryCourseStartedAt: pastDate(3),
+      journeyStage: 'RENACH_PENDING',
+    },
+  });
+
+  // STAGE 3: MEDICAL_PENDING (RENACH concluído)
+  const medical = await prisma.student.upsert({
+    where: { email: 'student-medical@email.com' },
+    update: {},
+    create: {
+      email: 'student-medical@email.com',
+      name: 'Aluno Aguardando Médico',
+      cpf: '33333333333',
+      password: journeyPassword,
+      theoryCourseStartedAt: pastDate(5),
+      journeyStage: 'MEDICAL_PENDING',
+    },
+  });
+  await prisma.renachProcess.upsert({
+    where: { studentId: medical.id },
+    update: {},
+    create: {
+      studentId: medical.id,
+      renachNumber: 'RNC-2026-00001',
+      ufDetran: 'SP',
+      biometryDoneAt: pastDate(2),
+      status: 'DONE',
+    },
+  });
+
+  // STAGE 4: LADV_UPLOADED_VALID (todas as etapas anteriores OK)
+  const ladv = await prisma.student.upsert({
+    where: { email: 'student-ladv@email.com' },
+    update: {},
+    create: {
+      email: 'student-ladv@email.com',
+      name: 'Aluno Com LADV Válida',
+      cpf: '44444444444',
+      password: journeyPassword,
+      theoryCourseStartedAt: pastDate(40),
+      ladvNumber: 'LADV-SP-12345',
+      ladvIssuedAt: pastDate(5),
+      ladvValidUntil: futureDate(360),
+      ladvOcrStatus: 'PASS',
+      ladvOcrConfidence: 0.92,
+      journeyStage: 'LADV_UPLOADED_VALID',
+    },
+  });
+  await prisma.renachProcess.upsert({
+    where: { studentId: ladv.id },
+    update: {},
+    create: {
+      studentId: ladv.id,
+      renachNumber: 'RNC-2026-00002',
+      ufDetran: 'SP',
+      biometryDoneAt: pastDate(30),
+      status: 'DONE',
+    },
+  });
+  await prisma.medicalExam.upsert({
+    where: { studentId: ladv.id },
+    update: {},
+    create: {
+      studentId: ladv.id,
+      protocolCode: 'MED-2026-001',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(20),
+      validUntil: futureDate(345),
+    },
+  });
+  await prisma.psychologicalExam.upsert({
+    where: { studentId: ladv.id },
+    update: {},
+    create: {
+      studentId: ladv.id,
+      protocolCode: 'PSY-2026-001',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(18),
+      validUntil: futureDate(347),
+    },
+  });
+  await prisma.officialTheoryExam.upsert({
+    where: { studentId: ladv.id },
+    update: {},
+    create: {
+      studentId: ladv.id,
+      takenAt: pastDate(10),
+      passed: true,
+      score: 26,
+    },
+  });
+
+  // STAGE 5: PRACTICAL_IN_PROGRESS (LADV válida + dados de exames)
+  const practical = await prisma.student.upsert({
+    where: { email: 'student-practical@email.com' },
+    update: {},
+    create: {
+      email: 'student-practical@email.com',
+      name: 'Aluno Em Aulas Práticas',
+      cpf: '55555555555',
+      password: journeyPassword,
+      theoryCourseStartedAt: pastDate(60),
+      ladvNumber: 'LADV-SP-67890',
+      ladvIssuedAt: pastDate(25),
+      ladvValidUntil: futureDate(340),
+      ladvOcrStatus: 'PASS',
+      ladvOcrConfidence: 0.95,
+      journeyStage: 'PRACTICAL_IN_PROGRESS',
+    },
+  });
+  await prisma.renachProcess.upsert({
+    where: { studentId: practical.id },
+    update: {},
+    create: {
+      studentId: practical.id,
+      renachNumber: 'RNC-2026-00003',
+      ufDetran: 'SP',
+      biometryDoneAt: pastDate(50),
+      status: 'DONE',
+    },
+  });
+  await prisma.medicalExam.upsert({
+    where: { studentId: practical.id },
+    update: {},
+    create: {
+      studentId: practical.id,
+      protocolCode: 'MED-2026-002',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(40),
+      validUntil: futureDate(325),
+    },
+  });
+  await prisma.psychologicalExam.upsert({
+    where: { studentId: practical.id },
+    update: {},
+    create: {
+      studentId: practical.id,
+      protocolCode: 'PSY-2026-002',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(38),
+      validUntil: futureDate(327),
+    },
+  });
+  await prisma.officialTheoryExam.upsert({
+    where: { studentId: practical.id },
+    update: {},
+    create: {
+      studentId: practical.id,
+      takenAt: pastDate(30),
+      passed: true,
+      score: 28,
     },
   });
 
