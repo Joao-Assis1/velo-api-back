@@ -29,7 +29,7 @@ import {
 } from '../../common/uploads/upload-storage';
 
 interface RequestWithUser {
-  user: { id: string };
+  user: { userId: string };
 }
 
 @ApiTags('renach-process')
@@ -51,7 +51,7 @@ export class RenachProcessController {
   @Get('me')
   @ApiOkResponse({ type: RenachProcessDto })
   getMine(@Req() req: RequestWithUser): Promise<RenachProcessDto> {
-    return this.service.getMine(req.user.id);
+    return this.service.getMine(req.user.userId);
   }
 
   @Post('me/schedule')
@@ -60,7 +60,7 @@ export class RenachProcessController {
     @Req() req: RequestWithUser,
     @Body() dto: ScheduleRenachDto,
   ): Promise<RenachProcessDto> {
-    return this.service.schedule(req.user.id, dto);
+    return this.service.schedule(req.user.userId, dto);
   }
 
   @Post('me/done')
@@ -78,6 +78,6 @@ export class RenachProcessController {
     @Body() dto: CompleteRenachDto,
     @UploadedFile() proofFile?: Express.Multer.File,
   ): Promise<RenachProcessDto> {
-    return this.service.complete(req.user.id, dto, proofFile?.path);
+    return this.service.complete(req.user.userId, dto, proofFile?.path);
   }
 }

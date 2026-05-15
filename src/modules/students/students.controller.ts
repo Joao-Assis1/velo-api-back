@@ -20,7 +20,7 @@ import { Prisma, Student } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 interface RequestWithUser {
-  user: { id: string };
+  user: { userId: string };
 }
 
 @ApiTags('students')
@@ -91,6 +91,6 @@ export class StudentsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   startTheoryCourse(@Req() req: RequestWithUser) {
-    return this.studentsService.startTheoryCourse(req.user.id);
+    return this.studentsService.startTheoryCourse(req.user.userId);
   }
 }

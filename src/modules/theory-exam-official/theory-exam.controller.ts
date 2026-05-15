@@ -26,7 +26,7 @@ import {
 } from '../../common/uploads/upload-storage';
 
 interface RequestWithUser {
-  user: { id: string };
+  user: { userId: string };
 }
 
 @ApiTags('theory-exam')
@@ -41,7 +41,7 @@ export class TheoryExamOfficialController {
   async getMine(
     @Req() req: RequestWithUser,
   ): Promise<OfficialTheoryExamDto | null> {
-    return this.service.getMine(req.user.id);
+    return this.service.getMine(req.user.userId);
   }
 
   @Post('me')
@@ -59,6 +59,6 @@ export class TheoryExamOfficialController {
     @Body() dto: RecordTheoryExamDto,
     @UploadedFile() proofFile?: Express.Multer.File,
   ): Promise<OfficialTheoryExamDto> {
-    return this.service.record(req.user.id, dto, proofFile?.path ?? null);
+    return this.service.record(req.user.userId, dto, proofFile?.path ?? null);
   }
 }

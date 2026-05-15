@@ -1,16 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 
 const login = async (
   app: INestApplication,
   email: string,
 ): Promise<string> => {
   const res = await request(app.getHttpServer())
-    .post('/api/v1/auth/login')
-    .send({ email, password: '123456' });
-  return res.body.data?.token ?? res.body.token;
+    .post('/api/v1/auth/login/student')
+    .send({ email, password: '123456' })
+    .expect(201);
+  return res.body.data.access_token;
 };
 
 describe('TheoryExamOfficial (e2e)', () => {
@@ -22,6 +24,7 @@ describe('TheoryExamOfficial (e2e)', () => {
     }).compile();
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
+    app.useGlobalInterceptors(new ResponseInterceptor());
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
     );

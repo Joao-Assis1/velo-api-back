@@ -30,7 +30,7 @@ import {
 } from '../../common/uploads/upload-storage';
 
 interface RequestWithUser {
-  user: { id: string };
+  user: { userId: string };
 }
 
 @ApiTags('psychological-exam')
@@ -45,7 +45,7 @@ export class PsychologicalExamController {
   async getMine(
     @Req() req: RequestWithUser,
   ): Promise<PsychologicalExamDto | null> {
-    return this.service.getMine(req.user.id);
+    return this.service.getMine(req.user.userId);
   }
 
   @Post('me/schedule')
@@ -54,7 +54,7 @@ export class PsychologicalExamController {
     @Req() req: RequestWithUser,
     @Body() dto: SchedulePsychologicalExamDto,
   ): Promise<PsychologicalExamDto> {
-    return this.service.schedule(req.user.id, dto);
+    return this.service.schedule(req.user.userId, dto);
   }
 
   @Post('me/laudo')
@@ -75,7 +75,7 @@ export class PsychologicalExamController {
     if (!file) {
       throw new BadRequestException('Laudo file is required');
     }
-    return this.service.uploadLaudo(req.user.id, dto, file.path);
+    return this.service.uploadLaudo(req.user.userId, dto, file.path);
   }
 
   @Get('me/protocol/pdf')
@@ -83,7 +83,7 @@ export class PsychologicalExamController {
     @Req() req: RequestWithUser,
     @Res() res: Response,
   ): Promise<void> {
-    const buf = await this.service.buildProtocolPdfBuffer(req.user.id);
+    const buf = await this.service.buildProtocolPdfBuffer(req.user.userId);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
