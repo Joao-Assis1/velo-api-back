@@ -4,7 +4,7 @@
 
 **Goal:** Implementar a etapa 7 da Resolução CONTRAN 1.020/2025 (LADV) em um módulo vertical próprio e blindar a criação de aulas práticas com a cadeia completa de validações descrita na seção 7 da spec. Isso conclui o caminho funcional desde `AWAITING_LADV_UPLOAD` até `READY_FOR_PRACTICAL_EXAM`. Inclui também a extensão do worker diário, o endpoint `practical-summary` da fase prática e o seed do aluno final em `READY_FOR_PRACTICAL_EXAM`.
 
-**Architecture:** Novo módulo `ladv-process/` orientado a upload (mantém OCR Tesseract já existente em `StudentsService.uploadLadv`, migrando para popular os 5 campos da Foundation: `ladvNumber`, `ladvIssuedAt`, `ladvValidUntil`, `ladvOcrConfidence`, `ladvOcrStatus`). `LessonsService.create()` ganha uma cadeia de 6 verificações sequenciais — `JourneyService.assertCanScheduleLesson` substitui o check legado `ladvUploaded`. O worker `CredentialsWorker` é ampliado para refletir os campos novos do `Instructor` (`credentialStatus`, `credentialValidUntil`, `stripeAccountStatus`). `ComplianceService` ganha `getPracticalSummary()` que aplica `isValidForCompliance(lesson)` (critério canônico da seção 8). Endpoint legado `POST /students/:id/ladv-upload` permanece como alias deprecado durante a fase de transição.
+**Architecture:** Novo módulo `ladv-process/` orientado a upload (migra o OCR Tesseract que vivia em `StudentsService.uploadLadv` para um service dedicado que popula os 5 campos da Foundation: `ladvNumber`, `ladvIssuedAt`, `ladvValidUntil`, `ladvOcrConfidence`, `ladvOcrStatus`). `LessonsService.create()` ganha uma cadeia de 6 verificações sequenciais — `JourneyService.assertCanScheduleLesson` substitui o check legado `ladvUploaded`. O worker `CredentialsWorker` é ampliado para refletir os campos novos do `Instructor` (`credentialStatus`, `credentialValidUntil`, `stripeAccountStatus`). `ComplianceService` ganha `getPracticalSummary()` que aplica `isValidForCompliance(lesson)` (critério canônico da seção 8). Endpoints legados `POST /students/:id/ladv-upload` e `GET /students/:id/ladv-status` são removidos completamente — não há frontend consumindo ainda, então não há janela de compatibilidade a preservar. Campos antigos do schema (`ladvUploaded`, `ladv_document_url`, `ladv_validation_date`) ficam, pois `ComplianceService.getComplianceReport()` ainda os lê; `LadvProcessService` os atualiza em paralelo aos campos novos.
 
 **Tech Stack:** NestJS 11 + Prisma 7 + Tesseract.js 5 (já no projeto) + Jest + Supertest. Sem dependências novas. Pasta `src/modules/ladv-process/`. Endpoints `/api/v1/ladv/*` e `/api/v1/compliance/students/:studentId/practical-summary`.
 
@@ -51,7 +51,8 @@
 - `src/modules/compliance/compliance.controller.ts` — adiciona endpoint `practical-summary`
 - `src/modules/compliance/credentials.worker.ts` — adiciona checks de `credentialValidUntil` e `ladvValidUntil` (novos campos)
 - `src/modules/compliance/credentials.worker.spec.ts` — cobre casos novos
-- `src/modules/students/students.controller.ts` — marca `POST /students/:id/ladv-upload` como `@deprecated` (mantido como alias)
+- `src/modules/students/students.controller.ts` — remove `POST /students/:id/ladv-upload` e `GET /students/:id/ladv-status` (substituídos pelo módulo `ladv-process/`)
+- `src/modules/students/students.service.ts` — remove `uploadLadv()` e `getLadvStatus()` + import não usado de `tesseract.js`
 - `src/app.module.ts` — importa `LadvProcessModule`
 - `prisma/seed.ts` — `student-ready@email.com` com 2 Lesson válidas + atualiza `student-awaiting-ladv` para garantir OfficialTheoryExam APROVADO consistente com o estado
 - `test/journey.e2e-spec.ts` — adiciona caso `student-ready@email.com → READY_FOR_PRACTICAL_EXAM`
@@ -2200,39 +2201,72 @@ git commit -m "feat(seed): student-ready com 2 lessons válidas + instrutor EXPI
 
 ---
 
-## Task 10: Depreciar endpoint legado `/students/:id/ladv-upload`
+## Task 10: Remover endpoints legados `/students/:id/ladv-upload` e `/students/:id/ladv-status`
+
+O endpoint legado escreve apenas em campos antigos (`ladvUploaded`, `ladv_document_url`, `ladv_validation_date`) sem popular os 5 campos novos da Foundation e sem chamar `JourneyService.refresh()`. Como o sub-plano Foundation acabou de migrar o schema e ainda não há frontend consumindo, é o momento certo de remover sem janela de compatibilidade. Os 3 campos antigos do schema **permanecem** porque ainda são lidos pelo `ComplianceService.getComplianceReport()` (cobertura derivada) — `ladv-process.service.ts` continua escrevendo `ladvUploaded` (espelho de `ladvOcrStatus=PASS`) e `ladv_document_url`.
 
 **Files:**
 
 - Modify: `src/modules/students/students.controller.ts`
+- Modify: `src/modules/students/students.service.ts`
 
-- [ ] **Step 10.1: Adicionar tag deprecated**
+- [ ] **Step 10.1: Remover endpoints do `students.controller.ts`**
 
-Localizar `uploadLadv` em `students.controller.ts` e adicionar:
+Em `src/modules/students/students.controller.ts`, deletar os blocos abaixo (e seus imports não usados):
 
 ```typescript
-import { ApiOperation } from '@nestjs/swagger';
-
+// REMOVER:
 @Post(':id/ladv-upload')
-@ApiOperation({
-  deprecated: true,
-  summary: '[DEPRECATED] Use POST /api/v1/ladv/me/upload',
-  description:
-    'Mantido como alias para compatibilidade. Será removido em versão futura. O novo fluxo de LADV vive em /api/v1/ladv/* (módulo ladv-process).',
-})
 @UseInterceptors(FileInterceptor('file'))
-uploadLadv(/* ... assinatura original ... */) {
+uploadLadv(
+  @Param('id') id: string,
+  @UploadedFile() file: Express.Multer.File,
+): Promise<Omit<Student, 'password'>> {
+  if (!file) {
+    throw new BadRequestException('No file uploaded');
+  }
   return this.studentsService.uploadLadv(id, file.originalname, file.path);
+}
+
+@Get(':id/ladv-status')
+getLadvStatus(@Param('id') id: string) {
+  return this.studentsService.getLadvStatus(id);
 }
 ```
 
-Manter o método funcional — apenas adicionar `@ApiOperation({ deprecated: true, ... })` para que o Swagger marque visualmente.
+Limpar imports não mais usados no topo: `UseInterceptors`, `UploadedFile`, `BadRequestException`, `FileInterceptor` — somente se nenhum outro endpoint do arquivo os usar. O `POST /students/me/theory-course/start` (criado no sub-plano `pre-practical-stages`) não usa upload, então provavelmente todos esses imports podem sair.
 
-- [ ] **Step 10.2: Commit**
+- [ ] **Step 10.2: Remover métodos do `students.service.ts`**
+
+Em `src/modules/students/students.service.ts`, deletar:
+
+- O `import * as Tesseract from 'tesseract.js';` no topo
+- O método `async uploadLadv(id, _fileName, filePath)` completo
+- O método `async getLadvStatus(id)` completo
+
+Manter `create`, `findAll`, `findOne`, `update` e qualquer método adicionado no sub-plano `pre-practical-stages` (ex.: `startTheoryCourse`).
+
+- [ ] **Step 10.3: Confirmar que não há outras referências aos métodos removidos**
 
 ```bash
-git add src/modules/students/students.controller.ts
-git commit -m "deprecate(students): marca POST /students/:id/ladv-upload como deprecated (use /ladv/me/upload)"
+grep -rn "uploadLadv\|getLadvStatus" src/ test/ 2>/dev/null
+```
+
+Esperado: nenhuma ocorrência (fora dos métodos do `LadvProcessService` que têm nomes diferentes — `uploadFromFile` e `getMine`).
+
+- [ ] **Step 10.4: Build + testes existentes**
+
+```bash
+npm run build && npm test
+```
+
+Esperado: build limpo. Se algum teste antigo (ex.: `students.controller.spec.ts` ou e2e antigo cobrindo os endpoints removidos) falhar, removê-lo também — esses testes cobriam código deletado.
+
+- [ ] **Step 10.5: Commit**
+
+```bash
+git add src/modules/students/students.controller.ts src/modules/students/students.service.ts
+git commit -m "remove(students): endpoints legados ladv-upload e ladv-status (substituídos por /ladv/me/*)"
 ```
 
 ---
@@ -2262,7 +2296,7 @@ Substituir o item:
 por:
 
 ```
-- **LADV OCR:** Tesseract.js extrai número, emissão e validade. >=50% de confiança + keywords (LADV/LICENÇA/APRENDIZAGEM/DETRAN) → ladvOcrStatus=PASS; sem número/datas → NEEDS_REVIEW; falha → FAIL. Endpoint `/api/v1/ladv/me/upload`; legacy `/students/:id/ladv-upload` deprecado
+- **LADV OCR:** Tesseract.js extrai número, emissão e validade. >=50% de confiança + keywords (LADV/LICENÇA/APRENDIZAGEM/DETRAN) → ladvOcrStatus=PASS; sem número/datas → NEEDS_REVIEW; falha → FAIL. Endpoint único `/api/v1/ladv/me/upload` (módulo `ladv-process/`)
 - **Cadeia de validação em LessonsService.create():** 6 etapas obrigatórias (journey gate, instructor credential, CNH local + expiry, SERPRO opcional, vehicle ativo, conflito de slot) — qualquer falha rejeita com 400
 ```
 
@@ -2291,7 +2325,7 @@ git commit -m "docs: documenta ladv-process e cadeia de validação de lessons n
 - ✅ Endpoint `GET /compliance/students/:studentId/practical-summary` (Seção 8) — Task 8
 - ✅ `isValidForCompliance(lesson)` aplicado (Seção 8) — Task 8
 - ✅ Seed `student-ready@email.com` (Seção 11) — Task 9
-- ✅ Endpoint legado deprecado, não removido (compatibilidade) — Task 10
+- ✅ Endpoints legados `/students/:id/ladv-upload` e `/students/:id/ladv-status` removidos (sem janela de compatibilidade — frontend ainda não consome) — Task 10
 - ⏭ `/payments-stripe/disputes/:lessonId/resolve` — sub-plano stripe-migration
 - ⏭ Frontend — sub-plano frontend-journey
 
@@ -2307,7 +2341,7 @@ git commit -m "docs: documenta ladv-process e cadeia de validação de lessons n
 - Endpoint `practical-summary` com `isValidForCompliance` canônico.
 - Aluno `student-ready@email.com` em `READY_FOR_PRACTICAL_EXAM` (seed completo).
 - Instrutor EXPIRED seedado para validar rejeição de aula.
-- Endpoint legado `/students/:id/ladv-upload` deprecado mas funcional.
+- Endpoints legados `/students/:id/ladv-upload` e `/students/:id/ladv-status` removidos do controller e service; campos antigos do schema (`ladvUploaded`, `ladv_document_url`, `ladv_validation_date`) preservados e atualizados pelo `LadvProcessService` para compatibilidade com `ComplianceService.getComplianceReport()`.
 - 100% dos testes unitários + e2e verdes.
 
 **Próximo sub-plano:** `2026-05-14-stripe-migration.md` substitui o `payments/` Asaas pelo `payments-stripe/` consumindo `Payment.stripeXxx` e `Instructor.stripeAccountId/Status` (já no schema desde Foundation) e habilita o release de escrow consumindo `isValidForCompliance` deste plano.
