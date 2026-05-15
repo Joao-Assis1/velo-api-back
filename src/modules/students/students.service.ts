@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { JourneyService } from '../journey/journey.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { Student, Prisma } from '@prisma/client';
 import * as Tesseract from 'tesseract.js';
@@ -8,7 +9,10 @@ import * as Tesseract from 'tesseract.js';
 export class StudentsService {
   private readonly logger = new Logger(StudentsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly journey: JourneyService,
+  ) {}
 
   private readonly omitPassword = { password: true } as const;
 
@@ -119,6 +123,22 @@ export class StudentsService {
       ladvUploaded: student.ladvUploaded,
       ladvValidationDate: student.ladv_validation_date,
       canBook: student.ladvUploaded,
+    };
+  }
+
+  async startTheoryCourse(studentId: string) {
+    const updated = await this.prisma.student.update({
+      where: { id: studentId },
+      data: { theoryCourseStartedAt: new Date() },
+      select: {
+        id: true,
+        theoryCourseStartedAt: true,
+      },
+    });
+    const state = await this.journey.refresh(studentId);
+    return {
+      theoryCourseStartedAt: updated.theoryCourseStartedAt,
+      stage: state.stage,
     };
   }
 }

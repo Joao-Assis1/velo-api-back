@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
+import { JourneyModule } from '../journey/journey.module';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { StudentsController } from './students.controller';
@@ -9,6 +10,7 @@ import * as fs from 'fs';
 
 @Module({
   imports: [
+    JourneyModule,
     MulterModule.register({
       storage: diskStorage({
         destination: (req, file, cb) => {

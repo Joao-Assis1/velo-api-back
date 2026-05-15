@@ -5,16 +5,23 @@ import {
   Body,
   Param,
   Patch,
+  Req,
+  UseGuards,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StudentsService } from './students.service';
 import { ChecklistService } from './checklist.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { Prisma, Student } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+interface RequestWithUser {
+  user: { id: string };
+}
 
 @ApiTags('students')
 @Controller('students')
@@ -78,5 +85,12 @@ export class StudentsController {
     @Body('completed') completed: boolean,
   ) {
     return this.checklistService.updateStep(id, step, completed);
+  }
+
+  @Post('me/theory-course/start')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  startTheoryCourse(@Req() req: RequestWithUser) {
+    return this.studentsService.startTheoryCourse(req.user.id);
   }
 }
