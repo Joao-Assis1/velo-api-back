@@ -9,74 +9,70 @@ export class CredentialsWorker {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Daily check for expired credentials (CNH and LADV).
+   * Daily check for expired credentials.
    * Runs at midnight every day.
+   *
+   * Sweeps (CONTRAN 1.020/2025):
+   * 1. Legacy CNH expiry → instructor.isActive=false
+   * 2. DETRAN credential expiry → credentialStatus=EXPIRED + stripeAccountStatus=RESTRICTED
+   * 3. LADV expiry → student.ladvOcrStatus=FAIL + ladvUploaded=false
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleExpiredCredentials() {
     this.logger.log('Starting daily credentials validation worker...');
-    
     const now = new Date();
 
-    // 1. Check for expired CNHs
-    // instructors where cnhExpiry < now and status is not already inactive
-    const expiredInstructors = await this.prisma.instructor.findMany({
-      where: {
-        cnhExpiry: {
-          lt: now.toISOString(),
-        },
-      },
+    // 1. Legacy CNH expiry
+    const expiredCnh = await this.prisma.instructor.findMany({
+      where: { cnhExpiry: { lt: now.toISOString() } },
     });
-
-    if (expiredInstructors.length > 0) {
+    if (expiredCnh.length > 0) {
       this.logger.warn(
-        `Found ${expiredInstructors.length} instructors with expired CNH. Blocking accounts...`,
+        `Found ${expiredCnh.length} instructors with expired CNH — blocking`,
       );
-      
       await this.prisma.instructor.updateMany({
-        where: {
-          id: { in: expiredInstructors.map((i) => i.id) },
-        },
-        data: {
-          isActive: false,
-        },
+        where: { id: { in: expiredCnh.map((i) => i.id) } },
+        data: { isActive: false },
       });
-
-      for (const instructor of expiredInstructors) {
-        this.logger.error(
-          `Instructor ${instructor.id} (${instructor.name}) blocked: CNH expired on ${instructor.cnhExpiry}`,
-        );
-      }
     }
 
-    // 2. Check for expired LADVs (Students)
-    const expiredStudents = await this.prisma.student.findMany({
+    // 2. DETRAN credential expiry
+    const expiredCredential = await this.prisma.instructor.findMany({
       where: {
-        ladv_validation_date: {
-          lt: now,
-        },
-        ladvUploaded: true,
+        credentialValidUntil: { lt: now },
+        credentialStatus: 'APPROVED',
       },
     });
-
-    if (expiredStudents.length > 0) {
-      this.logger.warn(`Found ${expiredStudents.length} students with expired LADV.`);
-      await this.prisma.student.updateMany({
-        where: {
-          id: { in: expiredStudents.map(s => s.id) },
-        },
+    if (expiredCredential.length > 0) {
+      this.logger.warn(
+        `Found ${expiredCredential.length} instructors with expired DETRAN credential — marking EXPIRED + RESTRICTED`,
+      );
+      await this.prisma.instructor.updateMany({
+        where: { id: { in: expiredCredential.map((i) => i.id) } },
         data: {
-          ladvUploaded: false,
+          credentialStatus: 'EXPIRED',
+          stripeAccountStatus: 'RESTRICTED',
         },
+      });
+    }
+
+    // 3. LADV expiry
+    const expiredLadv = await this.prisma.student.findMany({
+      where: { ladvValidUntil: { lt: now } },
+    });
+    if (expiredLadv.length > 0) {
+      this.logger.warn(
+        `Found ${expiredLadv.length} students with expired LADV — invalidating`,
+      );
+      await this.prisma.student.updateMany({
+        where: { id: { in: expiredLadv.map((s) => s.id) } },
+        data: { ladvOcrStatus: 'FAIL', ladvUploaded: false },
       });
     }
 
     this.logger.log('Daily credentials validation worker finished.');
   }
 
-  /**
-   * Manual trigger for testing purposes.
-   */
   async triggerManualCheck() {
     return this.handleExpiredCredentials();
   }

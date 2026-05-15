@@ -4,75 +4,90 @@ import { PrismaService } from '../prisma/prisma.service';
 
 describe('CredentialsWorker', () => {
   let worker: CredentialsWorker;
-  let prisma: PrismaService;
-
-  const mockPrismaService = {
-    instructor: {
-      findMany: jest.fn(),
-      updateMany: jest.fn(),
-    },
-    student: {
-      findMany: jest.fn(),
-      updateMany: jest.fn(),
-    },
+  let prisma: {
+    instructor: { findMany: jest.Mock; updateMany: jest.Mock };
+    student: { findMany: jest.Mock; updateMany: jest.Mock };
   };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
+    prisma = {
+      instructor: { findMany: jest.fn(), updateMany: jest.fn() },
+      student: { findMany: jest.fn(), updateMany: jest.fn() },
+    };
+    const mod: TestingModule = await Test.createTestingModule({
       providers: [
         CredentialsWorker,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
+        { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
-
-    worker = module.get<CredentialsWorker>(CredentialsWorker);
-    prisma = module.get<PrismaService>(PrismaService);
+    worker = mod.get(CredentialsWorker);
   });
 
-  it('should be defined', () => {
-    expect(worker).toBeDefined();
+  it('blocks instructors with expired CNH (legacy isActive=false)', async () => {
+    prisma.instructor.findMany.mockImplementation(({ where }) => {
+      if (where.cnhExpiry) {
+        return Promise.resolve([
+          { id: 'i1', name: 'X', cnhExpiry: '2020-01-01' },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+    prisma.student.findMany.mockResolvedValue([]);
+
+    await worker.handleExpiredCredentials();
+
+    expect(prisma.instructor.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ['i1'] } },
+        data: { isActive: false },
+      }),
+    );
   });
 
-  describe('handleExpiredCredentials', () => {
-    it('should identify and block instructors with expired CNH', async () => {
-      const expiredInstructor = { id: 'inst-1', name: 'Pedro', cnhExpiry: '2020-01-01' };
-      mockPrismaService.instructor.findMany.mockResolvedValue([expiredInstructor]);
-      mockPrismaService.instructor.updateMany.mockResolvedValue({ count: 1 });
-      mockPrismaService.student.findMany.mockResolvedValue([]);
+  it('marks instructors with expired credentialValidUntil as credentialStatus=EXPIRED + stripeAccountStatus=RESTRICTED', async () => {
+    prisma.instructor.findMany.mockImplementation(({ where }) => {
+      if (where.credentialValidUntil) {
+        return Promise.resolve([
+          { id: 'i2', name: 'Y', credentialStatus: 'APPROVED' },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+    prisma.student.findMany.mockResolvedValue([]);
 
-      await worker.handleExpiredCredentials();
+    await worker.handleExpiredCredentials();
 
-      expect(mockPrismaService.instructor.findMany).toHaveBeenCalled();
-      expect(mockPrismaService.instructor.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: { in: ['inst-1'] },
-        },
-        data: {
-          isActive: false,
-        },
-      });
+    expect(prisma.instructor.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['i2'] } },
+      data: {
+        credentialStatus: 'EXPIRED',
+        stripeAccountStatus: 'RESTRICTED',
+      },
+    });
+  });
+
+  it('marks students with expired ladvValidUntil as ladvOcrStatus=FAIL', async () => {
+    prisma.instructor.findMany.mockResolvedValue([]);
+    prisma.student.findMany.mockImplementation(({ where }) => {
+      if (where.ladvValidUntil) {
+        return Promise.resolve([{ id: 's1' }]);
+      }
+      return Promise.resolve([]);
     });
 
-    it('should invalidate LADV for students with expired validation date', async () => {
-      const expiredStudent = { id: 'stud-1', name: 'Joao' };
-      mockPrismaService.instructor.findMany.mockResolvedValue([]);
-      mockPrismaService.student.findMany.mockResolvedValue([expiredStudent]);
-      mockPrismaService.student.updateMany.mockResolvedValue({ count: 1 });
+    await worker.handleExpiredCredentials();
 
-      await worker.handleExpiredCredentials();
-
-      expect(mockPrismaService.student.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: { in: ['stud-1'] },
-        },
-        data: {
-          ladvUploaded: false,
-        },
-      });
+    expect(prisma.student.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['s1'] } },
+      data: { ladvOcrStatus: 'FAIL', ladvUploaded: false },
     });
+  });
+
+  it('runs all three sweeps in a single invocation', async () => {
+    prisma.instructor.findMany.mockResolvedValue([]);
+    prisma.student.findMany.mockResolvedValue([]);
+    await worker.handleExpiredCredentials();
+    expect(prisma.instructor.findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.student.findMany).toHaveBeenCalledTimes(1);
   });
 });
