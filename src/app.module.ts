@@ -17,6 +17,8 @@ import { TelemetriaModule } from './modules/telemetria/telemetria.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { AcademyModule } from './modules/academy/academy.module';
 import { JourneyModule } from './modules/journey/journey.module';
+import { ValidationModule } from './modules/validation/validation.module';
+import { ClinicsModule } from './modules/clinics/clinics.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { JourneyModule } from './modules/journey/journey.module';
     ComplianceModule,
     AcademyModule,
     JourneyModule,
+    ValidationModule,
+    ClinicsModule,
   ],
 })
 export class AppModule {}
