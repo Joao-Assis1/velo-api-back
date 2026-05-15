@@ -526,6 +526,11 @@ export async function validateCnh(cnh: string): Promise<{ valid: boolean }> {
 
 - [ ] **Step 1.9: Criar `src/lib/api/payments-stripe.ts`**
 
+Rotas mapeadas com base no spec (Seção 6) e no backend plan (stripe-migration Task 3):
+
+- Listagem e gestão de cartões → módulo `payment-methods` existente (adaptado para Stripe)
+- SetupIntent e cobrança → novo módulo `payments-stripe`
+
 ```ts
 import { fetchWrapper } from "../api-client";
 
@@ -540,46 +545,59 @@ export type SavedCard = {
   isDefault: boolean;
 };
 
+// GET /payment-methods — módulo existente adaptado para Stripe
 export async function listCards(): Promise<SavedCard[]> {
-  const res = await fetchWrapper<Wrapped<SavedCard[]>>("/payment-methods/me");
+  const res = await fetchWrapper<Wrapped<SavedCard[]>>("/payment-methods");
   return res.data;
 }
 
+// POST /payments-stripe/setup-intent — cria SetupIntent para captura segura do cartão
 export async function createSetupIntent(): Promise<{ clientSecret: string }> {
   const res = await fetchWrapper<Wrapped<{ clientSecret: string }>>(
-    "/payment-methods/me/setup-intent",
+    "/payments-stripe/setup-intent",
     { method: "POST" },
   );
   return res.data;
 }
 
-export async function deleteCard(id: string): Promise<{ ok: true }> {
-  const res = await fetchWrapper<Wrapped<{ ok: true }>>(
-    `/payment-methods/me/${id}`,
-    { method: "DELETE" },
+// POST /payments-stripe/payment-methods — vincula stripePaymentMethodId após SetupIntent confirmado
+export async function attachCard(
+  stripePaymentMethodId: string,
+): Promise<SavedCard> {
+  const res = await fetchWrapper<Wrapped<SavedCard>>(
+    "/payments-stripe/payment-methods",
+    { method: "POST", body: JSON.stringify({ stripePaymentMethodId }) },
   );
   return res.data;
 }
 
-export async function setDefaultCard(id: string): Promise<{ ok: true }> {
-  const res = await fetchWrapper<Wrapped<{ ok: true }>>(
-    `/payment-methods/me/${id}/default`,
-    { method: "POST" },
-  );
-  return res.data;
+// DELETE /payment-methods/:id — módulo existente
+export async function deleteCard(id: string): Promise<void> {
+  await fetchWrapper<Wrapped<unknown>>(`/payment-methods/${id}`, {
+    method: "DELETE",
+  });
 }
 
-export type LessonChargeIntent = {
+// PATCH /payment-methods/:id/default — módulo existente
+export async function setDefaultCard(id: string): Promise<void> {
+  await fetchWrapper<Wrapped<unknown>>(`/payment-methods/${id}/default`, {
+    method: "PATCH",
+  });
+}
+
+export type LessonChargeResult = {
   paymentId: string;
   clientSecret: string;
 };
+
+// POST /payments-stripe/charge — cria PaymentIntent off-session, status→HELD
 export async function createLessonCharge(
   lessonId: string,
   paymentMethodId: string,
-): Promise<LessonChargeIntent> {
-  const res = await fetchWrapper<Wrapped<LessonChargeIntent>>(
-    `/payments-stripe/lessons/${lessonId}/intent`,
-    { method: "POST", body: JSON.stringify({ paymentMethodId }) },
+): Promise<LessonChargeResult> {
+  const res = await fetchWrapper<Wrapped<LessonChargeResult>>(
+    "/payments-stripe/charge",
+    { method: "POST", body: JSON.stringify({ lessonId, paymentMethodId }) },
   );
   return res.data;
 }
@@ -2369,7 +2387,7 @@ export default function LadvPage() {
     }
   }
 
-  const ocrLabel: Record<NonNullable<LadvStatus["ocrStatus" extends never ? never : "ladvOcrStatus"]>, string> = {
+  const ocrLabel: Record<NonNullable<LadvStatus["ladvOcrStatus"]>, string> = {
     PASS: "Validada automaticamente",
     NEEDS_REVIEW: "Em revisão manual",
     FAIL: "OCR não reconheceu — envie novamente ou use entrada manual",
@@ -2563,12 +2581,14 @@ git commit -m "ajusta(journey-front): schedule com gate canScheduleLessons e ins
 
 - [ ] **Step 10.1: Implementar `AddCardStripe.tsx`**
 
+Flow: (1) `createSetupIntent` → backend cria SetupIntent Stripe → retorna `clientSecret`; (2) Stripe Elements coleta dados do cartão; (3) `stripe.confirmSetup` confirma no Stripe; (4) `attachCard(stripePaymentMethodId)` → `POST /payments-stripe/payment-methods` salva no banco.
+
 ```tsx
 "use client";
 import { useState } from "react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
-import { createSetupIntent } from "@/lib/api/payments-stripe";
+import { createSetupIntent, attachCard } from "@/lib/api/payments-stripe";
 import { Button } from "@/components/ui/button";
 
 function InnerForm({ onDone }: { onDone: () => void }) {
@@ -2581,15 +2601,31 @@ function InnerForm({ onDone }: { onDone: () => void }) {
     if (!stripe || !elements) return;
     setBusy(true);
     setError(null);
-    const { error } = await stripe.confirmSetup({
+    const { error: stripeError, setupIntent } = await stripe.confirmSetup({
       elements,
       redirect: "if_required",
+      confirmParams: { return_url: window.location.href },
     });
-    setBusy(false);
-    if (error) {
-      setError(error.message ?? "Falha ao salvar cartão.");
+    if (stripeError) {
+      setError(stripeError.message ?? "Falha ao salvar cartão.");
+      setBusy(false);
       return;
     }
+    // Após confirmação bem-sucedida, vincular o PaymentMethod ao aluno no backend
+    const pmId =
+      typeof setupIntent?.payment_method === "string"
+        ? setupIntent.payment_method
+        : setupIntent?.payment_method?.id;
+    if (pmId) {
+      try {
+        await attachCard(pmId);
+      } catch (e: any) {
+        setError(e?.message ?? "Cartão confirmado no Stripe mas falhou ao salvar localmente.");
+        setBusy(false);
+        return;
+      }
+    }
+    setBusy(false);
     onDone();
   }
 
@@ -2818,44 +2854,28 @@ A escolha entre modificar a lista existente e/ou criar a página de detalhe depe
 
 - [ ] **Step 11.1: Criar `dispute/[lessonId]/page.tsx`**
 
+**Nota de rota:** O spec e o backend plan (stripe-migration) expõem apenas `POST /payments-stripe/disputes/:lessonId/resolve`. Não há `GET` de disputa avulsa. Os dados de contexto (motivo, data de abertura) vêm via `searchParams` passados pela lista existente em `dispute/page.tsx`. O botão de resolução chama diretamente o `POST`.
+
 ```tsx
 "use client";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { fetchWrapper } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { AlertOctagon, RefreshCcw, Send } from "lucide-react";
 
-type Dispute = {
-  lessonId: string;
-  openedAt: string;
-  reason: string;
-  status: "OPEN" | "RESOLVED";
-  resolution: "release" | "refund" | null;
-  paymentStatus: "HELD" | "RELEASED" | "REFUNDED" | "FAILED";
-};
-
 export default function DisputeDetailPage() {
   const params = useParams<{ lessonId: string }>();
   const lessonId = params.lessonId;
-  const [dispute, setDispute] = useState<Dispute | null>(null);
+  const sp = useSearchParams();
+  // Dados de contexto passados via query string pela lista de disputas
+  const openedAt = sp.get("openedAt") ?? "—";
+  const reason = sp.get("reason") ?? "—";
+  const paymentStatus = sp.get("paymentStatus") ?? "—";
+  const [resolved, setResolved] = useState(false);
+  const [resolution, setResolution] = useState<"release" | "refund" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  async function reload() {
-    try {
-      const res = await fetchWrapper<{ success: boolean; data: Dispute }>(
-        `/payments-stripe/disputes/${lessonId}`,
-      );
-      setDispute(res.data);
-    } catch (e: any) {
-      setError(e?.message ?? "Erro ao carregar disputa.");
-    }
-  }
-
-  useEffect(() => {
-    void reload();
-  }, [lessonId]);
 
   async function resolve(action: "release" | "refund") {
     setBusy(true);
@@ -2873,7 +2893,22 @@ export default function DisputeDetailPage() {
     }
   }
 
-  if (!dispute) return <p className="p-4 text-sm text-zinc-500">Carregando…</p>;
+  async function resolve(action: "release" | "refund") {
+    setBusy(true);
+    setError(null);
+    try {
+      await fetchWrapper(`/payments-stripe/disputes/${lessonId}/resolve`, {
+        method: "POST",
+        body: JSON.stringify({ action }),
+      });
+      setResolved(true);
+      setResolution(action);
+    } catch (e: any) {
+      setError(e?.message ?? "Erro ao resolver disputa.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4">
@@ -2889,23 +2924,32 @@ export default function DisputeDetailPage() {
 
       <section className="rounded-xl border border-zinc-200 bg-white p-4 text-sm">
         <dl className="grid grid-cols-2 gap-2">
-          <dt className="text-zinc-500">Status</dt>
-          <dd>{dispute.status}</dd>
           <dt className="text-zinc-500">Pagamento</dt>
-          <dd>{dispute.paymentStatus}</dd>
+          <dd>{paymentStatus}</dd>
           <dt className="text-zinc-500">Aberta em</dt>
-          <dd>{new Date(dispute.openedAt).toLocaleString("pt-BR")}</dd>
+          <dd>
+            {openedAt !== "—"
+              ? new Date(openedAt).toLocaleString("pt-BR")
+              : "—"}
+          </dd>
           <dt className="text-zinc-500">Motivo</dt>
-          <dd className="col-span-1">{dispute.reason}</dd>
+          <dd className="col-span-1">{reason}</dd>
         </dl>
       </section>
 
-      {dispute.status === "OPEN" && (
+      {resolved ? (
+        <section className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800">
+          Disputa resolvida:{" "}
+          {resolution === "release"
+            ? "pagamento liberado ao instrutor"
+            : "estorno solicitado ao aluno"}
+          .
+        </section>
+      ) : (
         <section className="rounded-xl border border-zinc-200 bg-white p-4">
           <h2 className="text-base font-semibold">Resolução</h2>
           <p className="mt-1 text-sm text-zinc-600">
-            Apenas administradores enxergam estes botões. Para alunos, a
-            resolução é informativa.
+            Apenas administradores enxergam estes botões.
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <Button onClick={() => resolve("release")} disabled={busy}>
