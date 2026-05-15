@@ -17,10 +17,8 @@ import { AsaasService } from '../payments/asaas.service';
 import { JourneyService } from '../journey/journey.service';
 import { ValidationService } from '../validation/validation.service';
 import { ConfigService } from '@nestjs/config';
-import {
-  DOCUMENT_VALIDATION_PROVIDER,
-  DocumentValidationProvider,
-} from '../validation/providers/document-validation.provider';
+import type { DocumentValidationProvider } from '../validation/providers/document-validation.provider';
+import { DOCUMENT_VALIDATION_PROVIDER } from '../validation/providers/document-validation.provider';
 
 @Injectable()
 export class LessonsService {
@@ -64,8 +62,8 @@ export class LessonsService {
 
     // === STAGE 3: Instructor CNH local check + expiry ===
     const cnhResult = await this.validation.validateCnh(
-      instructor.cnh,
-      instructor.cpf,
+      instructor.cnhNumber ?? '',
+      instructor.cpf ?? '',
     );
     if (cnhResult.status === 'LOCAL_INVALID') {
       throw new BadRequestException(
@@ -81,8 +79,8 @@ export class LessonsService {
       this.config.get<string>('DOCUMENT_VALIDATION_PROVIDER') ?? 'mock';
     if (externalProvider === 'serpro') {
       const external = await this.documentValidation.validateCnh(
-        instructor.cnh,
-        instructor.cpf,
+        instructor.cnhNumber ?? '',
+        instructor.cpf ?? '',
       );
       if (!external.valid) {
         throw new BadRequestException(
@@ -91,7 +89,7 @@ export class LessonsService {
       }
     }
 
-    // === STAGE 5: Vehicle plate exists and active ===
+    // === STAGE 5: Vehicle belongs to instructor ===
     if (createLessonDto.vehicleId) {
       const vehicle = await this.prisma.vehicle.findUnique({
         where: { id: createLessonDto.vehicleId },
@@ -100,9 +98,6 @@ export class LessonsService {
         throw new BadRequestException(
           'Vehicle does not belong to the selected instructor',
         );
-      }
-      if (vehicle.isActive === false) {
-        throw new BadRequestException('Vehicle is inactive');
       }
     }
 

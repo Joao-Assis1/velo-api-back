@@ -18,7 +18,7 @@ describe('LessonsService.create — validation chain', () => {
 
   const baseInstructor = {
     id: 'inst-1',
-    cnh: '02650306461',
+    cnhNumber: '02650306461',
     cpf: '11144477735',
     cnhExpiry: new Date(Date.now() + 365 * 86400000).toISOString(),
     credentialStatus: 'APPROVED',
@@ -106,7 +106,7 @@ describe('LessonsService.create — validation chain', () => {
   it('rejects when CNH is locally invalid', async () => {
     prisma.instructor.findUnique.mockResolvedValue({
       ...baseInstructor,
-      cnh: '11111111111',
+      cnhNumber: '11111111111',
     });
     validation.validateCnh.mockResolvedValue({
       valid: false,
@@ -145,15 +145,14 @@ describe('LessonsService.create — validation chain', () => {
     expect(journey.assertCanScheduleLesson).toHaveBeenCalledWith('stu-1');
   });
 
-  it('rejects when vehicle is inactive', async () => {
+  it('rejects when vehicle does not belong to the instructor', async () => {
     prisma.instructor.findUnique.mockResolvedValue(baseInstructor);
     prisma.vehicle.findUnique.mockResolvedValue({
       id: 'veh-1',
-      instructorId: 'inst-1',
-      isActive: false,
+      instructorId: 'different-inst',
     });
     await expect(
       service.create({ ...validDto, vehicleId: 'veh-1' }),
-    ).rejects.toThrow(/Vehicle is inactive/);
+    ).rejects.toThrow(/Vehicle does not belong/);
   });
 });
