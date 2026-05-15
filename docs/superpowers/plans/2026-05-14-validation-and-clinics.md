@@ -15,8 +15,8 @@
 - `POST /api/v1/validation/cnh` retorna `valid: true` em mock determinístico para um número de CNH whitelisted no MockProvider.
 - `POST /api/v1/validation/cep` consulta ViaCEP e devolve `{ logradouro, bairro, cidade, uf }` para `01310-100`.
 - `POST /api/v1/validation/vehicle-plate` consulta BrasilAPI e devolve `{ marca, modelo, ano }` para uma placa real ou retorna 404 controlado.
-- `GET /api/v1/clinics?type=MEDICAL&uf=SP&city=Bauru` retorna 2 clínicas seedadas em Bauru/SP.
-- `GET /api/v1/clinics?type=PSYCHOLOGICAL&uf=SP` retorna 3 clínicas seedadas com paginação `{ page, pageSize, total, items }`.
+- `GET /api/v1/clinics?type=MEDICAL&uf=MS&city=Campo Grande` retorna 3 clínicas médicas seedadas em Campo Grande/MS.
+- `GET /api/v1/clinics?type=PSYCHOLOGICAL&uf=MS` retorna 3 clínicas psicológicas seedadas com paginação `{ page, pageSize, total, items }`.
 - `npm test` e `npm run test:e2e` verdes.
 
 ---
@@ -52,7 +52,7 @@
 **Modified:**
 
 - `src/app.module.ts` — importa `ValidationModule` e `ClinicsModule`
-- `prisma/seed.ts` — 6 clínicas seedadas (3 médicas + 3 psicológicas) em SP/Bauru/Campinas
+- `prisma/seed.ts` — 6 clínicas seedadas (3 médicas + 3 psicológicas) em Campo Grande/MS
 - `src/config/env.validation.ts` — adiciona `DOCUMENT_VALIDATION_PROVIDER`, `VIA_CEP_BASE_URL`, `BRASIL_API_BASE_URL`
 - `package.json` — adiciona dependência `cpf-cnpj-validator`
 
@@ -1045,12 +1045,12 @@ export class ListClinicsQueryDto {
   @IsIn(['MEDICAL', 'PSYCHOLOGICAL'])
   type?: 'MEDICAL' | 'PSYCHOLOGICAL';
 
-  @ApiPropertyOptional({ example: 'SP' })
+  @ApiPropertyOptional({ example: 'MS' })
   @IsOptional()
   @IsString()
   uf?: string;
 
-  @ApiPropertyOptional({ example: 'Bauru' })
+  @ApiPropertyOptional({ example: 'Campo Grande' })
   @IsOptional()
   @IsString()
   city?: string;
@@ -1153,18 +1153,18 @@ describe('ClinicsService', () => {
   describe('list', () => {
     it('filters by type, uf and city and applies pagination defaults', async () => {
       prisma.clinic.findMany.mockResolvedValue([
-        { id: '1', name: 'Clínica A', type: 'MEDICAL', city: 'Bauru', uf: 'SP', address: '', phone: null, price: 200, isActive: true },
+        { id: '1', name: 'Clínica A', type: 'MEDICAL', city: 'Campo Grande', uf: 'MS', address: '', phone: null, price: 200, isActive: true },
       ]);
       prisma.clinic.count.mockResolvedValue(1);
 
       const result = await service.list({
         type: 'MEDICAL',
-        uf: 'SP',
-        city: 'Bauru',
+        uf: 'MS',
+        city: 'Campo Grande',
       });
 
       expect(prisma.clinic.findMany).toHaveBeenCalledWith({
-        where: { type: 'MEDICAL', uf: 'SP', city: 'Bauru', isActive: true },
+        where: { type: 'MEDICAL', uf: 'MS', city: 'Campo Grande', isActive: true },
         skip: 0,
         take: 20,
         orderBy: { name: 'asc' },
@@ -1200,9 +1200,9 @@ describe('ClinicsService', () => {
         id: 'c1',
         name: 'Clínica X',
         type: 'PSYCHOLOGICAL',
-        city: 'São Paulo',
-        uf: 'SP',
-        address: 'Rua A',
+        city: 'Campo Grande',
+        uf: 'MS',
+        address: 'Rua Antônio Maria Coelho, 123',
         phone: null,
         price: 180,
         isActive: true,
@@ -1385,7 +1385,7 @@ Antes do fechamento de `main()` (e idealmente próximo do bloco de journey-stage
 
 ```typescript
 // ============================================================================
-// Clinics seed — 6 clínicas (3 MEDICAL + 3 PSYCHOLOGICAL) em SP/Bauru/Campinas
+// Clinics seed — 6 clínicas (3 MEDICAL + 3 PSYCHOLOGICAL) em Campo Grande/MS
 // ============================================================================
 
 const clinicsData: Array<{
@@ -1398,58 +1398,58 @@ const clinicsData: Array<{
   price: number;
 }> = [
   {
-    name: 'Clínica Avenida Paulista',
+    name: 'Clínica Centro Médico Campo Grande',
     type: 'MEDICAL',
-    city: 'São Paulo',
-    uf: 'SP',
-    address: 'Av. Paulista, 1000',
-    phone: '(11) 3000-1000',
-    price: 250,
-  },
-  {
-    name: 'Clínica Bauru Centro',
-    type: 'MEDICAL',
-    city: 'Bauru',
-    uf: 'SP',
-    address: 'Rua Batista de Carvalho, 200',
-    phone: '(14) 3200-2000',
-    price: 200,
-  },
-  {
-    name: 'Clínica Campinas Saúde',
-    type: 'MEDICAL',
-    city: 'Campinas',
-    uf: 'SP',
-    address: 'Av. Norte-Sul, 500',
-    phone: '(19) 3100-3000',
+    city: 'Campo Grande',
+    uf: 'MS',
+    address: 'Rua Maracaju, 1500 - Centro',
+    phone: '(67) 3321-1000',
     price: 220,
   },
   {
-    name: 'Psico Paulista',
-    type: 'PSYCHOLOGICAL',
-    city: 'São Paulo',
-    uf: 'SP',
-    address: 'Rua Augusta, 1500',
-    phone: '(11) 3000-1500',
-    price: 180,
+    name: 'Clínica Vila Sobrinho',
+    type: 'MEDICAL',
+    city: 'Campo Grande',
+    uf: 'MS',
+    address: 'Av. Mato Grosso, 2000 - Vila Sobrinho',
+    phone: '(67) 3321-2000',
+    price: 200,
   },
   {
-    name: 'Psico Bauru Avaliações',
+    name: 'Clínica Jardim dos Estados',
+    type: 'MEDICAL',
+    city: 'Campo Grande',
+    uf: 'MS',
+    address: 'Rua Antônio Maria Coelho, 800 - Jardim dos Estados',
+    phone: '(67) 3321-3000',
+    price: 240,
+  },
+  {
+    name: 'Psico Centro Campo Grande',
     type: 'PSYCHOLOGICAL',
-    city: 'Bauru',
-    uf: 'SP',
-    address: 'Rua Araújo Leite, 300',
-    phone: '(14) 3200-1800',
+    city: 'Campo Grande',
+    uf: 'MS',
+    address: 'Rua 14 de Julho, 1200 - Centro',
+    phone: '(67) 3321-1500',
+    price: 170,
+  },
+  {
+    name: 'Psico Tiradentes Avaliações',
+    type: 'PSYCHOLOGICAL',
+    city: 'Campo Grande',
+    uf: 'MS',
+    address: 'Av. Bandeirantes, 350 - Tiradentes',
+    phone: '(67) 3321-1800',
     price: 160,
   },
   {
-    name: 'Psico Campinas Mental',
+    name: 'Psico Bairro Amambai',
     type: 'PSYCHOLOGICAL',
-    city: 'Campinas',
-    uf: 'SP',
-    address: 'Rua Barão de Jaguara, 800',
-    phone: '(19) 3100-1900',
-    price: 170,
+    city: 'Campo Grande',
+    uf: 'MS',
+    address: 'Rua Pernambuco, 450 - Amambai',
+    phone: '(67) 3321-1900',
+    price: 165,
   },
 ];
 
@@ -1490,7 +1490,7 @@ Conferir tabela `Clinic`: 6 linhas, todas ativas, 3 MEDICAL + 3 PSYCHOLOGICAL.
 
 ```bash
 git add prisma/seed.ts
-git commit -m "feat(seed): adiciona 6 clínicas (médicas e psicológicas) em SP/Bauru/Campinas"
+git commit -m "feat(seed): adiciona 6 clínicas (médicas e psicológicas) em Campo Grande/MS"
 ```
 
 ---
@@ -1679,25 +1679,43 @@ describe('Clinics (e2e)', () => {
     await app.close();
   });
 
-  it('GET /clinics?type=MEDICAL&uf=SP returns 3 medical clinics', async () => {
+  it('GET /clinics?type=MEDICAL&uf=MS returns 3 medical clinics in Campo Grande', async () => {
     const res = await request(app.getHttpServer())
-      .get('/api/v1/clinics?type=MEDICAL&uf=SP')
+      .get('/api/v1/clinics?type=MEDICAL&uf=MS')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(res.body.data.total).toBe(3);
     expect(res.body.data.items).toHaveLength(3);
     expect(
-      res.body.data.items.every((c: { type: string }) => c.type === 'MEDICAL'),
+      res.body.data.items.every(
+        (c: { type: string; uf: string; city: string }) =>
+          c.type === 'MEDICAL' && c.uf === 'MS' && c.city === 'Campo Grande',
+      ),
     ).toBe(true);
   });
 
-  it('GET /clinics?type=PSYCHOLOGICAL&city=Bauru returns 1 clinic', async () => {
+  it('GET /clinics?type=PSYCHOLOGICAL&city=Campo Grande returns 3 clinics', async () => {
     const res = await request(app.getHttpServer())
-      .get('/api/v1/clinics?type=PSYCHOLOGICAL&city=Bauru')
+      .get('/api/v1/clinics')
+      .query({ type: 'PSYCHOLOGICAL', city: 'Campo Grande' })
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(res.body.data.total).toBe(1);
-    expect(res.body.data.items[0].city).toBe('Bauru');
+    expect(res.body.data.total).toBe(3);
+    expect(
+      res.body.data.items.every(
+        (c: { type: string; city: string }) =>
+          c.type === 'PSYCHOLOGICAL' && c.city === 'Campo Grande',
+      ),
+    ).toBe(true);
+  });
+
+  it('GET /clinics?uf=SP returns 0 (only MS is operational)', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/clinics?uf=SP')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(res.body.data.total).toBe(0);
+    expect(res.body.data.items).toHaveLength(0);
   });
 
   it('GET /clinics with no filters returns paginated list with pageSize default 20', async () => {
@@ -1737,7 +1755,7 @@ describe('Clinics (e2e)', () => {
 npm run test:e2e -- clinics
 ```
 
-Esperado: `PASS — Tests: 5 passed`.
+Esperado: `PASS — Tests: 6 passed`.
 
 - [ ] **Step 12.3: Commit**
 
@@ -1815,7 +1833,7 @@ git commit -m "docs: atualiza estrutura de pastas e envs (validation + clinics)"
 
 - Módulo `validation/` funcional com mock + provider plugável + validação local + APIs externas (ViaCEP + BrasilAPI).
 - Módulo `clinics/` funcional com listagem paginada e busca por ID.
-- 6 clínicas seedadas em SP/Bauru/Campinas (3 médicas + 3 psicológicas).
+- 6 clínicas seedadas em Campo Grande/MS (3 médicas + 3 psicológicas), em bairros distintos (Centro, Vila Sobrinho, Jardim dos Estados, Tiradentes, Amambai).
 - 100% dos testes unitários verdes (CNH, MockProvider, ValidationService, ClinicsService).
 - E2E verdes para `/validation/*` e `/clinics/*`.
 - CLAUDE.md atualizado com os módulos novos e envs.
