@@ -20,6 +20,7 @@ import { JourneyModule } from './modules/journey/journey.module';
 import { ValidationModule } from './modules/validation/validation.module';
 import { ClinicsModule } from './modules/clinics/clinics.module';
 import { RenachProcessModule } from './modules/renach-process/renach-process.module';
+import { MedicalExamModule } from './modules/medical-exam/medical-exam.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { RenachProcessModule } from './modules/renach-process/renach-process.mod
     ValidationModule,
     ClinicsModule,
     RenachProcessModule,
+    MedicalExamModule,
   ],
 })
 export class AppModule {}
