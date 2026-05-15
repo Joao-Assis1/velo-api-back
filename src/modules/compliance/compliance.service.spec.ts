@@ -204,6 +204,84 @@ describe('ComplianceService', () => {
     });
   });
 
+  describe('getPracticalSummary', () => {
+    it('returns canDeclareReadyForExam=true when 2 valid lessons + LADV PASS', async () => {
+      mockPrisma.student.findUnique.mockResolvedValue({
+        id: 'stu-1',
+        readyForPracticalExamAt: null,
+        ladvOcrStatus: 'PASS',
+        ladvValidUntil: new Date(Date.now() + 86400000),
+      });
+      mockPrisma.lesson.findMany.mockResolvedValue([
+        {
+          durationMinutes: 60,
+          biometryStartStatus: 'SUCCESS',
+          biometryMidStatus: 'SUCCESS',
+          biometryEndStatus: 'SUCCESS',
+          integrityHash: 'h1',
+          disputeOpened: false,
+        },
+        {
+          durationMinutes: 65,
+          biometryStartStatus: 'SUCCESS',
+          biometryMidStatus: 'SUCCESS',
+          biometryEndStatus: 'SUCCESS',
+          integrityHash: 'h2',
+          disputeOpened: false,
+        },
+      ]);
+      const r = await service.getPracticalSummary('stu-1');
+      expect(r.meetsMinimumLegal).toBe(true);
+      expect(r.canDeclareReadyForExam).toBe(true);
+      expect(r.totalValidatedMinutes).toBe(125);
+    });
+
+    it('does NOT count lessons with biometry failure', async () => {
+      mockPrisma.student.findUnique.mockResolvedValue({
+        id: 'stu-1',
+        readyForPracticalExamAt: null,
+        ladvOcrStatus: 'PASS',
+        ladvValidUntil: new Date(Date.now() + 86400000),
+      });
+      mockPrisma.lesson.findMany.mockResolvedValue([
+        {
+          durationMinutes: 60,
+          biometryStartStatus: 'FAILED',
+          biometryMidStatus: 'SUCCESS',
+          biometryEndStatus: 'SUCCESS',
+          integrityHash: 'h1',
+          disputeOpened: false,
+        },
+      ]);
+      const r = await service.getPracticalSummary('stu-1');
+      expect(r.totalValidatedMinutes).toBe(0);
+      expect(r.lessonsWithIntegrityIssues).toBe(1);
+      expect(r.meetsMinimumLegal).toBe(false);
+    });
+
+    it('canDeclareReadyForExam=false when LADV is expired even if minutes met', async () => {
+      mockPrisma.student.findUnique.mockResolvedValue({
+        id: 'stu-1',
+        readyForPracticalExamAt: null,
+        ladvOcrStatus: 'PASS',
+        ladvValidUntil: new Date('2020-01-01'),
+      });
+      mockPrisma.lesson.findMany.mockResolvedValue([
+        {
+          durationMinutes: 120,
+          biometryStartStatus: 'SUCCESS',
+          biometryMidStatus: 'SUCCESS',
+          biometryEndStatus: 'SUCCESS',
+          integrityHash: 'h',
+          disputeOpened: false,
+        },
+      ]);
+      const r = await service.getPracticalSummary('stu-1');
+      expect(r.meetsMinimumLegal).toBe(true);
+      expect(r.canDeclareReadyForExam).toBe(false);
+    });
+  });
+
   describe('updateManualStep', () => {
     it('throws NotFoundException when student does not exist', async () => {
       mockPrisma.student.findUnique.mockResolvedValue(null);

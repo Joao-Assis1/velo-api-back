@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateComplianceStepDto } from './dto/update-compliance-step.dto';
+import { PracticalSummaryDto } from './dto/practical-summary.dto';
 
 // CONTRAN 1.020/2025 — mínimo de 2 horas (120 min) de aulas práticas concluídas
 const MINIMUM_PRACTICAL_MINUTES = 120;
@@ -114,5 +115,62 @@ export class ComplianceService {
       create: { studentId, [dto.step]: dto.completed },
       update: { [dto.step]: dto.completed },
     });
+  }
+
+  async getPracticalSummary(studentId: string): Promise<PracticalSummaryDto> {
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      select: {
+        id: true,
+        readyForPracticalExamAt: true,
+        ladvOcrStatus: true,
+        ladvValidUntil: true,
+      },
+    });
+    if (!student) throw new NotFoundException('Student not found');
+
+    const lessons = await this.prisma.lesson.findMany({
+      where: { studentId, status: 'completed' },
+      select: {
+        id: true,
+        durationMinutes: true,
+        biometryStartStatus: true,
+        biometryMidStatus: true,
+        biometryEndStatus: true,
+        integrityHash: true,
+        disputeOpened: true,
+      },
+    });
+
+    const valid = lessons.filter(
+      (l) =>
+        (l.durationMinutes ?? 0) >= 50 &&
+        l.biometryStartStatus === 'SUCCESS' &&
+        l.biometryMidStatus === 'SUCCESS' &&
+        l.biometryEndStatus === 'SUCCESS' &&
+        l.integrityHash !== null &&
+        l.disputeOpened === false,
+    );
+
+    const totalValidatedMinutes = valid.reduce(
+      (sum, l) => sum + (l.durationMinutes ?? 0),
+      0,
+    );
+    const meetsMinimumLegal = totalValidatedMinutes >= MINIMUM_PRACTICAL_MINUTES;
+    const ladvValid =
+      student.ladvOcrStatus === 'PASS' &&
+      !!student.ladvValidUntil &&
+      student.ladvValidUntil > new Date();
+    const canDeclareReadyForExam = meetsMinimumLegal && ladvValid;
+
+    return {
+      studentId,
+      totalCompletedLessons: valid.length,
+      totalValidatedMinutes,
+      requiredMinutes: MINIMUM_PRACTICAL_MINUTES,
+      meetsMinimumLegal,
+      lessonsWithIntegrityIssues: lessons.length - valid.length,
+      canDeclareReadyForExam,
+    };
   }
 }
