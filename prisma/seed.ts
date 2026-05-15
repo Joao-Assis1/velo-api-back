@@ -317,6 +317,89 @@ async function main() {
     },
   });
 
+  // ============================================================================
+  // Clinics seed — 6 clínicas (3 MEDICAL + 3 PSYCHOLOGICAL) em Campo Grande/MS
+  // ============================================================================
+
+  const clinicsData: Array<{
+    name: string;
+    type: 'MEDICAL' | 'PSYCHOLOGICAL';
+    city: string;
+    uf: string;
+    address: string;
+    phone: string | null;
+    price: number;
+  }> = [
+    {
+      name: 'Clínica Centro Médico Campo Grande',
+      type: 'MEDICAL',
+      city: 'Campo Grande',
+      uf: 'MS',
+      address: 'Rua Maracaju, 1500 - Centro',
+      phone: '(67) 3321-1000',
+      price: 220,
+    },
+    {
+      name: 'Clínica Vila Sobrinho',
+      type: 'MEDICAL',
+      city: 'Campo Grande',
+      uf: 'MS',
+      address: 'Av. Mato Grosso, 2000 - Vila Sobrinho',
+      phone: '(67) 3321-2000',
+      price: 200,
+    },
+    {
+      name: 'Clínica Jardim dos Estados',
+      type: 'MEDICAL',
+      city: 'Campo Grande',
+      uf: 'MS',
+      address: 'Rua Antônio Maria Coelho, 800 - Jardim dos Estados',
+      phone: '(67) 3321-3000',
+      price: 240,
+    },
+    {
+      name: 'Psico Centro Campo Grande',
+      type: 'PSYCHOLOGICAL',
+      city: 'Campo Grande',
+      uf: 'MS',
+      address: 'Rua 14 de Julho, 1200 - Centro',
+      phone: '(67) 3321-1500',
+      price: 170,
+    },
+    {
+      name: 'Psico Tiradentes Avaliações',
+      type: 'PSYCHOLOGICAL',
+      city: 'Campo Grande',
+      uf: 'MS',
+      address: 'Av. Bandeirantes, 350 - Tiradentes',
+      phone: '(67) 3321-1800',
+      price: 160,
+    },
+    {
+      name: 'Psico Bairro Amambai',
+      type: 'PSYCHOLOGICAL',
+      city: 'Campo Grande',
+      uf: 'MS',
+      address: 'Rua Pernambuco, 450 - Amambai',
+      phone: '(67) 3321-1900',
+      price: 165,
+    },
+  ];
+
+  for (const c of clinicsData) {
+    const existing = await prisma.clinic.findFirst({
+      where: { name: c.name, city: c.city, uf: c.uf },
+    });
+    if (existing) {
+      await prisma.clinic.update({
+        where: { id: existing.id },
+        data: { ...c, isActive: true },
+      });
+    } else {
+      await prisma.clinic.create({ data: { ...c, isActive: true } });
+    }
+  }
+
   console.log('✅ Populamento concluído com sucesso!');
 }
 
