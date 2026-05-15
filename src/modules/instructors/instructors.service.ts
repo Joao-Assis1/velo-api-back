@@ -21,6 +21,11 @@ export class InstructorsService {
 
   async findAll() {
     return this.prisma.instructor.findMany({
+      where: {
+        credentialStatus: 'APPROVED',
+        stripeAccountStatus: 'ACTIVE',
+        isActive: true,
+      },
       omit: this.omitPassword,
       include: { vehicles: true, availabilities: true },
     }) as unknown as Promise<
@@ -79,30 +84,57 @@ export class InstructorsService {
   }
 
   async getEarnings(id: string, month?: string, year?: string) {
-    const where: Prisma.LessonWhereInput = {
+    const completedWhere: Prisma.LessonWhereInput = {
       instructorId: id,
       status: 'completed',
+    };
+
+    const pendingWhere: Prisma.LessonWhereInput = {
+      instructorId: id,
+      status: 'upcoming',
     };
 
     if (month && year) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
       const endDate = new Date(parseInt(year), parseInt(month), 1);
-      where.date = {
+      completedWhere.date = {
         gte: startDate,
         lt: endDate,
       };
     }
 
-    const result = await this.prisma.lesson.aggregate({
-      _sum: {
-        price: true,
-      },
-      where,
-    });
+    const [completedResult, pendingResult, history] = await Promise.all([
+      this.prisma.lesson.aggregate({
+        _sum: { price: true },
+        where: completedWhere,
+      }),
+      this.prisma.lesson.aggregate({
+        _sum: { price: true },
+        where: pendingWhere,
+      }),
+      this.prisma.lesson.findMany({
+        where: completedWhere,
+        orderBy: { date: 'desc' },
+        include: {
+          student: {
+            select: {
+              name: true,
+              profilePicture: true,
+            },
+          },
+        },
+      }),
+    ]);
 
     return {
-      instructorId: id,
-      earnings: result._sum.price || 0,
+      availableBalance: completedResult._sum.price || 0,
+      pendingBalance: pendingResult._sum.price || 0,
+      transferredBalance: 0,
+      history: history.map((lesson) => ({
+        ...lesson,
+        studentName: lesson.student?.name,
+        studentImage: lesson.student?.profilePicture,
+      })),
       month,
       year,
     };
