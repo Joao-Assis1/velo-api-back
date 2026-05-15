@@ -24,6 +24,7 @@ src/
 ├── students/          # ciclo de vida do aluno, OCR LADV
 ├── instructors/       # perfis, avaliacoes, ganhos mensais
 ├── journey/           # orquestrador da jornada CONTRAN 1.020/2025 (estados + gates)
+├── clinics/           # catalogo de clinicas medicas e psicologicas (CONTRAN 1.020/2025)
 ├── lessons/           # agendamento, biometria 3 pontos, hash SHA-256
 ├── telemetria/        # deteccao GPS (excesso de velocidade, freada brusca)
 ├── availability/      # slots semanais do instrutor (replace-all)
@@ -33,6 +34,7 @@ src/
 ├── academy/           # simulado: 30 questoes, 70% aprovacao, 15 min
 ├── compliance/        # CONTRAN 1.020/2025, checklist 4 etapas
 ├── vehicles/          # gestao de veiculos do instrutor
+├── validation/        # CPF/CNH locais + ViaCEP + BrasilAPI + provider externo plugavel
 ├── common/            # guards, interceptors, utils (geo/Haversine)
 ├── config/            # validacao de env (env.validation.ts)
 └── prisma/            # PrismaService singleton global
@@ -80,6 +82,11 @@ Validadas no startup via `src/config/env.validation.ts`:
 | `JWT_SECRET` | Gerar com `npm run jwt-key` |
 | `ASAAS_API_KEY` | Credenciais do gateway de pagamento |
 | `PORT` | Opcional; padrao: 3001 |
+| `DOCUMENT_VALIDATION_PROVIDER` | Opcional; `mock` (padrao) ou `serpro` |
+| `VIA_CEP_BASE_URL` | Opcional; padrao `https://viacep.com.br/ws` |
+| `BRASIL_API_BASE_URL` | Opcional; padrao `https://brasilapi.com.br/api` |
+| `STRIPE_SECRET_KEY` | Chave secreta Stripe (para migração de pagamentos) |
+| `STRIPE_WEBHOOK_SECRET` | Secret do webhook Stripe |
 
 ## Dados de Seed (prisma/seed.ts)
 
