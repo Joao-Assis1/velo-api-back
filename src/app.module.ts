@@ -23,6 +23,7 @@ import { RenachProcessModule } from './modules/renach-process/renach-process.mod
 import { MedicalExamModule } from './modules/medical-exam/medical-exam.module';
 import { PsychologicalExamModule } from './modules/psychological-exam/psychological-exam.module';
 import { TheoryExamOfficialModule } from './modules/theory-exam-official/theory-exam.module';
+import { LadvProcessModule } from './modules/ladv-process/ladv-process.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { TheoryExamOfficialModule } from './modules/theory-exam-official/theory-
     MedicalExamModule,
     PsychologicalExamModule,
     TheoryExamOfficialModule,
+    LadvProcessModule,
   ],
 })
 export class AppModule {}
