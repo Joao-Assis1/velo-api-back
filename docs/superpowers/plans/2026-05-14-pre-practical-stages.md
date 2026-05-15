@@ -177,7 +177,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, Length } from 'class-validator';
 
 export class ScheduleRenachDto {
-  @ApiProperty({ example: 'SP' })
+  @ApiProperty({ example: 'MS' })
   @IsString()
   @Length(2, 2)
   uf!: string;
@@ -280,7 +280,7 @@ describe('RenachProcessService', () => {
     it('returns the current renach process', async () => {
       prisma.renachProcess.findUnique.mockResolvedValue({
         id: 'r1',
-        ufDetran: 'SP',
+        ufDetran: 'MS',
         status: 'PENDING',
       });
       const r = await service.getMine('stu-1');
@@ -294,18 +294,24 @@ describe('RenachProcessService', () => {
   });
 
   describe('getGuide', () => {
-    it('returns UF-specific guidance for SP', () => {
-      const g = service.getGuide('SP');
-      expect(g.uf).toBe('SP');
+    it('returns UF-specific guidance for MS (Mato Grosso do Sul)', () => {
+      const g = service.getGuide('MS');
+      expect(g.uf).toBe('MS');
       expect(g.steps).toEqual(
-        expect.arrayContaining([expect.stringMatching(/poupatempo/i)]),
+        expect.arrayContaining([
+          expect.stringMatching(/detran.*ms|mato grosso do sul/i),
+        ]),
       );
     });
 
-    it('returns generic guidance for an unknown UF', () => {
-      const g = service.getGuide('ZZ');
-      expect(g.uf).toBe('ZZ');
+    it('returns generic guidance for any UF that is not MS', () => {
+      const g = service.getGuide('SP');
+      expect(g.uf).toBe('SP');
       expect(g.steps.length).toBeGreaterThan(0);
+      // generic guide must NOT contain the MS-specific portal hint
+      expect(
+        g.steps.every((s) => !/detran-ms\.gov\.br/i.test(s)),
+      ).toBe(true);
     });
   });
 
@@ -313,20 +319,20 @@ describe('RenachProcessService', () => {
     it('upserts a PENDING/SCHEDULED process and refreshes journey', async () => {
       prisma.renachProcess.upsert.mockResolvedValue({
         id: 'r1',
-        ufDetran: 'SP',
+        ufDetran: 'MS',
         status: 'SCHEDULED',
       });
-      const r = await service.schedule('stu-1', { uf: 'SP' });
+      const r = await service.schedule('stu-1', { uf: 'MS' });
       expect(prisma.renachProcess.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { studentId: 'stu-1' },
           create: expect.objectContaining({
             studentId: 'stu-1',
-            ufDetran: 'SP',
+            ufDetran: 'MS',
             status: 'SCHEDULED',
           }),
           update: expect.objectContaining({
-            ufDetran: 'SP',
+            ufDetran: 'MS',
             status: 'SCHEDULED',
           }),
         }),
@@ -341,13 +347,13 @@ describe('RenachProcessService', () => {
       prisma.renachProcess.findUnique.mockResolvedValue({
         id: 'r1',
         studentId: 'stu-1',
-        ufDetran: 'SP',
+        ufDetran: 'MS',
         status: 'SCHEDULED',
       });
       prisma.renachProcess.update.mockResolvedValue({
         id: 'r1',
         studentId: 'stu-1',
-        ufDetran: 'SP',
+        ufDetran: 'MS',
         renachNumber: 'RNC-2026-00001',
         biometryDoneAt: new Date(),
         status: 'DONE',
@@ -403,28 +409,13 @@ import { CompleteRenachDto } from './dto/complete-renach.dto';
 import { RenachProcessDto } from './dto/renach-process.dto';
 
 const UF_GUIDES: Record<string, { steps: string[] }> = {
-  SP: {
+  MS: {
     steps: [
-      'Acesse o Poupatempo Digital (https://www.poupatempo.sp.gov.br)',
-      'Faça a abertura do processo de 1ª habilitação',
-      'Agende a biometria no posto Poupatempo mais próximo',
-      'Compareça com RG, CPF e comprovante de residência',
-    ],
-  },
-  RJ: {
-    steps: [
-      'Acesse o portal DETRAN.RJ (https://www.detran.rj.gov.br)',
-      'Inicie o processo de Permissão para Dirigir (PPD)',
-      'Agende a coleta biométrica em uma unidade DETRAN',
-      'Leve documentação de identidade e comprovante de residência',
-    ],
-  },
-  MG: {
-    steps: [
-      'Acesse o portal do DETRAN.MG',
-      'Solicite a abertura do processo de Primeira Habilitação',
-      'Aguarde notificação da unidade onde fará a biometria',
-      'Compareça no horário agendado com seus documentos',
+      'Acesse o portal do DETRAN-MS (https://www.detran.ms.gov.br)',
+      'No menu "Habilitação", inicie o processo de Primeira Habilitação categoria B',
+      'Informe seus dados pessoais e selecione o CFC de sua preferência em Mato Grosso do Sul',
+      'Agende a coleta biométrica em uma unidade do DETRAN-MS',
+      'Compareça no dia marcado com RG, CPF e comprovante de residência',
     ],
   },
 };
@@ -688,16 +679,28 @@ describe('RenachProcess (e2e)', () => {
     await app.close();
   });
 
-  it('GET /renach/guide?uf=SP returns Poupatempo steps', async () => {
+  it('GET /renach/guide?uf=MS returns DETRAN-MS steps', async () => {
+    const token = await login(app, 'student-renach@email.com');
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/renach/guide?uf=MS')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(res.body.data.uf).toBe('MS');
+    expect(
+      res.body.data.steps.some((s: string) => /detran-ms\.gov\.br/i.test(s)),
+    ).toBe(true);
+  });
+
+  it('GET /renach/guide?uf=SP returns the generic fallback (only MS is operational)', async () => {
     const token = await login(app, 'student-renach@email.com');
     const res = await request(app.getHttpServer())
       .get('/api/v1/renach/guide?uf=SP')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(res.body.data.uf).toBe('SP');
-    expect(res.body.data.steps.some((s: string) => /poupatempo/i.test(s))).toBe(
-      true,
-    );
+    expect(
+      res.body.data.steps.every((s: string) => !/detran-ms\.gov\.br/i.test(s)),
+    ).toBe(true);
   });
 
   it('POST /renach/me/schedule then /me/done transitions RENACH_PENDING → MEDICAL_PENDING', async () => {
@@ -706,7 +709,7 @@ describe('RenachProcess (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/renach/me/schedule')
       .set('Authorization', `Bearer ${token}`)
-      .send({ uf: 'SP' })
+      .send({ uf: 'MS' })
       .expect(201);
 
     await request(app.getHttpServer())
@@ -745,7 +748,7 @@ describe('RenachProcess (e2e)', () => {
 npm run build && npm run test:e2e -- renach-process
 ```
 
-Esperado: build limpo + 3 testes passando.
+Esperado: build limpo + 4 testes passando.
 
 - [ ] **Step 3.6: Commit**
 
@@ -2755,7 +2758,7 @@ await prisma.renachProcess.upsert({
   create: {
     studentId: psych.id,
     renachNumber: 'RNC-2026-00006',
-    ufDetran: 'SP',
+    ufDetran: 'MS',
     biometryDoneAt: pastDate(7),
     status: 'DONE',
   },
@@ -2792,7 +2795,7 @@ await prisma.renachProcess.upsert({
   create: {
     studentId: theory.id,
     renachNumber: 'RNC-2026-00007',
-    ufDetran: 'SP',
+    ufDetran: 'MS',
     biometryDoneAt: pastDate(15),
     status: 'DONE',
   },
@@ -2841,7 +2844,7 @@ await prisma.renachProcess.upsert({
   create: {
     studentId: awaitLadv.id,
     renachNumber: 'RNC-2026-00008',
-    ufDetran: 'SP',
+    ufDetran: 'MS',
     biometryDoneAt: pastDate(25),
     status: 'DONE',
   },
