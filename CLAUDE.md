@@ -23,6 +23,7 @@ src/
 ├── auth/              # login/register de alunos e instrutores
 ├── students/          # ciclo de vida do aluno, OCR LADV
 ├── instructors/       # perfis, avaliacoes, ganhos mensais
+├── ladv-process/      # upload + OCR Tesseract + entrada manual da LADV (CONTRAN etapa 7)
 ├── journey/           # orquestrador da jornada CONTRAN 1.020/2025 (estados + gates)
 ├── clinics/           # catalogo de clinicas medicas e psicologicas (CONTRAN 1.020/2025)
 ├── medical-exam/      # agendamento + upload de laudo + protocolo PDF (CONTRAN etapa 4)
@@ -70,7 +71,8 @@ npm run jwt-key          # gera novo JWT secret
 ## Regras Importantes
 
 - **Novas funcionalidades:** SEMPRE iniciar com `/tlc-spec-driven` antes de escrever qualquer codigo — gera spec, tasks e plano de implementacao
-- **LADV OCR:** Tesseract.js exige keywords de CNH com >50% de confianca para aprovar aluno
+- **LADV OCR:** Tesseract.js extrai número, emissão e validade. >=50% de confiança + keywords (LADV/LICENÇA/APRENDIZAGEM/DETRAN) → ladvOcrStatus=PASS; sem número/datas → NEEDS_REVIEW; falha → FAIL. Endpoint único `/api/v1/ladv/me/upload` (módulo `ladv-process/`)
+- **Cadeia de validação de aulas:** `LessonsService.create()` executa 6 gates em sequência — journey (LADV_UPLOADED_VALID), credencial do instrutor (APPROVED + credentialValidUntil), CNH local (cnhNumber via ValidationService), CNH expiry, CNH SERPRO (se env=serpro), veículo pertence ao instrutor
 - **Biometria 3 pontos:** check-in GPS obrigatorio no inicio, meio e fim da aula dentro de 50 m (Haversine em `common/utils/geo.utils.ts`)
 - **Hash de integridade:** telemetria selada com SHA-256 via Shield service; hash imutavel apos disputa aberta
 - **Pagamentos:** fundos Asaas liberados somente apos 50 min minimos de aula confirmados
