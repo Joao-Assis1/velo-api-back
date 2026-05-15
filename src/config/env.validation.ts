@@ -19,18 +19,6 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
-  ASAAS_API_KEY?: string;
-
-  @IsOptional()
-  @IsString()
-  ASAAS_BASE_URL?: string;
-
-  @IsOptional()
-  @IsString()
-  ASAAS_WEBHOOK_TOKEN?: string;
-
-  @IsOptional()
-  @IsString()
   PLATFORM_FEE_PERCENT?: string;
 
   @IsOptional()
@@ -45,13 +33,23 @@ class EnvironmentVariables {
   @IsUrl({ require_tld: false, require_protocol: true })
   BRASIL_API_BASE_URL?: string = 'https://brasilapi.com.br/api';
 
-  @IsOptional()
   @IsString()
-  STRIPE_SECRET_KEY?: string;
+  STRIPE_SECRET_KEY!: string;
+
+  @IsString()
+  STRIPE_WEBHOOK_SECRET!: string;
 
   @IsOptional()
   @IsString()
-  STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_CONNECT_CLIENT_ID?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false, require_protocol: true })
+  STRIPE_CONNECT_REFRESH_URL?: string = 'http://localhost:3001/api/v1/payments-stripe/connect/refresh';
+
+  @IsOptional()
+  @IsUrl({ require_tld: false, require_protocol: true })
+  STRIPE_CONNECT_RETURN_URL?: string = 'http://localhost:3001/api/v1/payments-stripe/connect/return';
 }
 
 export function validate(config: Record<string, unknown>) {
