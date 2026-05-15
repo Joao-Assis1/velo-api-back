@@ -28,10 +28,7 @@ import {
 } from './dto/connect-status.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-
-interface RequestWithUser {
-  user: { id: string; role?: string };
-}
+import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
 @ApiTags('payments-stripe')
 @ApiBearerAuth()
@@ -46,40 +43,40 @@ export class PaymentsStripeController {
   @Post('setup-intent')
   @ApiOkResponse({ type: SetupIntentResponseDto })
   setupIntent(@Req() req: RequestWithUser) {
-    return this.service.createSetupIntent(req.user.id);
+    return this.service.createSetupIntent(req.user.userId);
   }
 
   @Post('payment-methods')
   @ApiOkResponse({ type: PaymentMethodResponseDto })
   attach(@Req() req: RequestWithUser, @Body() dto: AttachPaymentMethodDto) {
-    return this.service.attachPaymentMethod(req.user.id, dto);
+    return this.service.attachPaymentMethod(req.user.userId, dto);
   }
 
   @Delete('payment-methods/:id')
   detach(@Req() req: RequestWithUser, @Param('id') id: string) {
-    return this.service.detachPaymentMethod(req.user.id, id);
+    return this.service.detachPaymentMethod(req.user.userId, id);
   }
 
   @Post('charge')
   charge(@Req() req: RequestWithUser, @Body() dto: ChargeDto) {
-    return this.service.charge(req.user.id, dto);
+    return this.service.charge(req.user.userId, dto);
   }
 
   @Get('me')
   getMyPayments(@Req() req: RequestWithUser) {
-    return this.service.listMyPayments(req.user.id);
+    return this.service.listMyPayments(req.user.userId);
   }
 
   @Post('connect/onboard')
   @ApiOkResponse({ type: ConnectOnboardResponseDto })
   onboard(@Req() req: RequestWithUser) {
-    return this.connect.startOnboarding(req.user.id);
+    return this.connect.startOnboarding(req.user.userId);
   }
 
   @Get('connect/status')
   @ApiOkResponse({ type: ConnectStatusDto })
   connectStatus(@Req() req: RequestWithUser) {
-    return this.connect.getStatus(req.user.id);
+    return this.connect.getStatus(req.user.userId);
   }
 
   @Post('disputes/:lessonId/resolve')
