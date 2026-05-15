@@ -189,6 +189,151 @@ async function main() {
     },
   });
 
+  // STAGE 3b: PSYCH_PENDING (RENACH DONE + MEDICAL APTO)
+  const psych = await prisma.student.upsert({
+    where: { email: 'student-psych@email.com' },
+    update: {},
+    create: {
+      email: 'student-psych@email.com',
+      name: 'Aluno Aguardando Psico',
+      cpf: '66666666666',
+      password: journeyPassword,
+      theoryCourseStartedAt: pastDate(10),
+      journeyStage: 'PSYCH_PENDING',
+    },
+  });
+  await prisma.renachProcess.upsert({
+    where: { studentId: psych.id },
+    update: {},
+    create: {
+      studentId: psych.id,
+      renachNumber: 'RNC-2026-00006',
+      ufDetran: 'MS',
+      biometryDoneAt: pastDate(7),
+      status: 'DONE',
+    },
+  });
+  await prisma.medicalExam.upsert({
+    where: { studentId: psych.id },
+    update: {},
+    create: {
+      studentId: psych.id,
+      protocolCode: 'MED-2026-PSY1',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(5),
+      validUntil: futureDate(360),
+    },
+  });
+
+  // STAGE 3c: THEORY_EXAM_PENDING (RENACH DONE + MEDICAL APTO + PSYCH APTO)
+  const theory = await prisma.student.upsert({
+    where: { email: 'student-theory@email.com' },
+    update: {},
+    create: {
+      email: 'student-theory@email.com',
+      name: 'Aluno Aguardando Teórico Oficial',
+      cpf: '77777777777',
+      password: journeyPassword,
+      theoryCourseStartedAt: pastDate(20),
+      journeyStage: 'THEORY_EXAM_PENDING',
+    },
+  });
+  await prisma.renachProcess.upsert({
+    where: { studentId: theory.id },
+    update: {},
+    create: {
+      studentId: theory.id,
+      renachNumber: 'RNC-2026-00007',
+      ufDetran: 'MS',
+      biometryDoneAt: pastDate(15),
+      status: 'DONE',
+    },
+  });
+  await prisma.medicalExam.upsert({
+    where: { studentId: theory.id },
+    update: {},
+    create: {
+      studentId: theory.id,
+      protocolCode: 'MED-2026-THE1',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(10),
+      validUntil: futureDate(355),
+    },
+  });
+  await prisma.psychologicalExam.upsert({
+    where: { studentId: theory.id },
+    update: {},
+    create: {
+      studentId: theory.id,
+      protocolCode: 'PSY-2026-THE1',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(8),
+      validUntil: futureDate(357),
+    },
+  });
+
+  // STAGE 3d: AWAITING_LADV_UPLOAD (todos os anteriores + theory exam passed)
+  const awaitLadv = await prisma.student.upsert({
+    where: { email: 'student-awaiting-ladv@email.com' },
+    update: {},
+    create: {
+      email: 'student-awaiting-ladv@email.com',
+      name: 'Aluno Aguardando Upload LADV',
+      cpf: '88888888888',
+      password: journeyPassword,
+      theoryCourseStartedAt: pastDate(30),
+      journeyStage: 'AWAITING_LADV_UPLOAD',
+    },
+  });
+  await prisma.renachProcess.upsert({
+    where: { studentId: awaitLadv.id },
+    update: {},
+    create: {
+      studentId: awaitLadv.id,
+      renachNumber: 'RNC-2026-00008',
+      ufDetran: 'MS',
+      biometryDoneAt: pastDate(25),
+      status: 'DONE',
+    },
+  });
+  await prisma.medicalExam.upsert({
+    where: { studentId: awaitLadv.id },
+    update: {},
+    create: {
+      studentId: awaitLadv.id,
+      protocolCode: 'MED-2026-AWL1',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(18),
+      validUntil: futureDate(350),
+    },
+  });
+  await prisma.psychologicalExam.upsert({
+    where: { studentId: awaitLadv.id },
+    update: {},
+    create: {
+      studentId: awaitLadv.id,
+      protocolCode: 'PSY-2026-AWL1',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(16),
+      validUntil: futureDate(352),
+    },
+  });
+  await prisma.officialTheoryExam.upsert({
+    where: { studentId: awaitLadv.id },
+    update: {},
+    create: {
+      studentId: awaitLadv.id,
+      takenAt: pastDate(5),
+      passed: true,
+      score: 27,
+    },
+  });
+
   // STAGE 4: LADV_UPLOADED_VALID (todas as etapas anteriores OK)
   const ladv = await prisma.student.upsert({
     where: { email: 'student-ladv@email.com' },
