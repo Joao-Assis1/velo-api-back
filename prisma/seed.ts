@@ -60,6 +60,11 @@ async function main() {
       rating: 4.9,
       reviewsCount: 42,
       profilePicture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+      cpf: '12345678901',
+      cnhNumber: '01234567890',
+      cnhExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 ano
+      credentialStatus: 'APPROVED',
+      credentialValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano
       vehicles: {
         create: {
           model: 'Hyundai HB20',
@@ -459,6 +464,120 @@ async function main() {
       takenAt: pastDate(30),
       passed: true,
       score: 28,
+    },
+  });
+
+  // ============================================================================
+  // STAGE 5: READY_FOR_PRACTICAL_EXAM — todos os anteriores + 2 lessons válidas
+  // ============================================================================
+
+  const ready = await prisma.student.upsert({
+    where: { email: 'student-ready@email.com' },
+    update: {},
+    create: {
+      email: 'student-ready@email.com',
+      name: 'Aluno Pronto para Exame Prático',
+      cpf: '99999999999',
+      password: journeyPassword,
+      theoryCourseStartedAt: pastDate(60),
+      ladvNumber: 'LADV-MS-READY1',
+      ladvIssuedAt: pastDate(40),
+      ladvValidUntil: futureDate(300),
+      ladvOcrStatus: 'PASS',
+      ladvOcrConfidence: 0.94,
+      readyForPracticalExamAt: pastDate(1),
+      journeyStage: 'READY_FOR_PRACTICAL_EXAM',
+    },
+  });
+
+  await prisma.renachProcess.upsert({
+    where: { studentId: ready.id },
+    update: {},
+    create: {
+      studentId: ready.id,
+      renachNumber: 'RNC-2026-00009',
+      ufDetran: 'MS',
+      biometryDoneAt: pastDate(55),
+      status: 'DONE',
+    },
+  });
+  await prisma.medicalExam.upsert({
+    where: { studentId: ready.id },
+    update: {},
+    create: {
+      studentId: ready.id,
+      protocolCode: 'MED-2026-READY',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(45),
+      validUntil: futureDate(320),
+    },
+  });
+  await prisma.psychologicalExam.upsert({
+    where: { studentId: ready.id },
+    update: {},
+    create: {
+      studentId: ready.id,
+      protocolCode: 'PSY-2026-READY',
+      result: 'APTO',
+      status: 'RESULT_UPLOADED',
+      performedAt: pastDate(43),
+      validUntil: futureDate(322),
+    },
+  });
+  await prisma.officialTheoryExam.upsert({
+    where: { studentId: ready.id },
+    update: {},
+    create: {
+      studentId: ready.id,
+      takenAt: pastDate(30),
+      passed: true,
+      score: 29,
+    },
+  });
+
+  // 2 valid lessons (≥50 min, biometry SUCCESS x3, integrityHash, disputeOpened=false)
+  const lessonsPayload = [
+    { date: pastDate(15), durationMinutes: 60, seq: 1 },
+    { date: pastDate(7), durationMinutes: 65, seq: 2 },
+  ];
+  for (const l of lessonsPayload) {
+    const existing = await prisma.lesson.findFirst({
+      where: { studentId: ready.id, instructorId: instructor1.id, date: l.date },
+    });
+    if (!existing) {
+      await prisma.lesson.create({
+        data: {
+          studentId: ready.id,
+          instructorId: instructor1.id,
+          date: l.date,
+          startTime: '10:00',
+          endTime: '11:05',
+          durationMinutes: l.durationMinutes,
+          status: 'completed',
+          biometryStartStatus: 'SUCCESS',
+          biometryMidStatus: 'SUCCESS',
+          biometryEndStatus: 'SUCCESS',
+          integrityHash: `ready-seed-hash-${l.seq}`,
+          disputeOpened: false,
+        },
+      });
+    }
+  }
+
+  // Instrutor com credencial EXPIRED (para e2e do gate)
+  await prisma.instructor.upsert({
+    where: { email: 'expired-instructor@email.com' },
+    update: {},
+    create: {
+      email: 'expired-instructor@email.com',
+      name: 'Carlos Credencial Vencida',
+      cpf: '55555555500',
+      password: await bcrypt.hash('123456', 10),
+      cnhNumber: '11122233344',
+      cnhExpiry: futureDate(365).toISOString(),
+      credentialStatus: 'EXPIRED',
+      credentialValidUntil: pastDate(10),
     },
   });
 

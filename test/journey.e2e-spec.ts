@@ -46,6 +46,7 @@ describe('Journey (e2e)', () => {
     { email: 'student-renach@email.com', expectedStage: 'RENACH_PENDING' },
     { email: 'student-medical@email.com', expectedStage: 'MEDICAL_PENDING' },
     { email: 'student-ladv@email.com', expectedStage: 'LADV_UPLOADED_VALID' },
+    { email: 'student-ready@email.com', expectedStage: 'READY_FOR_PRACTICAL_EXAM' },
   ];
 
   it.each(cases)(
