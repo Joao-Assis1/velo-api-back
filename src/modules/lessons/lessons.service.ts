@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
@@ -13,6 +14,13 @@ import { ShieldService } from '../telemetria/shield.service';
 import { RegisterBiometryDto } from './dto/register-biometry.dto';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
 import { AsaasService } from '../payments/asaas.service';
+import { JourneyService } from '../journey/journey.service';
+import { ValidationService } from '../validation/validation.service';
+import { ConfigService } from '@nestjs/config';
+import {
+  DOCUMENT_VALIDATION_PROVIDER,
+  DocumentValidationProvider,
+} from '../validation/providers/document-validation.provider';
 
 @Injectable()
 export class LessonsService {
@@ -22,24 +30,84 @@ export class LessonsService {
     private prisma: PrismaService,
     private shield: ShieldService,
     private asaasService: AsaasService,
+    private journey: JourneyService,
+    private validation: ValidationService,
+    private config: ConfigService,
+    @Inject(DOCUMENT_VALIDATION_PROVIDER)
+    private documentValidation: DocumentValidationProvider,
   ) {}
 
   async create(createLessonDto: CreateLessonDto): Promise<Lesson> {
-    return this.prisma.$transaction(async (tx) => {
-      const student = await tx.student.findUnique({
-        where: { id: createLessonDto.studentId },
-      });
+    // === STAGE 1: Journey gate (LADV válida + stage >= LADV_UPLOADED_VALID) ===
+    await this.journey.assertCanScheduleLesson(createLessonDto.studentId);
 
-      if (!student) {
-        throw new BadRequestException('Student not found');
-      }
+    // === STAGE 2: Instructor credential ===
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: createLessonDto.instructorId },
+    });
+    if (!instructor) {
+      throw new BadRequestException('Instructor not found');
+    }
+    if (instructor.credentialStatus !== 'APPROVED') {
+      throw new BadRequestException(
+        `Instructor credential is ${instructor.credentialStatus} — only APPROVED is allowed`,
+      );
+    }
+    if (
+      !instructor.credentialValidUntil ||
+      instructor.credentialValidUntil <= new Date()
+    ) {
+      throw new BadRequestException(
+        'Instructor DETRAN credential is expired',
+      );
+    }
 
-      if (!student.ladvUploaded) {
+    // === STAGE 3: Instructor CNH local check + expiry ===
+    const cnhResult = await this.validation.validateCnh(
+      instructor.cnh,
+      instructor.cpf,
+    );
+    if (cnhResult.status === 'LOCAL_INVALID') {
+      throw new BadRequestException(
+        'Instructor CNH number failed local validation',
+      );
+    }
+    if (!instructor.cnhExpiry || new Date(instructor.cnhExpiry) <= new Date()) {
+      throw new BadRequestException('Instructor CNH is expired');
+    }
+
+    // === STAGE 4: SERPRO-style external check (only when provider=serpro) ===
+    const externalProvider =
+      this.config.get<string>('DOCUMENT_VALIDATION_PROVIDER') ?? 'mock';
+    if (externalProvider === 'serpro') {
+      const external = await this.documentValidation.validateCnh(
+        instructor.cnh,
+        instructor.cpf,
+      );
+      if (!external.valid) {
         throw new BadRequestException(
-          'Student must upload LADV before booking lessons',
+          `Instructor CNH rejected by external provider (status=${external.status})`,
         );
       }
+    }
 
+    // === STAGE 5: Vehicle plate exists and active ===
+    if (createLessonDto.vehicleId) {
+      const vehicle = await this.prisma.vehicle.findUnique({
+        where: { id: createLessonDto.vehicleId },
+      });
+      if (!vehicle || vehicle.instructorId !== createLessonDto.instructorId) {
+        throw new BadRequestException(
+          'Vehicle does not belong to the selected instructor',
+        );
+      }
+      if (vehicle.isActive === false) {
+        throw new BadRequestException('Vehicle is inactive');
+      }
+    }
+
+    // === STAGE 6: Booking (existing transaction) ===
+    return this.prisma.$transaction(async (tx) => {
       const existingLesson = await tx.lesson.findFirst({
         where: {
           instructorId: createLessonDto.instructorId,
@@ -244,19 +312,21 @@ export class LessonsService {
 
     const instructorId = updatedLesson.instructorId;
 
-    const lessonsWithRating = await this.prisma.lesson.findMany({
+    const stats = await this.prisma.lesson.aggregate({
       where: {
         instructorId,
         studentFeedbackRating: { not: null },
       },
+      _avg: {
+        studentFeedbackRating: true,
+      },
+      _count: {
+        studentFeedbackRating: true,
+      },
     });
 
-    const reviewsCount = lessonsWithRating.length;
-    const totalRating = lessonsWithRating.reduce(
-      (sum, lesson) => sum + (lesson.studentFeedbackRating || 0),
-      0,
-    );
-    const averageRating = reviewsCount > 0 ? totalRating / reviewsCount : 0;
+    const reviewsCount = stats._count.studentFeedbackRating || 0;
+    const averageRating = stats._avg.studentFeedbackRating || 0;
 
     await this.prisma.instructor.update({
       where: { id: instructorId },
