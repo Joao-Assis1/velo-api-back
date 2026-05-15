@@ -55,4 +55,6 @@ doc
 # Uploads
 uploads/
 !uploads/.gitkeep
+# Allow source files under src/common/uploads/
+!src/common/uploads/
 doc/VELO_ESTRATEGIA_NEGOCIO_V2.md
