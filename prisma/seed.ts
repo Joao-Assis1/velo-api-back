@@ -65,6 +65,9 @@ async function main() {
       cnhExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 ano
       credentialStatus: 'APPROVED',
       credentialValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano
+      stripeAccountId: 'acct_seed_roberto',
+      stripeAccountStatus: 'ACTIVE',
+      stripePayoutsEnabled: true,
       vehicles: {
         create: {
           model: 'Hyundai HB20',
@@ -120,6 +123,24 @@ async function main() {
       instructorFeedback: 'Excelente controle de embreagem hoje!',
       studentFeedbackRating: 5,
       studentFeedbackText: 'O instrutor Roberto é muito calmo.',
+    },
+  });
+
+  // 5. PaymentMethod seed para Gabriel (aluno demo)
+  await prisma.student.update({
+    where: { id: student1.id },
+    data: { stripeCustomerId: 'cus_seed_gabriel' },
+  });
+  await prisma.paymentMethod.create({
+    data: {
+      studentId: student1.id,
+      stripePaymentMethodId: 'pm_seed_demo_1',
+      brand: 'visa',
+      last4: '4242',
+      cardholderName: 'GABRIEL SILVA',
+      expiryMonth: '12',
+      expiryYear: '2030',
+      isDefault: true,
     },
   });
 

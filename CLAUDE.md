@@ -11,7 +11,7 @@ API REST NestJS para o sistema Velo de gestao de autoescola. Todas as rotas sao 
 - Framework: NestJS 11 + TypeScript
 - ORM: Prisma 7 (PostgreSQL via Neon DB)
 - Auth: JWT com bcrypt + tokens por role (aluno/instrutor)
-- Pagamentos: Asaas (escrow)
+- Pagamentos: Stripe Connect Express (Destination Charges com transfer atrasado)
 - OCR: Tesseract.js
 - Agendamento: @nestjs/schedule
 - Testes: Jest + Supertest
@@ -34,8 +34,8 @@ src/
 ├── telemetria/        # deteccao GPS (excesso de velocidade, freada brusca)
 ├── availability/      # slots semanais do instrutor (replace-all)
 ├── busy-slots/        # bloqueios avulsos de disponibilidade
-├── payments/          # escrow Asaas; liberacao apos 50 min de aula
-├── payment-methods/   # cartoes salvos com validacao Luhn
+├── payments-stripe/   # Stripe Connect Express: setup-intent, charge, release, dispute, webhooks, onboarding
+├── payment-methods/   # cartoes salvos (stripePaymentMethodId); listagem, default, delete
 ├── academy/           # simulado: 30 questoes, 70% aprovacao, 15 min
 ├── compliance/        # CONTRAN 1.020/2025, checklist 4 etapas
 ├── vehicles/          # gestao de veiculos do instrutor
@@ -75,7 +75,7 @@ npm run jwt-key          # gera novo JWT secret
 - **Cadeia de validação de aulas:** `LessonsService.create()` executa 6 gates em sequência — journey (LADV_UPLOADED_VALID), credencial do instrutor (APPROVED + credentialValidUntil), CNH local (cnhNumber via ValidationService), CNH expiry, CNH SERPRO (se env=serpro), veículo pertence ao instrutor
 - **Biometria 3 pontos:** check-in GPS obrigatorio no inicio, meio e fim da aula dentro de 50 m (Haversine em `common/utils/geo.utils.ts`)
 - **Hash de integridade:** telemetria selada com SHA-256 via Shield service; hash imutavel apos disputa aberta
-- **Pagamentos:** fundos Asaas liberados somente apos 50 min minimos de aula confirmados
+- **Pagamentos:** Stripe Destination Charges; release via `stripe.transfers.create` após aula `completed` + `isValidForCompliance(lesson)=true` (≥50 min, biometria OK, sem disputa); idempotência via SHA-256 derivada de `(subject, action)`. Instrutor precisa de `stripeAccountStatus=ACTIVE` para cobrar.
 - **Simulado:** >=21 de 30 questoes corretas em <=15 min; faz parte do checklist de compliance de 4 etapas
 - **Refresh da journey:** após qualquer mutação em RenachProcess, MedicalExam, PsychologicalExam, OfficialTheoryExam ou theoryCourseStartedAt, chamar `JourneyService.refresh(studentId)` para atualizar o cache de `journeyStage`
 
@@ -87,13 +87,15 @@ Validadas no startup via `src/config/env.validation.ts`:
 |----------|-----------|
 | `DATABASE_URL` | PostgreSQL connection string (Neon DB) |
 | `JWT_SECRET` | Gerar com `npm run jwt-key` |
-| `ASAAS_API_KEY` | Credenciais do gateway de pagamento |
+| `STRIPE_SECRET_KEY` | Chave secreta da plataforma Stripe |
+| `STRIPE_WEBHOOK_SECRET` | Secret para verificação HMAC de webhooks |
+| `STRIPE_CONNECT_CLIENT_ID` | Opcional; client ID do Connect (Express) |
+| `STRIPE_CONNECT_REFRESH_URL` | Opcional; URL de refresh do Account Link |
+| `STRIPE_CONNECT_RETURN_URL` | Opcional; URL de return do Account Link |
 | `PORT` | Opcional; padrao: 3001 |
 | `DOCUMENT_VALIDATION_PROVIDER` | Opcional; `mock` (padrao) ou `serpro` |
 | `VIA_CEP_BASE_URL` | Opcional; padrao `https://viacep.com.br/ws` |
 | `BRASIL_API_BASE_URL` | Opcional; padrao `https://brasilapi.com.br/api` |
-| `STRIPE_SECRET_KEY` | Chave secreta Stripe (para migração de pagamentos) |
-| `STRIPE_WEBHOOK_SECRET` | Secret do webhook Stripe |
 
 ## Dados de Seed (prisma/seed.ts)
 
@@ -108,18 +110,10 @@ Executar com `npx prisma db seed`. Cria os seguintes registros de teste (senha p
 - **Veiculo:** Hyundai HB20 2023, placa ABC-1234, manual — vinculado ao Roberto
 - **Disponibilidade:** seg–sex 08:00–18:00
 - **Aulas:** 1 upcoming (2026-04-15 14h) + 1 completed com feedback (2026-04-10 09h)
-
-## Sessao 2026-05-09 — Reset e Seed do Banco
-
-**Estado atual do banco (Neon `velo-api`, `winter-frost-18826420`):**
-- Todas as 13 tabelas da app (`public` schema) foram truncadas via MCP com `TRUNCATE ... CASCADE`
-- `_prisma_migrations` e schema `neon_auth` preservados
-- Banco repopulado com `npx prisma db seed`
-
-**Branch ativa:** `feat/telemetry-compliance` com alteracoes nao commitadas no modulo `compliance/` (novos arquivos: `compliance.controller.ts`, `compliance.service.ts`, `compliance.service.spec.ts`, `dto/`) e modificacoes em `lessons.controller.ts`, `lessons.service.ts`, `compliance.module.ts`.
+- **Stripe (seed):** Roberto tem `stripeAccountId=acct_seed_roberto`, `stripeAccountStatus=ACTIVE`; Gabriel tem `stripeCustomerId=cus_seed_gabriel` + 1 PaymentMethod seed (`pm_seed_demo_1`, visa 4242)
 
 ---
 
-Ultima atualizacao: 2026-05-09
+Ultima atualizacao: 2026-05-15
 
 @~/.claude/RTK.md
