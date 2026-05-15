@@ -174,6 +174,7 @@ describe('PaymentsStripeService', () => {
       await service.detachPaymentMethod('stu-1', 'pm-row-1');
       expect(stripe.paymentMethods.detach).toHaveBeenCalledWith(
         'pm_1Q',
+        {},
         { idempotencyKey: expect.any(String) },
       );
       expect(prisma.paymentMethod.update).toHaveBeenCalledWith({

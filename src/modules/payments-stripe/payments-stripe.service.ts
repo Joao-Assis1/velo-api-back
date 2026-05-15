@@ -8,6 +8,9 @@ import {
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { STRIPE_CLIENT } from './stripe.client';
+
+type StripeInstance = InstanceType<typeof Stripe>;
+
 import { idempotencyKey } from './lib/idempotency';
 import {
   AttachPaymentMethodDto,
@@ -21,7 +24,7 @@ export class PaymentsStripeService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(STRIPE_CLIENT) private readonly stripe: Stripe,
+    @Inject(STRIPE_CLIENT) private readonly stripe: StripeInstance,
   ) {}
 
   async createSetupIntent(studentId: string): Promise<SetupIntentResponseDto> {
@@ -31,7 +34,7 @@ export class PaymentsStripeService {
     });
     if (!student) throw new NotFoundException('Student not found');
 
-    let customerId = student.stripeCustomerId;
+    let customerId: string | null = student.stripeCustomerId;
     if (!customerId) {
       const customer = await this.stripe.customers.create(
         {
@@ -59,7 +62,7 @@ export class PaymentsStripeService {
 
     return {
       clientSecret: setupIntent.client_secret as string,
-      customerId,
+      customerId: customerId as string,
     };
   }
 
@@ -116,6 +119,7 @@ export class PaymentsStripeService {
 
     await this.stripe.paymentMethods.detach(
       pm.stripePaymentMethodId,
+      {},
       { idempotencyKey: idempotencyKey(pm.stripePaymentMethodId, 'detach-payment-method') },
     );
     await this.prisma.paymentMethod.update({
@@ -326,14 +330,31 @@ export class PaymentsStripeService {
     });
   }
 
-  async handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
+  async listMyPayments(studentId: string) {
+    return this.prisma.payment.findMany({
+      where: { studentId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        lessonId: true,
+        stripePaymentIntentId: true,
+        stripeTransferId: true,
+        stripeRefundId: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async handlePaymentIntentSucceeded(pi: { id: string }) {
     await this.prisma.payment.updateMany({
       where: { stripePaymentIntentId: pi.id, status: { in: ['PENDING'] } },
       data: { status: 'HELD' },
     });
   }
 
-  async handlePaymentIntentFailed(pi: Stripe.PaymentIntent) {
+  async handlePaymentIntentFailed(pi: { id: string; last_payment_error?: { message?: string } | null }) {
     await this.prisma.payment.updateMany({
       where: { stripePaymentIntentId: pi.id },
       data: {
@@ -343,13 +364,13 @@ export class PaymentsStripeService {
     });
   }
 
-  async handleTransferCreated(transfer: Stripe.Transfer) {
+  async handleTransferCreated(transfer: { id: string }) {
     this.logger.log(
       `Webhook transfer.created received for ${transfer.id} — RELEASED already persisted`,
     );
   }
 
-  async handleTransferFailed(transfer: Stripe.Transfer) {
+  async handleTransferFailed(transfer: { id: string }) {
     await this.prisma.payment.updateMany({
       where: { stripeTransferId: transfer.id },
       data: { status: 'HELD' },

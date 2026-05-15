@@ -3,7 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { LessonsService } from './lessons.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShieldService } from '../telemetria/shield.service';
-import { AsaasService } from '../payments/asaas.service';
+import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
 import { JourneyService } from '../journey/journey.service';
 import { ValidationService } from '../validation/validation.service';
 import { ConfigService } from '@nestjs/config';
@@ -60,7 +60,7 @@ describe('LessonsService.create — validation chain', () => {
         LessonsService,
         { provide: PrismaService, useValue: prisma },
         { provide: ShieldService, useValue: {} },
-        { provide: AsaasService, useValue: {} },
+        { provide: PaymentsStripeService, useValue: { releaseEscrow: jest.fn(), resolveDispute: jest.fn() } },
         { provide: JourneyService, useValue: journey },
         { provide: ValidationService, useValue: validation },
         {

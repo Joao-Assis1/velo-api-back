@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
-import type Stripe from 'stripe';
+import Stripe from 'stripe';
 import type { Request } from 'express';
 import { STRIPE_CLIENT } from './stripe.client';
 import { PaymentsStripeService } from './payments-stripe.service';
@@ -24,7 +24,7 @@ interface RequestWithRaw extends Request {
 @Controller('webhooks/stripe')
 export class StripeWebhooksController {
   constructor(
-    @Inject(STRIPE_CLIENT) private readonly stripe: Stripe,
+    @Inject(STRIPE_CLIENT) private readonly stripe: InstanceType<typeof Stripe>,
     private readonly payments: PaymentsStripeService,
     private readonly connect: StripeConnectService,
     private readonly config: ConfigService,
@@ -49,7 +49,7 @@ export class StripeWebhooksController {
       );
     }
 
-    let event: Stripe.Event;
+    let event: ReturnType<typeof this.stripe.webhooks.constructEvent>;
     try {
       event = this.stripe.webhooks.constructEvent(req.rawBody, signature, secret);
     } catch (e) {

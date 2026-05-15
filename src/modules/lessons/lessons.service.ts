@@ -13,7 +13,7 @@ import { Lesson, Prisma } from '@prisma/client';
 import { ShieldService } from '../telemetria/shield.service';
 import { RegisterBiometryDto } from './dto/register-biometry.dto';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
-import { AsaasService } from '../payments/asaas.service';
+import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
 import { JourneyService } from '../journey/journey.service';
 import { ValidationService } from '../validation/validation.service';
 import { ConfigService } from '@nestjs/config';
@@ -27,7 +27,7 @@ export class LessonsService {
   constructor(
     private prisma: PrismaService,
     private shield: ShieldService,
-    private asaasService: AsaasService,
+    private paymentsStripe: PaymentsStripeService,
     private journey: JourneyService,
     private validation: ValidationService,
     private config: ConfigService,
@@ -211,8 +211,7 @@ export class LessonsService {
 
     const integrityHash = await this.shield.generateLessonHash(id);
 
-    // paymentReleased is NOT set here — EscrowService cron is the sole source of truth
-    return this.prisma.lesson.update({
+    const completedLesson = await this.prisma.lesson.update({
       where: { id },
       data: {
         status: 'completed',
@@ -221,6 +220,16 @@ export class LessonsService {
         integrityHash,
       },
     });
+
+    try {
+      await this.paymentsStripe.releaseEscrow(id);
+    } catch (e) {
+      this.logger.warn(
+        `Escrow release skipped for lesson ${id}: ${(e as Error).message}`,
+      );
+    }
+
+    return completedLesson;
   }
 
   async cancelLesson(id: string): Promise<Lesson> {
@@ -243,34 +252,11 @@ export class LessonsService {
       where: { lessonId: id },
     });
 
-    if (
-      payment?.asaasId &&
-      ['PENDING', 'COMPLETED'].includes(payment.status)
-    ) {
-      const lessonDateTime = new Date(lesson.date);
-      const [h, m] = lesson.startTime.split(':').map(Number);
-      lessonDateTime.setHours(h, m, 0, 0);
-      const hoursUntilLesson =
-        (lessonDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
-
-      const lateFeePercent = parseFloat(
-        process.env.LATE_CANCELLATION_FEE_PERCENT ?? '0.07',
-      );
-      const isLateCancellation = hoursUntilLesson <= 24;
-
-      this.logger.log(
-        `Cancelling lesson ${id}: ${hoursUntilLesson.toFixed(1)}h until start, late=${isLateCancellation}`,
-      );
-
-      const refundAmount = isLateCancellation
-        ? payment.amount * (1 - lateFeePercent)
-        : payment.amount;
-
+    if (payment && ['PENDING', 'HELD'].includes(payment.status)) {
       try {
-        await this.asaasService.refundCharge(payment.asaasId, refundAmount);
-        await this.prisma.payment.update({
-          where: { id: payment.id },
-          data: { status: 'REFUNDED' },
+        await this.paymentsStripe.resolveDispute(id, {
+          action: 'refund',
+          reason: 'lesson_cancelled',
         });
       } catch (err) {
         this.logger.error(

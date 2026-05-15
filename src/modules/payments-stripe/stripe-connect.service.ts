@@ -5,6 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import Stripe from 'stripe';
+
+type StripeInstance = InstanceType<typeof Stripe>;
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { STRIPE_CLIENT } from './stripe.client';
@@ -26,7 +28,7 @@ export class StripeConnectService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(STRIPE_CLIENT) private readonly stripe: Stripe,
+    @Inject(STRIPE_CLIENT) private readonly stripe: StripeInstance,
     private readonly config: ConfigService,
   ) {}
 
