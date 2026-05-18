@@ -51,6 +51,18 @@ export class LessonsController {
     return this.lessonsService.cancelLesson(id);
   }
 
+  @Patch(':id/accept')
+  @ApiOperation({ summary: 'Instrutor aceita a aula — processa pagamento e move para upcoming' })
+  acceptLesson(@Param('id') id: string) {
+    return this.lessonsService.accept(id);
+  }
+
+  @Patch(':id/reject')
+  @ApiOperation({ summary: 'Instrutor recusa a aula — cancela sem cobrança' })
+  rejectLesson(@Param('id') id: string) {
+    return this.lessonsService.reject(id);
+  }
+
   @Patch(':id/feedback-instructor')
   giveInstructorFeedback(
     @Param('id') id: string,

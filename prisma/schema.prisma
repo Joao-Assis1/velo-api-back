@@ -177,7 +177,8 @@ model Lesson {
   vehicleId             String?
   startTime             String
   endTime               String
-  status                String            @default("upcoming")
+  status                String            @default("pending_acceptance")
+  createdAt             DateTime          @default(now())
   checkInTime           DateTime?
   checkOutTime          DateTime?
   date                  DateTime

@@ -3,9 +3,12 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Logger,
   Inject,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
@@ -146,7 +149,7 @@ export class LessonsService {
           startTime: createLessonDto.startTime,
           endTime: createLessonDto.endTime,
           price: createLessonDto.price,
-          status: 'upcoming',
+          status: 'pending_acceptance',
         },
       });
     });
@@ -248,20 +251,23 @@ export class LessonsService {
       );
     }
 
-    const payment = await this.prisma.payment.findFirst({
-      where: { lessonId: id },
-    });
+    // pending_acceptance: no payment was charged yet — skip refund
+    if (lesson.status !== 'pending_acceptance') {
+      const payment = await this.prisma.payment.findFirst({
+        where: { lessonId: id },
+      });
 
-    if (payment && ['PENDING', 'HELD'].includes(payment.status)) {
-      try {
-        await this.paymentsStripe.resolveDispute(id, {
-          action: 'refund',
-          reason: 'lesson_cancelled',
-        });
-      } catch (err) {
-        this.logger.error(
-          `Failed to refund payment ${payment.id} on cancellation: ${err}`,
-        );
+      if (payment && ['PENDING', 'HELD'].includes(payment.status)) {
+        try {
+          await this.paymentsStripe.resolveDispute(id, {
+            action: 'refund',
+            reason: 'lesson_cancelled',
+          });
+        } catch (err) {
+          this.logger.error(
+            `Failed to refund payment ${payment.id} on cancellation: ${err}`,
+          );
+        }
       }
     }
 
@@ -318,6 +324,81 @@ export class LessonsService {
     });
 
     return updatedLesson;
+  }
+
+  async accept(id: string): Promise<Lesson> {
+    const lesson = await this.prisma.lesson.findUnique({ where: { id } });
+    if (!lesson) throw new BadRequestException('Lesson not found');
+    if (lesson.status !== 'pending_acceptance') {
+      throw new BadRequestException(
+        `Cannot accept lesson with status "${lesson.status}"`,
+      );
+    }
+
+    // Find default payment method for the student
+    const pm = await this.prisma.paymentMethod.findFirst({
+      where: { studentId: lesson.studentId, isDefault: true, isDeleted: false },
+    });
+    if (!pm) {
+      throw new HttpException(
+        'Student has no default payment method',
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+
+    try {
+      await this.paymentsStripe.charge(lesson.studentId, {
+        lessonId: id,
+        paymentMethodId: pm.id,
+      });
+    } catch (err: any) {
+      this.logger.warn(`Payment failed on accept for lesson ${id}: ${err.message}`);
+      throw new HttpException(
+        err.message ?? 'Payment failed — lesson remains pending',
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+
+    return this.prisma.lesson.update({
+      where: { id },
+      data: { status: 'upcoming' },
+    });
+  }
+
+  async reject(id: string): Promise<Lesson> {
+    const lesson = await this.prisma.lesson.findUnique({ where: { id } });
+    if (!lesson) throw new BadRequestException('Lesson not found');
+    if (lesson.status !== 'pending_acceptance') {
+      throw new BadRequestException(
+        `Cannot reject lesson with status "${lesson.status}"`,
+      );
+    }
+
+    return this.prisma.lesson.update({
+      where: { id },
+      data: { status: 'cancelled' },
+    });
+  }
+
+  // T-B04: Cancel stale pending_acceptance lessons older than 24h
+  @Cron(CronExpression.EVERY_HOUR)
+  async cancelStaleBookings(): Promise<void> {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const stale = await this.prisma.lesson.findMany({
+      where: { status: 'pending_acceptance', createdAt: { lt: cutoff } },
+      select: { id: true },
+    });
+
+    if (stale.length === 0) return;
+
+    await this.prisma.lesson.updateMany({
+      where: { id: { in: stale.map((l) => l.id) } },
+      data: { status: 'cancelled' },
+    });
+
+    this.logger.log(
+      `[cancelStaleBookings] Cancelled ${stale.length} stale pending_acceptance lessons`,
+    );
   }
 
   async registerBiometry(
