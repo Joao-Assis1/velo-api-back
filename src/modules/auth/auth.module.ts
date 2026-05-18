@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { PaymentsModule } from '../payments/payments.module';
+import { JourneyModule } from '../journey/journey.module';
 
 export const jwtSecret = process.env.JWT_SECRET || 'MUITO_SECRETO';
 
@@ -14,12 +14,12 @@ export const jwtSecret = process.env.JWT_SECRET || 'MUITO_SECRETO';
   imports: [
     PrismaModule,
     PassportModule,
-    PaymentsModule,
     JwtModule.register({
       global: true,
       secret: jwtSecret,
       signOptions: { expiresIn: '1d' },
     }),
+    JourneyModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

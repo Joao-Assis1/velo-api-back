@@ -17,7 +17,7 @@ const UF_GUIDES: Record<string, { steps: string[] }> = {
       'Baixe o app CNH do Brasil (Senatran/Ministério dos Transportes)',
       'Faça login com gov.br e selecione "Solicitar LADV"',
       'Confirme seus dados pessoais e a categoria B',
-      'Aguarde a emissão pelo DETRAN-MS (https://www.detran.ms.gov.br) — você receberá uma notificação no app',
+      'Aguarde a emissão pelo DETRAN-MS (https://www.meudetran.ms.gov.br/) — você receberá uma notificação no app',
       'Salve o PDF gerado e faça o upload aqui em /ladv/me/upload',
     ],
   },

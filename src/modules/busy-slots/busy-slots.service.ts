@@ -45,7 +45,7 @@ export class BusySlotsService {
     const dayStart = new Date(new Date(dateObj).setHours(0, 0, 0, 0));
     const dayEnd = new Date(new Date(dateObj).setHours(23, 59, 59, 999));
 
-    const conflictingLesson = await this.prisma.lesson.findFirst({
+    const lessons = await this.prisma.lesson.findMany({
       where: {
         instructorId,
         date: {
@@ -56,27 +56,25 @@ export class BusySlotsService {
       },
     });
 
-    if (conflictingLesson) {
-      // Verificar sobrelposição exata
-      const [lessonStartH, lessonStartM] = conflictingLesson.startTime
+    const [blockStartH, blockStartM] = startTime.split(':').map(Number);
+    const [blockEndH, blockEndM] = endTime.split(':').map(Number);
+    const blockStartMin = (blockStartH ?? 0) * 60 + (blockStartM ?? 0);
+    const blockEndMin = (blockEndH ?? 0) * 60 + (blockEndM ?? 0);
+
+    for (const lesson of lessons) {
+      const [lessonStartH, lessonStartM] = lesson.startTime
         .split(':')
         .map(Number);
-      const [lessonEndH, lessonEndM] = conflictingLesson.endTime
-        .split(':')
-        .map(Number);
+      const [lessonEndH, lessonEndM] = lesson.endTime.split(':').map(Number);
       const lessonStartMin = (lessonStartH ?? 0) * 60 + (lessonStartM ?? 0);
       const lessonEndMin = (lessonEndH ?? 0) * 60 + (lessonEndM ?? 0);
 
-      const [blockStartH, blockStartM] = startTime.split(':').map(Number);
-      const [blockEndH, blockEndM] = endTime.split(':').map(Number);
-      const blockStartMin = (blockStartH ?? 0) * 60 + (blockStartM ?? 0);
-      const blockEndMin = (blockEndH ?? 0) * 60 + (blockEndM ?? 0);
-
       const overlaps =
         blockStartMin < lessonEndMin && blockEndMin > lessonStartMin;
+
       if (overlaps) {
         throw new ConflictException(
-          'Esta faixa horária já tem uma aula agendada',
+          `Esta faixa horária conflita com uma aula agendada (${lesson.startTime} - ${lesson.endTime})`,
         );
       }
     }

@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { AsaasService } from '../payments/asaas.service';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { LoginDto } from './dto/login.dto';
@@ -14,6 +13,7 @@ import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Student, Instructor } from '@prisma/client';
+import { JourneyService } from '../journey/journey.service';
 
 @Injectable()
 export class AuthService {
@@ -22,7 +22,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly asaasService: AsaasService,
+    private readonly journeyService: JourneyService,
   ) {}
 
   async login(loginDto: LoginDto, role: 'student' | 'instructor') {
@@ -86,6 +86,11 @@ export class AuthService {
           },
           include: { paymentMethods: true },
         });
+        try {
+          await this.journeyService.initForStudent(user.id);
+        } catch (err) {
+          this.logger.error(`Failed to initialize journey for student ${user.id}: ${err}`);
+        }
       } else {
         user = await this.prisma.instructor.create({
           data: {
@@ -121,26 +126,11 @@ export class AuthService {
       }
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
+        const target = (e as any)?.meta?.target as string[] | undefined;
+        if (target?.includes('cpf')) throw new BadRequestException('CPF já cadastrado.');
         throw new BadRequestException('E-mail já está em uso.');
       }
       throw e;
-    }
-
-    if (role === 'student') {
-      try {
-        const customer = await this.asaasService.createCustomer({
-          name: user.name,
-          email: user.email,
-          cpfCnpj: (user as Student).cpf ?? undefined,
-          phone: (user as Student).phone ?? undefined,
-        });
-        await this.prisma.student.update({
-          where: { id: user.id },
-          data: { asaasCustomerId: customer.id },
-        });
-      } catch (err) {
-        this.logger.error(`Failed to create ASAAS customer for student ${user.id}: ${err}`);
-      }
     }
 
     const payload = { sub: user.id, email: user.email, role };

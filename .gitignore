@@ -52,9 +52,12 @@ CLAUDE.md
 tsconfig.tsbuildinfo
 doc
 .tlc/specs
+# AI-generated plans and local tooling — not for remote
+docs/superpowers/
+.rtk/
+skills-lock.json
 # Uploads
 uploads/
 !uploads/.gitkeep
 # Allow source files under src/common/uploads/
 !src/common/uploads/
-doc/VELO_ESTRATEGIA_NEGOCIO_V2.md

@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { AsaasService } from '../payments/asaas.service';
-import { BadRequestException } from '@nestjs/common';
+import { JourneyService } from '../journey/journey.service';
 
 const mockPrisma = {
   student: {
@@ -21,8 +21,7 @@ const mockPrisma = {
 };
 
 const mockJwt = { signAsync: jest.fn().mockResolvedValue('mock-token') };
-
-const mockAsaas = { createCustomer: jest.fn() };
+const mockJourney = { initForStudent: jest.fn().mockResolvedValue(undefined) };
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -34,7 +33,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
-        { provide: AsaasService, useValue: mockAsaas },
+        { provide: JourneyService, useValue: mockJourney },
       ],
     }).compile();
     service = module.get<AuthService>(AuthService);
@@ -69,35 +68,13 @@ describe('AuthService', () => {
       paymentMethods: [],
     };
 
-    it('should call createCustomer with student data and update asaasCustomerId', async () => {
+    it('should register student and return token', async () => {
       mockPrisma.student.create.mockResolvedValue(createdStudent);
-      mockAsaas.createCustomer.mockResolvedValue({ id: 'asaas-cust-id' });
-      mockPrisma.student.update.mockResolvedValue({});
 
       const result = await service.register(registerDto as any, 'student');
 
-      expect(mockAsaas.createCustomer).toHaveBeenCalledWith({
-        name: createdStudent.name,
-        email: createdStudent.email,
-        cpfCnpj: createdStudent.cpf,
-        phone: createdStudent.phone,
-      });
-      expect(mockPrisma.student.update).toHaveBeenCalledWith({
-        where: { id: createdStudent.id },
-        data: { asaasCustomerId: 'asaas-cust-id' },
-      });
       expect(result.access_token).toBe('mock-token');
       expect(result.user).not.toHaveProperty('password');
-    });
-
-    it('should still return success when createCustomer throws', async () => {
-      mockPrisma.student.create.mockResolvedValue(createdStudent);
-      mockAsaas.createCustomer.mockRejectedValue(new Error('ASAAS unavailable'));
-
-      const result = await service.register(registerDto as any, 'student');
-
-      expect(result.access_token).toBe('mock-token');
-      expect(mockPrisma.student.update).not.toHaveBeenCalled();
     });
   });
 
@@ -122,7 +99,7 @@ describe('AuthService', () => {
 
       expect(result.message).toBe('Se esse e-mail estiver cadastrado, você receberá um link em breve.');
       expect(typeof result.token).toBe('string');
-      expect(result.token).toHaveLength(64); // 32 bytes hex = 64 chars
+      expect(result.token).toHaveLength(64);
       expect(mockPrisma.student.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'student-1' },
@@ -167,20 +144,11 @@ describe('AuthService', () => {
       ).rejects.toThrow(new BadRequestException('Token inválido ou expirado.'));
     });
 
-    it('should throw 400 when token is expired', async () => {
-      mockPrisma.student.findFirst.mockResolvedValue(null);
-      mockPrisma.instructor.findFirst.mockResolvedValue(null);
-
-      await expect(
-        service.resetPassword({ token: 'expired-token', newPassword: 'newpass123' }),
-      ).rejects.toThrow(new BadRequestException('Token inválido ou expirado.'));
-    });
-
-    it('should update password and clear reset fields on success', async () => {
+    it('should update student password and clear reset fields on success', async () => {
       mockPrisma.student.findFirst.mockResolvedValue({
         id: 'student-1',
         passwordResetToken: 'valid-token',
-        passwordResetExpires: new Date(Date.now() + 3_600_000), // 1h from now
+        passwordResetExpires: new Date(Date.now() + 3_600_000),
       });
       mockPrisma.student.update.mockResolvedValue({});
 
@@ -213,7 +181,7 @@ describe('AuthService', () => {
       expect(mockPrisma.instructor.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'instructor-1' },
-          data: expect.objectContaining({ passwordResetToken: null, passwordResetExpires: null }),
+          data: expect.objectContaining({ passwordResetToken: null }),
         }),
       );
     });

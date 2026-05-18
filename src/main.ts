@@ -1,11 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { raw } from 'express';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Stripe webhook needs raw body for HMAC signature verification
+  app.use(
+    '/api/v1/webhooks/stripe',
+    raw({ type: 'application/json' }),
+    (req: any, _res: any, next: any) => {
+      req.rawBody = req.body;
+      next();
+    },
+  );
 
   app.enableCors();
   app.setGlobalPrefix('api/v1');

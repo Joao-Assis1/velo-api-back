@@ -9,7 +9,7 @@ import { InstructorsModule } from './modules/instructors/instructors.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
-import { PaymentsModule } from './modules/payments/payments.module';
+import { PaymentsStripeModule } from './modules/payments-stripe/payments-stripe.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BusySlotsModule } from './modules/busy-slots/busy-slots.module';
 import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
@@ -39,7 +39,7 @@ import { LadvProcessModule } from './modules/ladv-process/ladv-process.module';
     VehiclesModule,
     AvailabilityModule,
     LessonsModule,
-    PaymentsModule,
+    PaymentsStripeModule,
     AuthModule,
     BusySlotsModule,
     PaymentMethodsModule,

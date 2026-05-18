@@ -151,4 +151,9 @@ export class JourneyService {
     });
     return state;
   }
+
+  async initForStudent(studentId: string): Promise<void> {
+    await this.refresh(studentId);
+    this.logger.log(`Journey initialized for student ${studentId}`);
+  }
 }

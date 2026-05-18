@@ -12,7 +12,7 @@ import { RenachProcessDto } from './dto/renach-process.dto';
 const UF_GUIDES: Record<string, { steps: string[] }> = {
   MS: {
     steps: [
-      'Acesse o portal do DETRAN-MS (https://www.detran.ms.gov.br)',
+      'Acesse o portal do DETRAN-MS (https://www.meudetran.ms.gov.br/)',
       'No menu "Habilitação", inicie o processo de Primeira Habilitação categoria B',
       'Informe seus dados pessoais e selecione o CFC de sua preferência em Mato Grosso do Sul',
       'Agende a coleta biométrica em uma unidade do DETRAN-MS',
