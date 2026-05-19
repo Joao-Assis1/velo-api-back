@@ -138,7 +138,7 @@ export class LadvProcessService {
         issuedAt: dto.ladvIssuedAt,
         validUntil: dto.ladvValidUntil,
         confidence: 0,
-        status: 'NEEDS_REVIEW',
+        status: 'PASS',
       },
       null,
     );
