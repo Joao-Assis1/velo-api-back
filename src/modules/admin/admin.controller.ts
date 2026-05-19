@@ -1,20 +1,29 @@
 import {
   Controller,
   HttpCode,
+  Inject,
   NotFoundException,
   Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
+import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
+import { STRIPE_CLIENT } from '../payments-stripe/stripe.client';
+import { idempotencyKey } from '../payments-stripe/lib/idempotency';
 import { AdminApiKeyGuard } from './guards/admin-api-key.guard';
+
+const SEED_PM = 'pm_card_visa';
 
 @ApiExcludeController()
 @Controller('admin')
 @UseGuards(AdminApiKeyGuard)
 export class AdminController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STRIPE_CLIENT) private readonly stripe: InstanceType<typeof Stripe>,
+  ) {}
 
   @Post('instructors/:id/approve')
   @HttpCode(200)
@@ -52,5 +61,51 @@ export class AdminController {
     });
 
     return { message: 'Instructor approved', instructor: updated };
+  }
+
+  @Post('students/:id/seed-payment-method')
+  @HttpCode(201)
+  async seedPaymentMethod(@Param('id') id: string) {
+    const student = await this.prisma.student.findUnique({
+      where: { id },
+      select: { id: true, email: true, name: true, stripeCustomerId: true },
+    });
+    if (!student) throw new NotFoundException(`Student ${id} not found`);
+
+    let customerId = student.stripeCustomerId;
+    if (!customerId) {
+      const customer = await this.stripe.customers.create(
+        { email: student.email, name: student.name, metadata: { studentId: id } },
+        { idempotencyKey: idempotencyKey(id, 'connect-account') },
+      );
+      customerId = customer.id;
+      await this.prisma.student.update({ where: { id }, data: { stripeCustomerId: customerId } });
+    }
+
+    const pm = await this.stripe.paymentMethods.attach(
+      SEED_PM,
+      { customer: customerId },
+      { idempotencyKey: idempotencyKey(id, 'seed-payment-method') },
+    );
+
+    const existing = await this.prisma.paymentMethod.findMany({
+      where: { studentId: id, isDeleted: false },
+    });
+    const isDefault = existing.length === 0;
+
+    const row = await this.prisma.paymentMethod.create({
+      data: {
+        studentId: id,
+        stripePaymentMethodId: pm.id,
+        brand: pm.card!.brand,
+        last4: pm.card!.last4,
+        cardholderName: pm.billing_details?.name ?? student.name,
+        expiryMonth: String(pm.card!.exp_month).padStart(2, '0'),
+        expiryYear: String(pm.card!.exp_year),
+        isDefault,
+      },
+    });
+
+    return { message: 'Seed payment method attached', paymentMethod: row };
   }
 }
