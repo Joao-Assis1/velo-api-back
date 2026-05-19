@@ -19,6 +19,10 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  ADMIN_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
   PLATFORM_FEE_PERCENT?: string;
 
   @IsOptional()
