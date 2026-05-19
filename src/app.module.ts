@@ -24,6 +24,7 @@ import { MedicalExamModule } from './modules/medical-exam/medical-exam.module';
 import { PsychologicalExamModule } from './modules/psychological-exam/psychological-exam.module';
 import { TheoryExamOfficialModule } from './modules/theory-exam-official/theory-exam.module';
 import { LadvProcessModule } from './modules/ladv-process/ladv-process.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { LadvProcessModule } from './modules/ladv-process/ladv-process.module';
     PsychologicalExamModule,
     TheoryExamOfficialModule,
     LadvProcessModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
