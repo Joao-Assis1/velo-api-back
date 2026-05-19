@@ -39,11 +39,38 @@ describe('ComplianceService', () => {
       );
     });
 
+    it('reports ladvValid true when ladvOcrStatus PASS even if ladvUploaded is false (seed scenario)', async () => {
+      mockPrisma.student.findUnique.mockResolvedValue({
+        id: 's1',
+        name: 'Ana',
+        ladvNumber: 'LADV-SP-67890',
+        ladvOcrStatus: 'PASS',
+        ladvValidUntil: new Date(Date.now() + 86400000 * 365),
+        ladvUploaded: false,
+      });
+      mockPrisma.studentChecklist.upsert.mockResolvedValue({
+        studentId: 's1',
+        medico: false,
+        psicotecnico: false,
+        teorico: false,
+        pratico: false,
+      });
+      mockPrisma.studentSimuladoHistory.findFirst.mockResolvedValue(null);
+      mockPrisma.lesson.findMany.mockResolvedValue([]);
+
+      const report = await service.getComplianceReport('s1');
+
+      expect(report.ladvValid).toBe(true);
+    });
+
     it('returns all steps false when no data exists', async () => {
       mockPrisma.student.findUnique.mockResolvedValue({
         id: 's1',
         name: 'Ana',
         ladvUploaded: false,
+        ladvNumber: null,
+        ladvOcrStatus: null,
+        ladvValidUntil: null,
       });
       mockPrisma.studentChecklist.upsert.mockResolvedValue({
         studentId: 's1',

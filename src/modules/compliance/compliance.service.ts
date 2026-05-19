@@ -13,7 +13,13 @@ export class ComplianceService {
   async getComplianceReport(studentId: string) {
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },
-      select: { id: true, name: true, ladvUploaded: true },
+      select: {
+        id: true,
+        name: true,
+        ladvNumber: true,
+        ladvOcrStatus: true,
+        ladvValidUntil: true,
+      },
     });
 
     if (!student) throw new NotFoundException('Student not found');
@@ -94,7 +100,11 @@ export class ComplianceService {
     return {
       studentId,
       studentName: student.name,
-      ladvValid: student.ladvUploaded,
+      ladvValid:
+        !!student.ladvNumber &&
+        student.ladvOcrStatus === 'PASS' &&
+        !!student.ladvValidUntil &&
+        student.ladvValidUntil > new Date(),
       steps,
       completedSteps: completedCount,
       totalSteps: 4,

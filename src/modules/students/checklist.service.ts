@@ -18,26 +18,37 @@ export class ChecklistService {
 
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },
-      select: { ladvUploaded: true },
+      select: { ladvNumber: true, ladvOcrStatus: true, ladvValidUntil: true },
     });
 
     return {
       ...checklist,
-      ladv: student?.ladvUploaded || false,
+      ladv:
+        !!student?.ladvNumber &&
+        student?.ladvOcrStatus === 'PASS' &&
+        !!student?.ladvValidUntil &&
+        student.ladvValidUntil > new Date(),
     };
   }
 
   async updateStep(studentId: string, step: string, completed: boolean) {
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },
+      select: { id: true, ladvNumber: true, ladvOcrStatus: true, ladvValidUntil: true },
     });
 
     if (!student) {
       throw new NotFoundException('Student not found');
     }
 
-    // C-011: Lógica de Precedência
-    if (step === 'pratico' && completed && !student.ladvUploaded) {
+    // C-011: Lógica de Precedência — LADV válida = número + status PASS + validade futura
+    const ladvValid =
+      !!student.ladvNumber &&
+      student.ladvOcrStatus === 'PASS' &&
+      !!student.ladvValidUntil &&
+      student.ladvValidUntil > new Date();
+
+    if (step === 'pratico' && completed && !ladvValid) {
       throw new BadRequestException(
         'Cannot complete practical step without a validated LADV',
       );

@@ -363,7 +363,7 @@ async function main() {
   // STAGE 4: LADV_UPLOADED_VALID (todas as etapas anteriores OK)
   const ladv = await prisma.student.upsert({
     where: { email: 'student-ladv@email.com' },
-    update: {},
+    update: { ladvUploaded: true },
     create: {
       email: 'student-ladv@email.com',
       name: 'Aluno Com LADV Válida',
@@ -375,6 +375,7 @@ async function main() {
       ladvValidUntil: futureDate(360),
       ladvOcrStatus: 'PASS',
       ladvOcrConfidence: 0.92,
+      ladvUploaded: true,
       journeyStage: 'LADV_UPLOADED_VALID',
     },
   });
@@ -427,7 +428,7 @@ async function main() {
   // STAGE 5: PRACTICAL_IN_PROGRESS (LADV válida + dados de exames)
   const practical = await prisma.student.upsert({
     where: { email: 'student-practical@email.com' },
-    update: {},
+    update: { ladvUploaded: true },
     create: {
       email: 'student-practical@email.com',
       name: 'Aluno Em Aulas Práticas',
@@ -439,6 +440,7 @@ async function main() {
       ladvValidUntil: futureDate(340),
       ladvOcrStatus: 'PASS',
       ladvOcrConfidence: 0.95,
+      ladvUploaded: true,
       journeyStage: 'PRACTICAL_IN_PROGRESS',
     },
   });
@@ -494,7 +496,7 @@ async function main() {
 
   const ready = await prisma.student.upsert({
     where: { email: 'student-ready@email.com' },
-    update: {},
+    update: { ladvUploaded: true },
     create: {
       email: 'student-ready@email.com',
       name: 'Aluno Pronto para Exame Prático',
@@ -506,6 +508,7 @@ async function main() {
       ladvValidUntil: futureDate(300),
       ladvOcrStatus: 'PASS',
       ladvOcrConfidence: 0.94,
+      ladvUploaded: true,
       readyForPracticalExamAt: pastDate(1),
       journeyStage: 'READY_FOR_PRACTICAL_EXAM',
     },
