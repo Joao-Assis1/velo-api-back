@@ -152,14 +152,14 @@ describe('LadvProcessService', () => {
   });
 
   describe('saveManual', () => {
-    it('persists manual LADV with status=NEEDS_REVIEW and refreshes journey', async () => {
+    it('persists manual LADV with status=PASS and refreshes journey', async () => {
       prisma.student.update.mockResolvedValue({});
       prisma.student.findUnique.mockResolvedValue({
         ladvNumber: 'LADV-MS-9999',
         ladvIssuedAt: new Date('2026-05-10'),
         ladvValidUntil: new Date('2030-11-10'),
         ladvOcrConfidence: null,
-        ladvOcrStatus: 'NEEDS_REVIEW',
+        ladvOcrStatus: 'PASS',
         ladv_document_url: null,
         journeyStage: 'AWAITING_LADV_UPLOAD',
       });
@@ -172,12 +172,12 @@ describe('LadvProcessService', () => {
         where: { id: 'stu-1' },
         data: expect.objectContaining({
           ladvNumber: 'LADV-MS-9999',
-          ladvOcrStatus: 'NEEDS_REVIEW',
+          ladvOcrStatus: 'PASS',
           ladvOcrConfidence: null,
         }),
       });
       expect(journey.refresh).toHaveBeenCalledWith('stu-1');
-      expect(r.ladvOcrStatus).toBe('NEEDS_REVIEW');
+      expect(r.ladvOcrStatus).toBe('PASS');
     });
 
     it('rejects when validUntil is in the past', async () => {
