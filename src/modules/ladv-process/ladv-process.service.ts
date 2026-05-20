@@ -5,6 +5,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as Tesseract from 'tesseract.js';
+import pdfParse from 'pdf-parse';
+import { readFileSync } from 'fs';
+import { extname } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { JourneyService } from '../journey/journey.service';
 import { extractLadvFields, LadvOcrResult } from './lib/ladv-ocr';
@@ -99,26 +102,40 @@ export class LadvProcessService {
     return this.getMine(studentId);
   }
 
+  private async extractTextFromFile(
+    filePath: string,
+  ): Promise<{ text: string; confidence: number }> {
+    const isPdf = extname(filePath).toLowerCase() === '.pdf';
+
+    if (isPdf) {
+      const buffer = readFileSync(filePath);
+      const data = await pdfParse(buffer);
+      return { text: data.text, confidence: 90 };
+    }
+
+    const { data } = await Tesseract.recognize(filePath, 'por');
+    return { text: data.text, confidence: data.confidence };
+  }
+
   async uploadFromFile(
     studentId: string,
     filePath: string,
   ): Promise<LadvStatusDto> {
-    this.logger.log(`Starting OCR for student ${studentId} LADV: ${filePath}`);
+    this.logger.log(`Starting extraction for student ${studentId} LADV: ${filePath}`);
     let recognition: { text: string; confidence: number };
     try {
-      const { data } = await Tesseract.recognize(filePath, 'por');
-      recognition = { text: data.text, confidence: data.confidence };
+      recognition = await this.extractTextFromFile(filePath);
     } catch (e) {
-      this.logger.error(`Tesseract error: ${(e as Error).message}`);
+      this.logger.error(`Extraction error: ${(e as Error).message}`);
       throw new BadRequestException(
-        'Failed to process LADV document — try uploading a clearer image',
+        'Failed to process LADV document — try uploading a clearer image or a valid PDF',
       );
     }
 
     const parsed = extractLadvFields(recognition.text, recognition.confidence);
     if (parsed.status === 'FAIL') {
       throw new BadRequestException(
-        `LADV document failed OCR (confidence ${recognition.confidence}%, keywords missing or unreadable)`,
+        `LADV document failed validation (confidence ${recognition.confidence}%, keywords missing or unreadable)`,
       );
     }
     return this.persist(studentId, parsed, filePath);
