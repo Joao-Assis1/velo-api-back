@@ -50,7 +50,8 @@ GEMINI.md
 CLAUDE.md
 .claude/
 tsconfig.tsbuildinfo
-doc
+doc/
+docs/
 .tlc/specs
 # AI-generated plans and local tooling — not for remote
 docs/superpowers/
