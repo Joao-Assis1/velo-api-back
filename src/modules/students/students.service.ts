@@ -2,7 +2,8 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JourneyService } from '../journey/journey.service';
 import { CreateStudentDto } from './dto/create-student.dto';
-import { Student, Prisma } from '@prisma/client';
+import { UpdateStudentDto } from './dto/update-student.dto';
+import { Student } from '@prisma/client';
 
 @Injectable()
 export class StudentsService {
@@ -55,7 +56,7 @@ export class StudentsService {
 
   async update(
     id: string,
-    data: Prisma.StudentUpdateInput,
+    data: UpdateStudentDto,
   ): Promise<Omit<Student, 'password'>> {
     return this.prisma.student.update({
       where: { id },

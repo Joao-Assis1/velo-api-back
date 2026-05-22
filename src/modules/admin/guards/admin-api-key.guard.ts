@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { timingSafeEqual } from 'crypto';
 import type { Request } from 'express';
 
 @Injectable()
@@ -18,9 +19,14 @@ export class AdminApiKeyGuard implements CanActivate {
     if (!expected) {
       throw new UnauthorizedException('Admin key not configured on this server');
     }
-    if (!key || key !== expected) {
+    if (!key || !this.safeEqual(String(key), expected)) {
       throw new UnauthorizedException('Invalid admin key');
     }
     return true;
+  }
+
+  private safeEqual(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
   }
 }

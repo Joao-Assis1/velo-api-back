@@ -1,13 +1,18 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Body,
   Param,
   Query,
   Patch,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 import { InstructorsService } from './instructors.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
@@ -33,16 +38,31 @@ export class InstructorsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateData: UpdateInstructorDto) {
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  update(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+    @Body() updateData: UpdateInstructorDto,
+  ) {
+    if (req.user.userId !== id) {
+      throw new ForbiddenException('You can only update your own profile');
+    }
     return this.instructorsService.update(id, updateData);
   }
 
   @Get(':id/earnings')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   getEarnings(
     @Param('id') id: string,
+    @Req() req: RequestWithUser,
     @Query('month') month?: string,
     @Query('year') year?: string,
   ) {
+    if (req.user.userId !== id) {
+      throw new ForbiddenException('You can only view your own earnings');
+    }
     return this.instructorsService.getEarnings(id, month, year);
   }
 }

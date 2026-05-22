@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   Param,
   Post,
@@ -26,7 +25,6 @@ import {
   ConnectOnboardResponseDto,
   ConnectStatusDto,
 } from './dto/connect-status.dto';
-import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
@@ -79,15 +77,4 @@ export class PaymentsStripeController {
     return this.connect.getStatus(req.user.userId);
   }
 
-  @Post('disputes/:lessonId/resolve')
-  resolveDispute(
-    @Req() req: RequestWithUser,
-    @Param('lessonId') lessonId: string,
-    @Body() dto: ResolveDisputeDto,
-  ) {
-    if (req.user.role !== 'admin') {
-      throw new ForbiddenException('Only admin can resolve disputes');
-    }
-    return this.service.resolveDispute(lessonId, dto);
-  }
 }

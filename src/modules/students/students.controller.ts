@@ -1,5 +1,6 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Body,
@@ -9,15 +10,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 import { StudentsService } from './students.service';
 import { ChecklistService } from './checklist.service';
 import { CreateStudentDto } from './dto/create-student.dto';
-import { Prisma, Student } from '@prisma/client';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-
-interface RequestWithUser {
-  user: { userId: string };
-}
+import { UpdateStudentDto } from './dto/update-student.dto';
+import { Student } from '@prisma/client';
 
 @ApiTags('students')
 @Controller('students')
@@ -45,10 +44,16 @@ export class StudentsController {
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   update(
     @Param('id') id: string,
-    @Body() updateData: Prisma.StudentUpdateInput,
+    @Req() req: RequestWithUser,
+    @Body() updateData: UpdateStudentDto,
   ): Promise<Omit<Student, 'password'>> {
+    if (req.user.userId !== id) {
+      throw new ForbiddenException('You can only update your own profile');
+    }
     return this.studentsService.update(id, updateData);
   }
 

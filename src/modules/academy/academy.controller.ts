@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { AcademyService } from './academy.service';
 import { ApiTags } from '@nestjs/swagger';
+import { AdminApiKeyGuard } from '../admin/guards/admin-api-key.guard';
 
 @ApiTags('academy')
 @Controller('academy')
@@ -22,6 +23,7 @@ export class AcademyController {
   }
 
   @Post('seed')
+  @UseGuards(AdminApiKeyGuard)
   seed() {
     return this.academyService.seedQuestions();
   }

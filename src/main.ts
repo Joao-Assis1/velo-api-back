@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { raw } from 'express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
@@ -18,7 +19,15 @@ async function bootstrap() {
     },
   );
 
-  app.enableCors();
+  app.use(helmet());
+
+  const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  app.enableCors({
+    origin: corsOrigin.split(',').map((o) => o.trim()),
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key'],
+    credentials: true,
+  });
   app.setGlobalPrefix('api/v1');
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalPipes(

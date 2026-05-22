@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   HttpCode,
   Inject,
@@ -12,6 +13,8 @@ import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { STRIPE_CLIENT } from '../payments-stripe/stripe.client';
 import { idempotencyKey } from '../payments-stripe/lib/idempotency';
+import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
+import { ResolveDisputeDto } from '../payments-stripe/dto/resolve-dispute.dto';
 import { AdminApiKeyGuard } from './guards/admin-api-key.guard';
 
 const SEED_PM = 'pm_card_visa';
@@ -23,6 +26,7 @@ export class AdminController {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(STRIPE_CLIENT) private readonly stripe: InstanceType<typeof Stripe>,
+    private readonly paymentsService: PaymentsStripeService,
   ) {}
 
   @Post('instructors/:id/approve')
@@ -107,5 +111,14 @@ export class AdminController {
     });
 
     return { message: 'Seed payment method attached', paymentMethod: row };
+  }
+
+  @Post('lessons/:lessonId/resolve-dispute')
+  @HttpCode(200)
+  resolveDispute(
+    @Param('lessonId') lessonId: string,
+    @Body() dto: ResolveDisputeDto,
+  ) {
+    return this.paymentsService.resolveDispute(lessonId, dto);
   }
 }

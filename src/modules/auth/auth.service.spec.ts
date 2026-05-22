@@ -98,13 +98,12 @@ describe('AuthService', () => {
       const result = await service.forgotPassword({ email: 'aluno@test.com' });
 
       expect(result.message).toBe('Se esse e-mail estiver cadastrado, você receberá um link em breve.');
-      expect(typeof result.token).toBe('string');
-      expect(result.token).toHaveLength(64);
+      expect(result).not.toHaveProperty('token');
       expect(mockPrisma.student.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'student-1' },
           data: expect.objectContaining({
-            passwordResetToken: result.token,
+            passwordResetToken: expect.any(String),
           }),
         }),
       );
@@ -127,7 +126,7 @@ describe('AuthService', () => {
 
       const result = await service.forgotPassword({ email: 'instrutor@test.com' });
 
-      expect(result.token).toHaveLength(64);
+      expect(result).not.toHaveProperty('token');
       expect(mockPrisma.instructor.update).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'instructor-1' } }),
       );

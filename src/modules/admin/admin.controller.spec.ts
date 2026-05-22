@@ -4,6 +4,7 @@ import { AdminController } from './admin.controller';
 import { AdminApiKeyGuard } from './guards/admin-api-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { STRIPE_CLIENT } from '../payments-stripe/stripe.client';
+import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
 
 describe('AdminController', () => {
   let controller: AdminController;
@@ -26,6 +27,7 @@ describe('AdminController', () => {
       providers: [
         { provide: PrismaService, useValue: prisma },
         { provide: STRIPE_CLIENT, useValue: stripe },
+        { provide: PaymentsStripeService, useValue: { resolveDispute: jest.fn() } },
       ],
     })
       .overrideGuard(AdminApiKeyGuard)

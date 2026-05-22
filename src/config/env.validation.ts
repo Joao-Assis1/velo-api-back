@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  MinLength,
   validateSync,
 } from 'class-validator';
 
@@ -17,9 +18,13 @@ class EnvironmentVariables {
   @IsString()
   NODE_ENV?: string;
 
+  @IsString()
+  @MinLength(16)
+  ADMIN_API_KEY!: string;
+
   @IsOptional()
   @IsString()
-  ADMIN_API_KEY?: string;
+  CORS_ORIGIN?: string;
 
   @IsOptional()
   @IsString()

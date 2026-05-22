@@ -182,10 +182,7 @@ export class AuthService {
       });
     }
 
-    return {
-      message,
-      ...(process.env.NODE_ENV !== 'production' && { token }),
-    };
+    return { message };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {

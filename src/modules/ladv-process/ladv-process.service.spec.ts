@@ -99,11 +99,11 @@ describe('LadvProcessService', () => {
         ladvValidUntil: new Date('2030-11-10'),
         ladvOcrConfidence: 85,
         ladvOcrStatus: 'PASS',
-        ladv_document_url: '/uploads/ladv/stu-1/file.pdf',
+        ladv_document_url: '/uploads/ladv/stu-1/file.jpg',
         journeyStage: 'LADV_UPLOADED_VALID',
       });
 
-      const r = await service.uploadFromFile('stu-1', '/uploads/ladv/stu-1/file.pdf');
+      const r = await service.uploadFromFile('stu-1', '/uploads/ladv/stu-1/file.jpg');
 
       expect(prisma.student.update).toHaveBeenCalledWith({
         where: { id: 'stu-1' },
@@ -112,7 +112,7 @@ describe('LadvProcessService', () => {
           ladvOcrConfidence: 85,
           ladvOcrStatus: 'PASS',
           ladvUploaded: true,
-          ladv_document_url: '/uploads/ladv/stu-1/file.pdf',
+          ladv_document_url: '/uploads/ladv/stu-1/file.jpg',
         }),
       });
       expect(journey.refresh).toHaveBeenCalledWith('stu-1');
@@ -134,10 +134,10 @@ describe('LadvProcessService', () => {
         ladvValidUntil: new Date('2030-11-10'),
         ladvOcrConfidence: 80,
         ladvOcrStatus: 'NEEDS_REVIEW',
-        ladv_document_url: '/uploads/ladv/stu-1/file2.pdf',
+        ladv_document_url: '/uploads/ladv/stu-1/file2.jpg',
         journeyStage: 'AWAITING_LADV_UPLOAD',
       });
-      const r = await service.uploadFromFile('stu-1', '/uploads/ladv/stu-1/file2.pdf');
+      const r = await service.uploadFromFile('stu-1', '/uploads/ladv/stu-1/file2.jpg');
       expect(r.ladvOcrStatus).toBe('NEEDS_REVIEW');
     });
 
@@ -146,7 +146,7 @@ describe('LadvProcessService', () => {
         data: { text: 'qualquer coisa', confidence: 30 },
       });
       await expect(
-        service.uploadFromFile('stu-1', '/uploads/ladv/stu-1/bad.pdf'),
+        service.uploadFromFile('stu-1', '/uploads/ladv/stu-1/bad.jpg'),
       ).rejects.toThrow(BadRequestException);
     });
   });
