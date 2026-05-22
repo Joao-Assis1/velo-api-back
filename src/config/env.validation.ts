@@ -31,6 +31,14 @@ class EnvironmentVariables {
   PLATFORM_FEE_PERCENT?: string;
 
   @IsOptional()
+  @IsNumberString()
+  ESCROW_MAX_RETRY_ATTEMPTS?: string;
+
+  @IsOptional()
+  @IsString()
+  ESCROW_RETRY_CRON?: string;
+
+  @IsOptional()
   @IsIn(['mock', 'serpro'])
   DOCUMENT_VALIDATION_PROVIDER?: string = 'mock';
 
