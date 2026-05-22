@@ -688,6 +688,231 @@ async function main() {
     }
   }
 
+  // ============================================================================
+  // Payment scenarios seed — student-practical + novos instrutores
+  // ============================================================================
+
+  // Stripe para student-practical
+  await prisma.student.update({
+    where: { id: practical.id },
+    data: { stripeCustomerId: 'cus_seed_practical' },
+  });
+  const pmPractical = await prisma.paymentMethod.upsert({
+    where: { stripePaymentMethodId: 'pm_seed_practical_1' },
+    update: {},
+    create: {
+      studentId: practical.id,
+      stripePaymentMethodId: 'pm_seed_practical_1',
+      brand: 'mastercard',
+      last4: '5555',
+      cardholderName: 'ALUNO PRATICO',
+      expiryMonth: '08',
+      expiryYear: '2029',
+      isDefault: true,
+    },
+  });
+
+  // Instrutor sem Stripe (APPROVED, CNH válida, veículo, disponibilidade)
+  const instructorNoStripe = await prisma.instructor.upsert({
+    where: { email: 'instructor-no-stripe@email.com' },
+    update: {},
+    create: {
+      email: 'instructor-no-stripe@email.com',
+      name: 'Ana Lima Sem Stripe',
+      cpf: '98765432100',
+      phone: '(11) 92222-3333',
+      password: defaultPassword,
+      bio: 'Instrutora experiente, ainda não conectada ao Stripe.',
+      instructorType: 'Autônomo',
+      location: 'Vila Mariana, São Paulo',
+      pricePerClass: 90.00,
+      rating: 4.7,
+      reviewsCount: 18,
+      profilePicture: 'https://ui-avatars.com/api/?name=Ana+Lima&background=f59e0b&color=fff&size=150',
+      cnhNumber: '98765432109',
+      cnhExpiry: futureDate(400).toISOString(),
+      credentialStatus: 'APPROVED',
+      credentialValidUntil: futureDate(400),
+      vehicles: {
+        create: {
+          model: 'Volkswagen Polo',
+          year: '2022',
+          plate: 'DEF-5678',
+          transmission: 'Manual',
+        },
+      },
+      availabilities: {
+        createMany: {
+          data: [
+            { dayOfWeek: 1, startTime: '08:00', endTime: '17:00', isEnabled: true },
+            { dayOfWeek: 2, startTime: '08:00', endTime: '17:00', isEnabled: true },
+            { dayOfWeek: 3, startTime: '08:00', endTime: '17:00', isEnabled: true },
+            { dayOfWeek: 4, startTime: '08:00', endTime: '17:00', isEnabled: true },
+            { dayOfWeek: 5, startTime: '08:00', endTime: '17:00', isEnabled: true },
+          ],
+        },
+      },
+    },
+  });
+
+  // Instrutor com Stripe PENDING (APPROVED, CNH válida, veículo, disponibilidade)
+  const instructorStripePending = await prisma.instructor.upsert({
+    where: { email: 'instructor-stripe-pending@email.com' },
+    update: {},
+    create: {
+      email: 'instructor-stripe-pending@email.com',
+      name: 'Bruno Costa Stripe Pendente',
+      cpf: '12345678910',
+      phone: '(11) 93333-4444',
+      password: defaultPassword,
+      bio: 'Instrutor com onboarding Stripe em andamento.',
+      instructorType: 'Credenciado',
+      location: 'Pinheiros, São Paulo',
+      pricePerClass: 95.00,
+      rating: 4.8,
+      reviewsCount: 25,
+      profilePicture: 'https://ui-avatars.com/api/?name=Bruno+Costa&background=8b5cf6&color=fff&size=150',
+      cnhNumber: '12345678900',
+      cnhExpiry: futureDate(400).toISOString(),
+      credentialStatus: 'APPROVED',
+      credentialValidUntil: futureDate(400),
+      stripeAccountId: 'acct_seed_pending',
+      stripeAccountStatus: 'PENDING',
+      stripePayoutsEnabled: false,
+      vehicles: {
+        create: {
+          model: 'Chevrolet Onix',
+          year: '2023',
+          plate: 'GHI-9012',
+          transmission: 'Automático',
+        },
+      },
+      availabilities: {
+        createMany: {
+          data: [
+            { dayOfWeek: 1, startTime: '09:00', endTime: '18:00', isEnabled: true },
+            { dayOfWeek: 2, startTime: '09:00', endTime: '18:00', isEnabled: true },
+            { dayOfWeek: 3, startTime: '09:00', endTime: '18:00', isEnabled: true },
+            { dayOfWeek: 4, startTime: '09:00', endTime: '18:00', isEnabled: true },
+            { dayOfWeek: 5, startTime: '09:00', endTime: '18:00', isEnabled: true },
+          ],
+        },
+      },
+    },
+  });
+
+  void instructorNoStripe;
+  void instructorStripePending;
+
+  // 3 aulas de student-practical com Roberto para os cenários de pagamento
+  const lessonHeld = await prisma.lesson.upsert({
+    where: { id: 'seed-lesson-held-001' },
+    update: {},
+    create: {
+      id: 'seed-lesson-held-001',
+      studentId: practical.id,
+      instructorId: instructor1.id,
+      vehicleId: vehicle1?.id,
+      date: futureDate(5),
+      startTime: '14:00',
+      endTime: '15:00',
+      price: 85.00,
+      status: 'upcoming',
+    },
+  });
+
+  const lessonReleased = await prisma.lesson.upsert({
+    where: { id: 'seed-lesson-released-001' },
+    update: {},
+    create: {
+      id: 'seed-lesson-released-001',
+      studentId: practical.id,
+      instructorId: instructor1.id,
+      vehicleId: vehicle1?.id,
+      date: pastDate(10),
+      startTime: '10:00',
+      endTime: '11:05',
+      price: 85.00,
+      status: 'completed',
+      durationMinutes: 65,
+      checkInTime: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+      checkOutTime: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000 + 65 * 60 * 1000),
+      biometryStartStatus: 'SUCCESS',
+      biometryMidStatus: 'SUCCESS',
+      biometryEndStatus: 'SUCCESS',
+      integrityHash: 'seed-integrity-hash-released-001',
+      disputeOpened: false,
+    },
+  });
+
+  const lessonRefunded = await prisma.lesson.upsert({
+    where: { id: 'seed-lesson-refunded-001' },
+    update: {},
+    create: {
+      id: 'seed-lesson-refunded-001',
+      studentId: practical.id,
+      instructorId: instructor1.id,
+      vehicleId: vehicle1?.id,
+      date: pastDate(20),
+      startTime: '08:00',
+      endTime: '09:00',
+      price: 85.00,
+      status: 'completed',
+      durationMinutes: 60,
+      checkInTime: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      checkOutTime: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+      biometryStartStatus: 'SUCCESS',
+      biometryMidStatus: 'SUCCESS',
+      biometryEndStatus: 'SUCCESS',
+      integrityHash: 'seed-integrity-hash-refunded-001',
+      disputeOpened: false,
+    },
+  });
+
+  // Pagamentos
+  await prisma.payment.upsert({
+    where: { stripePaymentIntentId: 'pi_seed_held_1' },
+    update: {},
+    create: {
+      studentId: practical.id,
+      lessonId: lessonHeld.id,
+      paymentMethodId: pmPractical.id,
+      amount: 85.00,
+      status: 'HELD',
+      stripePaymentIntentId: 'pi_seed_held_1',
+    },
+  });
+
+  await prisma.payment.upsert({
+    where: { stripePaymentIntentId: 'pi_seed_released_1' },
+    update: {},
+    create: {
+      studentId: practical.id,
+      lessonId: lessonReleased.id,
+      paymentMethodId: pmPractical.id,
+      amount: 85.00,
+      status: 'RELEASED',
+      stripePaymentIntentId: 'pi_seed_released_1',
+      stripeTransferId: 'tr_seed_released_1',
+      platformFeeAmount: 17.00,
+      instructorAmount: 68.00,
+    },
+  });
+
+  await prisma.payment.upsert({
+    where: { stripePaymentIntentId: 'pi_seed_refunded_1' },
+    update: {},
+    create: {
+      studentId: practical.id,
+      lessonId: lessonRefunded.id,
+      paymentMethodId: pmPractical.id,
+      amount: 85.00,
+      status: 'REFUNDED',
+      stripePaymentIntentId: 'pi_seed_refunded_1',
+      stripeRefundId: 're_seed_refunded_1',
+    },
+  });
+
   console.log('✅ Populamento concluído com sucesso!');
 }
 
