@@ -22,6 +22,21 @@ import { SetupIntentResponseDto } from './dto/setup-intent-response.dto';
 export class PaymentsStripeService {
   private readonly logger = new Logger(PaymentsStripeService.name);
 
+  private computeSplit(totalAmount: number): {
+    platformFeeAmount: number;
+    instructorAmount: number;
+    instructorAmountCents: number;
+  } {
+    const feePercent = Number(process.env.PLATFORM_FEE_PERCENT ?? 20) / 100;
+    const platformFeeAmount = totalAmount * feePercent;
+    const instructorAmount = totalAmount - platformFeeAmount;
+    return {
+      platformFeeAmount,
+      instructorAmount,
+      instructorAmountCents: Math.round(instructorAmount * 100),
+    };
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(STRIPE_CLIENT) private readonly stripe: StripeInstance,
@@ -249,9 +264,12 @@ export class PaymentsStripeService {
       throw new BadRequestException('Instructor has no Stripe account');
     }
 
+    const { platformFeeAmount, instructorAmount, instructorAmountCents } =
+      this.computeSplit(payment.amount ?? 0);
+
     const transfer = await this.stripe.transfers.create(
       {
-        amount: Math.round((payment.amount ?? 0) * 100),
+        amount: instructorAmountCents,
         currency: 'brl',
         destination: instructor.stripeAccountId,
         transfer_group: lesson.id,
@@ -262,7 +280,12 @@ export class PaymentsStripeService {
 
     await this.prisma.payment.update({
       where: { id: payment.id },
-      data: { status: 'RELEASED', stripeTransferId: transfer.id },
+      data: {
+        status: 'RELEASED',
+        stripeTransferId: transfer.id,
+        platformFeeAmount,
+        instructorAmount,
+      },
     });
   }
 
@@ -289,9 +312,12 @@ export class PaymentsStripeService {
       if (!instructor?.stripeAccountId) {
         throw new BadRequestException('Instructor has no Stripe account');
       }
+      const { platformFeeAmount, instructorAmount, instructorAmountCents } =
+        this.computeSplit(payment.amount ?? 0);
+
       const transfer = await this.stripe.transfers.create(
         {
-          amount: Math.round((payment.amount ?? 0) * 100),
+          amount: instructorAmountCents,
           currency: 'brl',
           destination: instructor.stripeAccountId,
           transfer_group: lessonId,
@@ -306,7 +332,12 @@ export class PaymentsStripeService {
       );
       await this.prisma.payment.update({
         where: { id: payment.id },
-        data: { status: 'RELEASED', stripeTransferId: transfer.id },
+        data: {
+          status: 'RELEASED',
+          stripeTransferId: transfer.id,
+          platformFeeAmount,
+          instructorAmount,
+        },
       });
       return;
     }
