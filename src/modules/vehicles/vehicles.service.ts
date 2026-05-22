@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 
@@ -42,6 +46,24 @@ export class VehiclesService {
         transmission: vehicleData.transmission,
         vehiclePhoto: vehicleData.vehiclePhoto,
       },
+    });
+  }
+
+  async updatePhoto(
+    vehicleId: string,
+    instructorId: string,
+    photoPath: string,
+  ) {
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+    });
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    if (vehicle.instructorId !== instructorId)
+      throw new ForbiddenException('Vehicle does not belong to this instructor');
+
+    return this.prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { vehiclePhoto: photoPath },
     });
   }
 
