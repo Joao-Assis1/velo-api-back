@@ -491,6 +491,10 @@ describe('PaymentsStripeService', () => {
       prisma.payment.update.mockResolvedValue({});
     });
 
+    afterEach(() => {
+      delete process.env.PLATFORM_FEE_PERCENT;
+    });
+
     it('PLATFORM_FEE_PERCENT=0 → transfer = 100% do valor', async () => {
       process.env.PLATFORM_FEE_PERCENT = '0';
       await service.releaseEscrow('lsn-1');
@@ -502,7 +506,6 @@ describe('PaymentsStripeService', () => {
         where: { id: 'pay-1' },
         data: expect.objectContaining({ platformFeeAmount: 0, instructorAmount: 100 }),
       });
-      delete process.env.PLATFORM_FEE_PERCENT;
     });
 
     it('PLATFORM_FEE_PERCENT=100 → transfer = R$0,00', async () => {
@@ -516,7 +519,6 @@ describe('PaymentsStripeService', () => {
         where: { id: 'pay-1' },
         data: expect.objectContaining({ platformFeeAmount: 100, instructorAmount: 0 }),
       });
-      delete process.env.PLATFORM_FEE_PERCENT;
     });
   });
 });
