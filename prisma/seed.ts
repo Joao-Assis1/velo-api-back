@@ -31,7 +31,7 @@ async function main() {
       cpf: '123.456.789-00',
       password: defaultPassword,
       ladvUploaded: true,
-      profilePicture: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150',
+      profilePicture: 'https://ui-avatars.com/api/?name=Gabriel+Silva&background=3b82f6&color=fff&size=150',
     },
   });
 
@@ -59,7 +59,7 @@ async function main() {
       pricePerClass: 85.00,
       rating: 4.9,
       reviewsCount: 42,
-      profilePicture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+      profilePicture: 'https://ui-avatars.com/api/?name=Roberto+Souza&background=10b981&color=fff&size=150',
       cpf: '12345678901',
       cnhNumber: '01234567890',
       cnhExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 ano
