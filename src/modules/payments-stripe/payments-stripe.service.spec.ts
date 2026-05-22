@@ -337,7 +337,7 @@ describe('PaymentsStripeService', () => {
       await service.releaseEscrow('lsn-1');
       expect(stripe.transfers.create).toHaveBeenCalledWith(
         {
-          amount: 12000,
+          amount: 9600,          // 80% de R$120 = R$96,00 → 9600 centavos
           currency: 'brl',
           destination: 'acct_INST',
           transfer_group: 'lsn-1',
@@ -347,7 +347,12 @@ describe('PaymentsStripeService', () => {
       );
       expect(prisma.payment.update).toHaveBeenCalledWith({
         where: { id: 'pay-1' },
-        data: { status: 'RELEASED', stripeTransferId: 'tr_XYZ' },
+        data: {
+          status: 'RELEASED',
+          stripeTransferId: 'tr_XYZ',
+          platformFeeAmount: 24,   // 20% de R$120
+          instructorAmount: 96,    // 80% de R$120
+        },
       });
     });
 
@@ -413,7 +418,21 @@ describe('PaymentsStripeService', () => {
       stripe.transfers.create.mockResolvedValue({ id: 'tr_RES' });
       prisma.payment.update.mockResolvedValue({});
       await service.resolveDispute('lsn-1', { action: 'release', reason: 'admin override' });
-      expect(stripe.transfers.create).toHaveBeenCalled();
+      expect(stripe.transfers.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 9600,  // 80% de R$120
+          destination: 'acct_INST',
+        }),
+        { idempotencyKey: expect.any(String) },
+      );
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'pay-1' },
+        data: expect.objectContaining({
+          status: 'RELEASED',
+          platformFeeAmount: 24,
+          instructorAmount: 96,
+        }),
+      });
     });
 
     it('action=refund creates refund and marks Payment.status=REFUNDED', async () => {
@@ -438,6 +457,66 @@ describe('PaymentsStripeService', () => {
         where: { id: 'pay-1' },
         data: { status: 'REFUNDED', stripeRefundId: 're_XYZ' },
       });
+    });
+  });
+
+  describe('releaseEscrow — split edge cases', () => {
+    const basePayment = {
+      id: 'pay-1',
+      lessonId: 'lsn-1',
+      amount: 100,
+      status: 'HELD',
+      stripePaymentIntentId: 'pi_ABCD',
+    };
+    const baseLesson = {
+      id: 'lsn-1',
+      instructorId: 'inst-1',
+      status: 'completed',
+      durationMinutes: 60,
+      biometryStartStatus: 'SUCCESS',
+      biometryMidStatus: 'SUCCESS',
+      biometryEndStatus: 'SUCCESS',
+      integrityHash: 'h',
+      disputeOpened: false,
+    };
+
+    beforeEach(() => {
+      prisma.payment.findFirst.mockResolvedValue(basePayment);
+      prisma.lesson.findUnique.mockResolvedValue(baseLesson);
+      prisma.instructor.findUnique.mockResolvedValue({
+        id: 'inst-1',
+        stripeAccountId: 'acct_INST',
+      });
+      stripe.transfers.create.mockResolvedValue({ id: 'tr_XYZ' });
+      prisma.payment.update.mockResolvedValue({});
+    });
+
+    it('PLATFORM_FEE_PERCENT=0 → transfer = 100% do valor', async () => {
+      process.env.PLATFORM_FEE_PERCENT = '0';
+      await service.releaseEscrow('lsn-1');
+      expect(stripe.transfers.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 10000 }),
+        expect.any(Object),
+      );
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'pay-1' },
+        data: expect.objectContaining({ platformFeeAmount: 0, instructorAmount: 100 }),
+      });
+      delete process.env.PLATFORM_FEE_PERCENT;
+    });
+
+    it('PLATFORM_FEE_PERCENT=100 → transfer = R$0,00', async () => {
+      process.env.PLATFORM_FEE_PERCENT = '100';
+      await service.releaseEscrow('lsn-1');
+      expect(stripe.transfers.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 0 }),
+        expect.any(Object),
+      );
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'pay-1' },
+        data: expect.objectContaining({ platformFeeAmount: 100, instructorAmount: 0 }),
+      });
+      delete process.env.PLATFORM_FEE_PERCENT;
     });
   });
 });
