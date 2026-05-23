@@ -21,9 +21,14 @@ async function bootstrap() {
 
   app.use(helmet());
 
-  const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  const corsOriginRaw = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  const corsOrigins = corsOriginRaw.split(',').map((o) => {
+    const t = o.trim();
+    const m = t.match(/^\/(.+)\/([gimsuy]*)$/);
+    return m ? new RegExp(m[1], m[2]) : t;
+  });
   app.enableCors({
-    origin: corsOrigin.split(',').map((o) => o.trim()),
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key'],
     credentials: true,
