@@ -375,3 +375,14 @@ model OfficialTheoryExam {
   @@index([passed])
 }
 
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  role      String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, role])
+}
