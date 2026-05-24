@@ -6,6 +6,7 @@ import { RegisterDto } from './dto/register.dto';
 import { RegisterStudentDto } from './dto/register-student.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Controller('auth')
 @UseGuards(ThrottlerGuard)
@@ -44,5 +45,16 @@ export class AuthController {
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Post('refresh')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshTokens(dto.refreshToken);
+  }
+
+  @Post('logout')
+  logout(@Body() dto: RefreshTokenDto) {
+    return this.authService.logout(dto.refreshToken);
   }
 }

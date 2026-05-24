@@ -18,7 +18,15 @@ const mockPrisma = {
     create: jest.fn(),
     update: jest.fn(),
   },
+  refreshToken: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+  },
 };
+
+const FAMILY_ID = 'family-uuid-1';
 
 const mockJwt = { signAsync: jest.fn().mockResolvedValue('mock-token') };
 const mockJourney = { initForStudent: jest.fn().mockResolvedValue(undefined) };
@@ -130,6 +138,125 @@ describe('AuthService', () => {
       expect(mockPrisma.instructor.update).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'instructor-1' } }),
       );
+    });
+  });
+
+  describe('login refresh token', () => {
+    it('retorna access_token e refresh_token e persiste o hash', async () => {
+      mockPrisma.student.findUnique.mockResolvedValue({
+        id: 'stu-1',
+        email: 'a@a.com',
+        password: await require('bcrypt').hash('pass123', 10),
+        paymentMethods: [],
+      });
+      mockPrisma.refreshToken.create.mockResolvedValue({});
+
+      const result = await service.login(
+        { email: 'a@a.com', password: 'pass123' },
+        'student',
+      );
+
+      expect(result.access_token).toBe('mock-token');
+      expect(typeof result.refresh_token).toBe('string');
+      expect(result.refresh_token.length).toBeGreaterThan(0);
+      expect(mockPrisma.refreshToken.create).toHaveBeenCalledTimes(1);
+      const arg = mockPrisma.refreshToken.create.mock.calls[0][0];
+      expect(arg.data.userId).toBe('stu-1');
+      expect(arg.data.role).toBe('student');
+      expect(arg.data.tokenHash).not.toBe(result.refresh_token);
+    });
+  });
+
+  describe('refreshTokens', () => {
+    it('rotaciona: revoga o antigo atomicamente e emite novo par com mesmo familyId', async () => {
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1',
+        userId: 'stu-1',
+        role: 'student',
+        familyId: FAMILY_ID,
+        expiresAt: new Date(Date.now() + 1000000),
+        revokedAt: null,
+      });
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.refreshToken.create.mockResolvedValue({});
+      mockPrisma.student.findUnique.mockResolvedValue({ email: 'a@a.com' });
+
+      const result = await service.refreshTokens('raw-refresh-token');
+
+      expect(result.access_token).toBe('mock-token');
+      expect(typeof result.refresh_token).toBe('string');
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { id: 'rt-1', revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      const createArg = mockPrisma.refreshToken.create.mock.calls[0][0];
+      expect(createArg.data.familyId).toBe(FAMILY_ID);
+    });
+
+    it('rejeita token inexistente', async () => {
+      mockPrisma.refreshToken.findUnique.mockResolvedValue(null);
+      await expect(service.refreshTokens('x')).rejects.toThrow('Refresh token inválido');
+    });
+
+    it('revoga família e rejeita ao detectar reuso de token já revogado', async () => {
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1', userId: 'stu-1', role: 'student',
+        familyId: FAMILY_ID,
+        expiresAt: new Date(Date.now() + 1000000), revokedAt: new Date(),
+      });
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 2 });
+
+      await expect(service.refreshTokens('stolen-token')).rejects.toThrow('Refresh token inválido');
+
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { familyId: FAMILY_ID, revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('revoga família e rejeita ao detectar corrida concorrente (count === 0)', async () => {
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1', userId: 'stu-1', role: 'student',
+        familyId: FAMILY_ID,
+        expiresAt: new Date(Date.now() + 1000000), revokedAt: null,
+      });
+      // First updateMany (conditional revoke) returns 0 → already consumed
+      // Second updateMany (revokeFamily) returns count 0 too
+      mockPrisma.refreshToken.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValue({ count: 0 });
+
+      await expect(service.refreshTokens('concurrent-token')).rejects.toThrow('Refresh token inválido');
+
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledTimes(2);
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenNthCalledWith(2, {
+        where: { familyId: FAMILY_ID, revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('rejeita token expirado', async () => {
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1', userId: 'stu-1', role: 'student',
+        familyId: FAMILY_ID,
+        expiresAt: new Date(Date.now() - 1000), revokedAt: null,
+      });
+      await expect(service.refreshTokens('x')).rejects.toThrow();
+    });
+  });
+
+  describe('logout', () => {
+    it('retorna revoked: true quando token existia', async () => {
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+      const result = await service.logout('raw-refresh-token');
+      expect(result).toEqual({ revoked: true });
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('retorna revoked: false quando token não existia ou já estava revogado', async () => {
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 0 });
+      const result = await service.logout('unknown-token');
+      expect(result).toEqual({ revoked: false });
     });
   });
 

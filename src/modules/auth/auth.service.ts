@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash, randomUUID } from 'crypto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -24,6 +24,54 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly journeyService: JourneyService,
   ) {}
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async issueRefreshToken(
+    userId: string,
+    role: 'student' | 'instructor',
+    familyId?: string,
+  ): Promise<string> {
+    const token = randomBytes(64).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await this.prisma.refreshToken.create({
+      data: {
+        tokenHash: this.hashToken(token),
+        userId,
+        role,
+        familyId: familyId ?? randomUUID(),
+        expiresAt,
+      },
+    });
+    return token;
+  }
+
+  private async revokeFamily(familyId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { familyId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  private async getUserEmail(
+    userId: string,
+    role: 'student' | 'instructor',
+  ): Promise<string> {
+    if (role === 'student') {
+      const user = await this.prisma.student.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      return user?.email ?? '';
+    }
+    const user = await this.prisma.instructor.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    return user?.email ?? '';
+  }
 
   async login(loginDto: LoginDto, role: 'student' | 'instructor') {
     let user: Student | Instructor | null;
@@ -53,6 +101,7 @@ export class AuthService {
 
     const payload = { sub: user.id, email: user.email, role };
     const access_token = await this.jwtService.signAsync(payload);
+    const refresh_token = await this.issueRefreshToken(user.id, role);
 
     // Remove password before returning
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -60,6 +109,7 @@ export class AuthService {
 
     return {
       access_token,
+      refresh_token,
       user: userWithoutPassword,
     };
   }
@@ -143,6 +193,55 @@ export class AuthService {
       access_token,
       user: userWithoutPassword,
     };
+  }
+
+  async refreshTokens(refreshToken: string) {
+    const tokenHash = this.hashToken(refreshToken);
+    const record = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!record) {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    // Reuse detected: already revoked → entire family is compromised
+    if (record.revokedAt) {
+      await this.revokeFamily(record.familyId);
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    if (record.expiresAt.getTime() < Date.now()) {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    // Atomic conditional revoke — wins the race only if revokedAt is still null
+    const { count } = await this.prisma.refreshToken.updateMany({
+      where: { id: record.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    if (count === 0) {
+      // Concurrent request already consumed this token
+      await this.revokeFamily(record.familyId);
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    const role = record.role as 'student' | 'instructor';
+    const email = await this.getUserEmail(record.userId, role);
+    const payload = { sub: record.userId, email, role };
+    const access_token = await this.jwtService.signAsync(payload);
+    const refresh_token = await this.issueRefreshToken(record.userId, role, record.familyId);
+
+    return { access_token, refresh_token };
+  }
+
+  async logout(refreshToken: string): Promise<{ revoked: boolean }> {
+    const { count } = await this.prisma.refreshToken.updateMany({
+      where: { tokenHash: this.hashToken(refreshToken), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return { revoked: count > 0 };
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; token?: string }> {
