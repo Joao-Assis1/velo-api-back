@@ -18,6 +18,12 @@ const mockPrisma = {
     create: jest.fn(),
     update: jest.fn(),
   },
+  refreshToken: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+  },
 };
 
 const mockJwt = { signAsync: jest.fn().mockResolvedValue('mock-token') };
@@ -130,6 +136,32 @@ describe('AuthService', () => {
       expect(mockPrisma.instructor.update).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'instructor-1' } }),
       );
+    });
+  });
+
+  describe('login refresh token', () => {
+    it('retorna access_token e refresh_token e persiste o hash', async () => {
+      mockPrisma.student.findUnique.mockResolvedValue({
+        id: 'stu-1',
+        email: 'a@a.com',
+        password: await require('bcrypt').hash('pass123', 10),
+        paymentMethods: [],
+      });
+      mockPrisma.refreshToken.create.mockResolvedValue({});
+
+      const result = await service.login(
+        { email: 'a@a.com', password: 'pass123' },
+        'student',
+      );
+
+      expect(result.access_token).toBe('mock-token');
+      expect(typeof result.refresh_token).toBe('string');
+      expect(result.refresh_token.length).toBeGreaterThan(0);
+      expect(mockPrisma.refreshToken.create).toHaveBeenCalledTimes(1);
+      const arg = mockPrisma.refreshToken.create.mock.calls[0][0];
+      expect(arg.data.userId).toBe('stu-1');
+      expect(arg.data.role).toBe('student');
+      expect(arg.data.tokenHash).not.toBe(result.refresh_token);
     });
   });
 

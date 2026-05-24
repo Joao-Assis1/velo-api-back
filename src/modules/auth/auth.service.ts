@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -24,6 +24,22 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly journeyService: JourneyService,
   ) {}
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async issueRefreshToken(
+    userId: string,
+    role: 'student' | 'instructor',
+  ): Promise<string> {
+    const token = randomBytes(64).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await this.prisma.refreshToken.create({
+      data: { tokenHash: this.hashToken(token), userId, role, expiresAt },
+    });
+    return token;
+  }
 
   async login(loginDto: LoginDto, role: 'student' | 'instructor') {
     let user: Student | Instructor | null;
@@ -53,6 +69,7 @@ export class AuthService {
 
     const payload = { sub: user.id, email: user.email, role };
     const access_token = await this.jwtService.signAsync(payload);
+    const refresh_token = await this.issueRefreshToken(user.id, role);
 
     // Remove password before returning
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -60,6 +77,7 @@ export class AuthService {
 
     return {
       access_token,
+      refresh_token,
       user: userWithoutPassword,
     };
   }
