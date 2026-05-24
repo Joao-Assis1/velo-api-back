@@ -380,9 +380,11 @@ model RefreshToken {
   tokenHash String    @unique
   userId    String
   role      String
+  familyId  String
   expiresAt DateTime
   revokedAt DateTime?
   createdAt DateTime  @default(now())
 
   @@index([userId, role])
+  @@index([familyId])
 }

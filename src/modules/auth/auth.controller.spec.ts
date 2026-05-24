@@ -43,7 +43,7 @@ describe('AuthController', () => {
   });
 
   it('logout chama service.logout', async () => {
-    const spy = jest.spyOn(service, 'logout').mockResolvedValue(undefined);
+    const spy = jest.spyOn(service, 'logout').mockResolvedValue({ revoked: true });
     await controller.logout({ refresh_token: 'r' });
     expect(spy).toHaveBeenCalledWith('r');
   });
