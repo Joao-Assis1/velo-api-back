@@ -37,14 +37,14 @@ describe('AuthController', () => {
   it('refresh chama service.refreshTokens', async () => {
     const spy = jest
       .spyOn(service, 'refreshTokens')
-      .mockResolvedValue({ access_token: 'a', refresh_token: 'r' } as any);
-    await controller.refresh({ refresh_token: 'r' });
+      .mockResolvedValue({ access_token: 'a', refreshToken: 'r' } as any);
+    await controller.refresh({ refreshToken: 'r' });
     expect(spy).toHaveBeenCalledWith('r');
   });
 
   it('logout chama service.logout', async () => {
     const spy = jest.spyOn(service, 'logout').mockResolvedValue({ revoked: true });
-    await controller.logout({ refresh_token: 'r' });
+    await controller.logout({ refreshToken: 'r' });
     expect(spy).toHaveBeenCalledWith('r');
   });
 });
