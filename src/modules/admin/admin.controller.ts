@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Inject,
   NotFoundException,
@@ -15,6 +16,7 @@ import { STRIPE_CLIENT } from '../payments-stripe/stripe.client';
 import { idempotencyKey } from '../payments-stripe/lib/idempotency';
 import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
 import { ResolveDisputeDto } from '../payments-stripe/dto/resolve-dispute.dto';
+import { ResolveReleaseFailedDto } from '../payments-stripe/dto/resolve-release-failed.dto';
 import { AdminApiKeyGuard } from './guards/admin-api-key.guard';
 
 const SEED_PM = 'pm_card_visa';
@@ -120,5 +122,19 @@ export class AdminController {
     @Body() dto: ResolveDisputeDto,
   ) {
     return this.paymentsService.resolveDispute(lessonId, dto);
+  }
+
+  @Get('payments/release-failed')
+  listReleaseFailed() {
+    return this.paymentsService.listReleaseFailed();
+  }
+
+  @Post('payments/:paymentId/resolve')
+  @HttpCode(200)
+  resolveReleaseFailed(
+    @Param('paymentId') paymentId: string,
+    @Body() dto: ResolveReleaseFailedDto,
+  ) {
+    return this.paymentsService.resolveReleaseFailed(paymentId, dto);
   }
 }

@@ -361,6 +361,75 @@ export class PaymentsStripeService {
     });
   }
 
+  async listReleaseFailed() {
+    return this.prisma.payment.findMany({
+      where: { status: 'RELEASE_FAILED' },
+      orderBy: { lastReleaseAttemptAt: 'desc' },
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        releaseAttempts: true,
+        lastReleaseAttemptAt: true,
+        createdAt: true,
+        lessonId: true,
+        studentId: true,
+        lesson: {
+          select: {
+            date: true,
+            status: true,
+            durationMinutes: true,
+            biometryStartStatus: true,
+            biometryMidStatus: true,
+            biometryEndStatus: true,
+            instructor: { select: { id: true, name: true, email: true } },
+          },
+        },
+        student: { select: { id: true, name: true, email: true } },
+      },
+    });
+  }
+
+  async resolveReleaseFailed(
+    paymentId: string,
+    dto: { action: 'retry' | 'refund'; reason?: string },
+  ) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment) throw new NotFoundException(`Payment ${paymentId} not found`);
+    if (payment.status !== 'RELEASE_FAILED') {
+      throw new BadRequestException(
+        `Payment status is ${payment.status} — expected RELEASE_FAILED`,
+      );
+    }
+
+    if (dto.action === 'retry') {
+      await this.prisma.payment.update({
+        where: { id: paymentId },
+        data: { status: 'HELD', releaseAttempts: 0, lastReleaseAttemptAt: null },
+      });
+      return { message: 'Payment reset to HELD — will be retried on next cron cycle' };
+    }
+
+    if (!payment.stripePaymentIntentId) {
+      throw new BadRequestException('Payment has no PaymentIntent to refund');
+    }
+    const refund = await this.stripe.refunds.create(
+      {
+        payment_intent: payment.stripePaymentIntentId,
+        reason: 'requested_by_customer',
+        metadata: { paymentId, resolution: 'refund', reason: dto.reason ?? '' },
+      },
+      { idempotencyKey: idempotencyKey(paymentId, 'refund') },
+    );
+    await this.prisma.payment.update({
+      where: { id: paymentId },
+      data: { status: 'REFUNDED', stripeRefundId: refund.id },
+    });
+    return { message: 'Payment refunded successfully', refundId: refund.id };
+  }
+
   async listMyPayments(studentId: string) {
     return this.prisma.payment.findMany({
       where: { studentId },
