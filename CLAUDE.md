@@ -71,6 +71,7 @@ npm run jwt-key          # gera novo JWT secret
 ## Regras Importantes
 
 - **Novas funcionalidades:** SEMPRE iniciar com `/tlc-spec-driven` antes de escrever qualquer codigo — gera spec, tasks e plano de implementacao
+- **Git worktree:** SEMPRE usar `/using-git-worktrees` ao iniciar qualquer nova tarefa de implementacao — garante workspace isolado sem afetar a branch atual
 - **LADV OCR:** Tesseract.js extrai número, emissão e validade. >=50% de confiança + keywords (LADV/LICENÇA/APRENDIZAGEM/DETRAN) → ladvOcrStatus=PASS; sem número/datas → NEEDS_REVIEW; falha → FAIL. Endpoint único `/api/v1/ladv/me/upload` (módulo `ladv-process/`)
 - **Cadeia de validação de aulas:** `LessonsService.create()` executa 6 gates em sequência — journey (LADV_UPLOADED_VALID), credencial do instrutor (APPROVED + credentialValidUntil), CNH local (cnhNumber via ValidationService), CNH expiry, CNH SERPRO (se env=serpro), veículo pertence ao instrutor
 - **Biometria 3 pontos:** check-in GPS obrigatorio no inicio, meio e fim da aula dentro de 50 m (Haversine em `common/utils/geo.utils.ts`)
