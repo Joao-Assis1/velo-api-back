@@ -165,6 +165,53 @@ describe('AuthService', () => {
     });
   });
 
+  describe('refreshTokens', () => {
+    it('rotaciona: revoga o antigo e emite novo par', async () => {
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1',
+        userId: 'stu-1',
+        role: 'student',
+        expiresAt: new Date(Date.now() + 1000000),
+        revokedAt: null,
+      });
+      mockPrisma.refreshToken.update.mockResolvedValue({});
+      mockPrisma.refreshToken.create.mockResolvedValue({});
+
+      const result = await service.refreshTokens('raw-refresh-token');
+
+      expect(result.access_token).toBe('mock-token');
+      expect(typeof result.refresh_token).toBe('string');
+      expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith({
+        where: { id: 'rt-1' },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('rejeita token revogado', async () => {
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1', userId: 'stu-1', role: 'student',
+        expiresAt: new Date(Date.now() + 1000000), revokedAt: new Date(),
+      });
+      await expect(service.refreshTokens('x')).rejects.toThrow();
+    });
+
+    it('rejeita token expirado', async () => {
+      mockPrisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1', userId: 'stu-1', role: 'student',
+        expiresAt: new Date(Date.now() - 1000), revokedAt: null,
+      });
+      await expect(service.refreshTokens('x')).rejects.toThrow();
+    });
+  });
+
+  describe('logout', () => {
+    it('revoga o refresh token informado', async () => {
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+      await service.logout('raw-refresh-token');
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('resetPassword', () => {
     it('should throw 400 when token not found', async () => {
       mockPrisma.student.findFirst.mockResolvedValue(null);

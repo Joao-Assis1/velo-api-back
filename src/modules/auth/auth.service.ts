@@ -163,6 +163,34 @@ export class AuthService {
     };
   }
 
+  async refreshTokens(refreshToken: string) {
+    const record = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash: this.hashToken(refreshToken) },
+    });
+    if (!record || record.revokedAt || record.expiresAt.getTime() < Date.now()) {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    await this.prisma.refreshToken.update({
+      where: { id: record.id },
+      data: { revokedAt: new Date() },
+    });
+
+    const role = record.role as 'student' | 'instructor';
+    const payload = { sub: record.userId, role };
+    const access_token = await this.jwtService.signAsync(payload);
+    const refresh_token = await this.issueRefreshToken(record.userId, role);
+
+    return { access_token, refresh_token };
+  }
+
+  async logout(refreshToken: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { tokenHash: this.hashToken(refreshToken), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; token?: string }> {
     const message = 'Se esse e-mail estiver cadastrado, você receberá um link em breve.';
 
