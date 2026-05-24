@@ -1,4 +1,5 @@
 node_modules
+npm-cache
 coverage
 dist
 .env
@@ -62,3 +63,4 @@ uploads/
 !uploads/.gitkeep
 # Allow source files under src/common/uploads/
 !src/common/uploads/
+.vercel
