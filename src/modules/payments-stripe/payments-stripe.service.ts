@@ -209,6 +209,11 @@ export class PaymentsStripeService {
       { idempotencyKey: idempotencyKey(dto.lessonId, 'charge') },
     );
 
+    const chargeId =
+      typeof pi.latest_charge === 'string'
+        ? pi.latest_charge
+        : (pi.latest_charge as { id?: string } | null)?.id ?? null;
+
     const payment = await this.prisma.payment.create({
       data: {
         studentId,
@@ -216,6 +221,7 @@ export class PaymentsStripeService {
         paymentMethodId: pm.id,
         amount: lesson.price ?? 0,
         stripePaymentIntentId: pi.id,
+        stripeChargeId: chargeId,
         status: pi.status === 'succeeded' ? 'HELD' : 'PENDING',
       },
     });
@@ -273,6 +279,7 @@ export class PaymentsStripeService {
         currency: 'brl',
         destination: instructor.stripeAccountId,
         transfer_group: lesson.id,
+        source_transaction: payment.stripeChargeId ?? undefined,
         metadata: { lessonId: lesson.id, paymentId: payment.id },
       },
       { idempotencyKey: idempotencyKey(payment.id, 'release') },
@@ -321,6 +328,7 @@ export class PaymentsStripeService {
           currency: 'brl',
           destination: instructor.stripeAccountId,
           transfer_group: lessonId,
+          source_transaction: payment.stripeChargeId ?? undefined,
           metadata: {
             lessonId,
             paymentId: payment.id,
