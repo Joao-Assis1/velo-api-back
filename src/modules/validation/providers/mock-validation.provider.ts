@@ -29,7 +29,7 @@ export class MockValidationProvider implements DocumentValidationProvider {
 
   async validateRenach(renach: string, _cpf: string): Promise<RenachExternalCheck> {
     await new Promise((r) => setTimeout(r, 50));
-    if (typeof renach === 'string' && /^RNC-\d{4}-\d{5}$/.test(renach)) {
+    if (typeof renach === 'string' && /^[A-Z]{2}\d{9}$/.test(renach)) {
       return { valid: true, processStatus: 'OPEN' };
     }
     return { valid: false, processStatus: 'NOT_FOUND' };

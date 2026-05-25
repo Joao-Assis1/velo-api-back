@@ -54,6 +54,7 @@ tsconfig.tsbuildinfo
 doc/
 docs/
 .tlc/specs
+APRESENTACAO-VALIDACOES.md
 # AI-generated plans and local tooling — not for remote
 docs/superpowers/
 .rtk/
