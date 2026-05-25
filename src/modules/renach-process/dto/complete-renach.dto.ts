@@ -3,10 +3,10 @@ import { Type } from 'class-transformer';
 import { IsDate, IsString, Matches } from 'class-validator';
 
 export class CompleteRenachDto {
-  @ApiProperty({ example: 'RNC-2026-00001' })
+  @ApiProperty({ example: 'SP123456789' })
   @IsString()
-  @Matches(/^RNC-\d{4}-\d{5}$/, {
-    message: 'renachNumber must match RNC-YYYY-NNNNN',
+  @Matches(/^[A-Z]{2}\d{9}$/, {
+    message: 'renachNumber must match UF + 9 digits (e.g. SP123456789)',
   })
   renachNumber!: string;
 

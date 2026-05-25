@@ -1,4 +1,4 @@
-import { IsDateString, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsOptional, IsString, Matches } from 'class-validator';
 
 export class UpdateStudentDto {
   @IsString()
@@ -21,8 +21,8 @@ export class UpdateStudentDto {
   @IsOptional()
   motherName?: string;
 
-  @IsString()
   @IsOptional()
+  @Matches(/^[A-Z]{2}$/, { message: 'ufDomicile must be a 2-letter uppercase state code (e.g. SP)' })
   ufDomicile?: string;
 
   @IsString()

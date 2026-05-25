@@ -69,7 +69,7 @@ describe('TelemetriaService', () => {
         .spyOn(prisma.lesson, 'findUnique')
         .mockResolvedValue({
           status: 'upcoming',
-        } as unknown as { status: string });
+        } as any);
       const createManySpy = jest
         .spyOn(prisma.lessonTelemetry, 'createMany')
         .mockResolvedValue({

@@ -21,7 +21,7 @@ const UF_GUIDES: Record<string, { steps: string[] }> = {
       'Faça login com gov.br e selecione "Solicitar LADV"',
       'Confirme seus dados pessoais e a categoria B',
       'Aguarde a emissão pelo DETRAN-MS (https://www.meudetran.ms.gov.br/) — você receberá uma notificação no app',
-      'Salve o PDF gerado e faça o upload aqui em /ladv/me/upload',
+      'Salve o PDF gerado e faça o upload aqui ',
     ],
   },
 };
@@ -33,7 +33,7 @@ export class LadvProcessService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly journey: JourneyService,
-  ) {}
+  ) { }
 
   getGuide(uf: string): { uf: string; steps: string[] } {
     const normalized = (uf ?? '').toUpperCase();
@@ -45,7 +45,7 @@ export class LadvProcessService {
         'Baixe o app CNH do Brasil disponível na Apple Store e Google Play',
         'Faça login com gov.br e siga as instruções do seu DETRAN',
         'Aguarde a emissão da LADV pelo seu DETRAN',
-        'Faça o upload do PDF aqui em /ladv/me/upload',
+        'Faça o upload do PDF aqui',
       ],
     };
   }

@@ -29,13 +29,37 @@ describe('MockValidationProvider', () => {
   });
 
   describe('validateRenach', () => {
-    it('returns OPEN for any well-formed RENACH starting with RNC-', async () => {
-      const r = await provider.validateRenach('RNC-2026-00001', '12345678909');
+    it('returns OPEN for valid RENACH in UF+9digits format', async () => {
+      const r = await provider.validateRenach('SP123456789', '12345678909');
       expect(r.valid).toBe(true);
       expect(r.processStatus).toBe('OPEN');
     });
 
-    it('returns NOT_FOUND for malformed RENACH', async () => {
+    it('returns OPEN for MS UF prefix', async () => {
+      const r = await provider.validateRenach('MS000000001', '12345678909');
+      expect(r.valid).toBe(true);
+      expect(r.processStatus).toBe('OPEN');
+    });
+
+    it('returns NOT_FOUND for old RNC- format', async () => {
+      const r = await provider.validateRenach('RNC-2026-00001', '12345678909');
+      expect(r.valid).toBe(false);
+      expect(r.processStatus).toBe('NOT_FOUND');
+    });
+
+    it('returns NOT_FOUND for missing UF prefix', async () => {
+      const r = await provider.validateRenach('123456789', '12345678909');
+      expect(r.valid).toBe(false);
+      expect(r.processStatus).toBe('NOT_FOUND');
+    });
+
+    it('returns NOT_FOUND for UF with fewer than 9 digits', async () => {
+      const r = await provider.validateRenach('SP12345678', '12345678909');
+      expect(r.valid).toBe(false);
+      expect(r.processStatus).toBe('NOT_FOUND');
+    });
+
+    it('returns NOT_FOUND for malformed input', async () => {
       const r = await provider.validateRenach('XXX', '12345678909');
       expect(r.valid).toBe(false);
       expect(r.processStatus).toBe('NOT_FOUND');

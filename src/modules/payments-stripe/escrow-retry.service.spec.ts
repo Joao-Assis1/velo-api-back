@@ -30,6 +30,16 @@ describe('EscrowRetryService', () => {
     expect(prisma.payment.update).not.toHaveBeenCalled();
   });
 
+  it('queries only HELD payments for completed lessons', async () => {
+    prisma.payment.findMany.mockResolvedValue([]);
+    await service.retryPendingReleases();
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ lesson: { status: 'completed' } }),
+      }),
+    );
+  });
+
   it('skips payments with no lessonId', async () => {
     prisma.payment.findMany.mockResolvedValue([
       { id: 'pay-1', lessonId: null, releaseAttempts: 0 },

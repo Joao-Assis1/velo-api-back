@@ -219,10 +219,12 @@ describe('PaymentsStripeService', () => {
       stripe.paymentIntents.create.mockResolvedValue({
         id: 'pi_ABCD',
         status: 'requires_capture',
+        latest_charge: 'ch_ABCD',
       });
       prisma.payment.create.mockResolvedValue({
         id: 'pay-1',
         stripePaymentIntentId: 'pi_ABCD',
+        stripeChargeId: 'ch_ABCD',
         status: 'PENDING',
         lessonId: 'lsn-1',
         amount: 120,
@@ -251,6 +253,7 @@ describe('PaymentsStripeService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             stripePaymentIntentId: 'pi_ABCD',
+            stripeChargeId: 'ch_ABCD',
             status: 'PENDING',
             amount: 120,
             lessonId: 'lsn-1',
@@ -316,6 +319,7 @@ describe('PaymentsStripeService', () => {
         amount: 120,
         status: 'HELD',
         stripePaymentIntentId: 'pi_ABCD',
+        stripeChargeId: 'ch_ABCD',
       });
       prisma.lesson.findUnique.mockResolvedValue({
         id: 'lsn-1',
@@ -341,6 +345,7 @@ describe('PaymentsStripeService', () => {
           currency: 'brl',
           destination: 'acct_INST',
           transfer_group: 'lsn-1',
+          source_transaction: 'ch_ABCD',
           metadata: { lessonId: 'lsn-1', paymentId: 'pay-1' },
         },
         { idempotencyKey: expect.any(String) },
@@ -399,6 +404,7 @@ describe('PaymentsStripeService', () => {
         amount: 120,
         status: 'HELD',
         stripePaymentIntentId: 'pi_ABCD',
+        stripeChargeId: 'ch_ABCD',
       });
       prisma.lesson.findUnique.mockResolvedValue({
         id: 'lsn-1',
@@ -422,6 +428,7 @@ describe('PaymentsStripeService', () => {
         expect.objectContaining({
           amount: 9600,  // 80% de R$120
           destination: 'acct_INST',
+          source_transaction: 'ch_ABCD',
         }),
         { idempotencyKey: expect.any(String) },
       );
@@ -467,6 +474,7 @@ describe('PaymentsStripeService', () => {
       amount: 100,
       status: 'HELD',
       stripePaymentIntentId: 'pi_ABCD',
+      stripeChargeId: 'ch_ABCD',
     };
     const baseLesson = {
       id: 'lsn-1',

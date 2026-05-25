@@ -18,7 +18,11 @@ export class EscrowRetryService {
   @Cron(CRON_EXPR)
   async retryPendingReleases(): Promise<void> {
     const held = await this.prisma.payment.findMany({
-      where: { status: 'HELD', releaseAttempts: { lt: MAX_ATTEMPTS } },
+      where: {
+        status: 'HELD',
+        releaseAttempts: { lt: MAX_ATTEMPTS },
+        lesson: { status: 'completed' },
+      },
       select: { id: true, lessonId: true, releaseAttempts: true },
     });
 

@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsBoolean,
   IsNumber,
+  Matches,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -87,8 +88,8 @@ export class RegisterDto {
   @IsOptional()
   motherName?: string;
 
-  @IsString()
   @IsOptional()
+  @Matches(/^[A-Z]{2}$/, { message: 'ufDomicile must be a 2-letter uppercase state code (e.g. SP)' })
   ufDomicile?: string;
 
   @IsString()
