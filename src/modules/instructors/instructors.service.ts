@@ -1,12 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 import { Instructor, Prisma } from '@prisma/client';
+import Stripe from 'stripe';
+import { STRIPE_CLIENT } from '../payments-stripe/stripe.client';
+import { idempotencyKey } from '../payments-stripe/lib/idempotency';
 
 @Injectable()
 export class InstructorsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(STRIPE_CLIENT) private readonly stripe: InstanceType<typeof Stripe>,
+  ) {}
 
   private readonly omitPassword = { password: true } as const;
 
@@ -138,5 +144,38 @@ export class InstructorsService {
       month,
       year,
     };
+  }
+
+  async seedTest(instructorId: string) {
+    const instructor = await this.prisma.instructor.findUnique({
+      where: { id: instructorId },
+      select: { id: true, email: true, name: true, stripeAccountId: true },
+    });
+    if (!instructor) throw new NotFoundException(`Instructor ${instructorId} not found`);
+
+    let accountId = instructor.stripeAccountId;
+    if (!accountId) {
+      const account = await this.stripe.accounts.create(
+        {
+          type: 'express',
+          country: 'BR',
+          email: instructor.email,
+          capabilities: { transfers: { requested: true } },
+        },
+        { idempotencyKey: idempotencyKey(instructorId, 'seed-connect-account') },
+      );
+      accountId = account.id;
+    }
+
+    const updated = await this.prisma.instructor.update({
+      where: { id: instructorId },
+      data: {
+        stripeAccountId: accountId,
+        stripeAccountStatus: 'ACTIVE',
+        stripePayoutsEnabled: true,
+      },
+    });
+
+    return updated;
   }
 }
