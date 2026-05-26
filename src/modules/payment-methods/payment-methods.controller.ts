@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
   Param,
   Query,
   HttpCode,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { PaymentMethodsService } from './payment-methods.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TestModeGuard } from '../../common/test-mode/test-mode.guard';
 import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
 @Controller('payment-methods')
@@ -39,6 +41,13 @@ export class PaymentMethodsController {
     const role = req.user.role;
     const targetId = role === 'student' ? userId : studentId;
     return this.paymentMethodsService.findAll(targetId);
+  }
+
+  @Post('me/seed-test')
+  @HttpCode(201)
+  @UseGuards(TestModeGuard)
+  async seedTest(@Req() req: RequestWithUser) {
+    return this.paymentMethodsService.seedTest(req.user.userId);
   }
 
   @Patch(':id/default')

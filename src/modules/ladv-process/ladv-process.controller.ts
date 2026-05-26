@@ -26,8 +26,10 @@ import {
   MAX_UPLOAD_BYTES,
   uploadFileFilter,
 } from '../../common/uploads/upload-storage';
+import { TestModeService } from '../../common/test-mode/test-mode.service';
+import type { Request } from 'express';
 
-interface RequestWithUser {
+interface RequestWithUser extends Request {
   user: { userId: string };
 }
 
@@ -36,7 +38,10 @@ interface RequestWithUser {
 @Controller('ladv')
 @UseGuards(JwtAuthGuard)
 export class LadvProcessController {
-  constructor(private readonly service: LadvProcessService) {}
+  constructor(
+    private readonly service: LadvProcessService,
+    private readonly testMode: TestModeService,
+  ) {}
 
   @Get('guide')
   @ApiOkResponse()
@@ -63,8 +68,11 @@ export class LadvProcessController {
   )
   upload(
     @Req() req: RequestWithUser,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file?: Express.Multer.File,
   ): Promise<LadvStatusDto> {
+    if (this.testMode.isEnabled(req)) {
+      return this.service.uploadTestMode(req.user.userId);
+    }
     if (!file) throw new BadRequestException('LADV file is required');
     return this.service.uploadFromFile(req.user.userId, file.path);
   }
