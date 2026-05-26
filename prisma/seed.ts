@@ -65,7 +65,7 @@ async function main() {
       cnhExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 ano
       credentialStatus: 'APPROVED',
       credentialValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano
-      stripeAccountId: 'acct_seed_roberto',
+      stripeAccountId: '',
       stripeAccountStatus: 'ACTIVE',
       stripePayoutsEnabled: true,
       vehicles: {
@@ -129,12 +129,12 @@ async function main() {
   // 5. PaymentMethod seed para Gabriel (aluno demo)
   await prisma.student.update({
     where: { id: student1.id },
-    data: { stripeCustomerId: 'cus_seed_gabriel' },
+    data: { stripeCustomerId: '' },
   });
   await prisma.paymentMethod.create({
     data: {
       studentId: student1.id,
-      stripePaymentMethodId: 'pm_seed_demo_1',
+      stripePaymentMethodId: '',
       brand: 'visa',
       last4: '4242',
       cardholderName: 'GABRIEL SILVA',
@@ -208,7 +208,7 @@ async function main() {
     update: {},
     create: {
       studentId: medical.id,
-      renachNumber: 'RNC-2026-00001',
+      renachNumber: 'SP000000001',
       ufDetran: 'SP',
       biometryDoneAt: pastDate(2),
       status: 'DONE',
@@ -233,7 +233,7 @@ async function main() {
     update: {},
     create: {
       studentId: psych.id,
-      renachNumber: 'RNC-2026-00006',
+      renachNumber: 'MS000000006',
       ufDetran: 'MS',
       biometryDoneAt: pastDate(7),
       status: 'DONE',
@@ -270,7 +270,7 @@ async function main() {
     update: {},
     create: {
       studentId: theory.id,
-      renachNumber: 'RNC-2026-00007',
+      renachNumber: 'MS000000007',
       ufDetran: 'MS',
       biometryDoneAt: pastDate(15),
       status: 'DONE',
@@ -319,7 +319,7 @@ async function main() {
     update: {},
     create: {
       studentId: awaitLadv.id,
-      renachNumber: 'RNC-2026-00008',
+      renachNumber: 'MS000000008',
       ufDetran: 'MS',
       biometryDoneAt: pastDate(25),
       status: 'DONE',
@@ -384,7 +384,7 @@ async function main() {
     update: {},
     create: {
       studentId: ladv.id,
-      renachNumber: 'RNC-2026-00002',
+      renachNumber: 'SP000000002',
       ufDetran: 'SP',
       biometryDoneAt: pastDate(30),
       status: 'DONE',
@@ -449,7 +449,7 @@ async function main() {
     update: {},
     create: {
       studentId: practical.id,
-      renachNumber: 'RNC-2026-00003',
+      renachNumber: 'SP000000003',
       ufDetran: 'SP',
       biometryDoneAt: pastDate(50),
       status: 'DONE',
@@ -519,7 +519,7 @@ async function main() {
     update: {},
     create: {
       studentId: ready.id,
-      renachNumber: 'RNC-2026-00009',
+      renachNumber: 'MS000000009',
       ufDetran: 'MS',
       biometryDoneAt: pastDate(55),
       status: 'DONE',
@@ -618,61 +618,61 @@ async function main() {
     phone: string | null;
     price: number;
   }> = [
-    {
-      name: 'Clínica Centro Médico Campo Grande',
-      type: 'MEDICAL',
-      city: 'Campo Grande',
-      uf: 'MS',
-      address: 'Rua Maracaju, 1500 - Centro',
-      phone: '(67) 3321-1000',
-      price: 220,
-    },
-    {
-      name: 'Clínica Vila Sobrinho',
-      type: 'MEDICAL',
-      city: 'Campo Grande',
-      uf: 'MS',
-      address: 'Av. Mato Grosso, 2000 - Vila Sobrinho',
-      phone: '(67) 3321-2000',
-      price: 200,
-    },
-    {
-      name: 'Clínica Jardim dos Estados',
-      type: 'MEDICAL',
-      city: 'Campo Grande',
-      uf: 'MS',
-      address: 'Rua Antônio Maria Coelho, 800 - Jardim dos Estados',
-      phone: '(67) 3321-3000',
-      price: 240,
-    },
-    {
-      name: 'Psico Centro Campo Grande',
-      type: 'PSYCHOLOGICAL',
-      city: 'Campo Grande',
-      uf: 'MS',
-      address: 'Rua 14 de Julho, 1200 - Centro',
-      phone: '(67) 3321-1500',
-      price: 170,
-    },
-    {
-      name: 'Psico Tiradentes Avaliações',
-      type: 'PSYCHOLOGICAL',
-      city: 'Campo Grande',
-      uf: 'MS',
-      address: 'Av. Bandeirantes, 350 - Tiradentes',
-      phone: '(67) 3321-1800',
-      price: 160,
-    },
-    {
-      name: 'Psico Bairro Amambai',
-      type: 'PSYCHOLOGICAL',
-      city: 'Campo Grande',
-      uf: 'MS',
-      address: 'Rua Pernambuco, 450 - Amambai',
-      phone: '(67) 3321-1900',
-      price: 165,
-    },
-  ];
+      {
+        name: 'Clínica Centro Médico Campo Grande',
+        type: 'MEDICAL',
+        city: 'Campo Grande',
+        uf: 'MS',
+        address: 'Rua Maracaju, 1500 - Centro',
+        phone: '(67) 3321-1000',
+        price: 220,
+      },
+      {
+        name: 'Clínica Vila Sobrinho',
+        type: 'MEDICAL',
+        city: 'Campo Grande',
+        uf: 'MS',
+        address: 'Av. Mato Grosso, 2000 - Vila Sobrinho',
+        phone: '(67) 3321-2000',
+        price: 200,
+      },
+      {
+        name: 'Clínica Jardim dos Estados',
+        type: 'MEDICAL',
+        city: 'Campo Grande',
+        uf: 'MS',
+        address: 'Rua Antônio Maria Coelho, 800 - Jardim dos Estados',
+        phone: '(67) 3321-3000',
+        price: 240,
+      },
+      {
+        name: 'Psico Centro Campo Grande',
+        type: 'PSYCHOLOGICAL',
+        city: 'Campo Grande',
+        uf: 'MS',
+        address: 'Rua 14 de Julho, 1200 - Centro',
+        phone: '(67) 3321-1500',
+        price: 170,
+      },
+      {
+        name: 'Psico Tiradentes Avaliações',
+        type: 'PSYCHOLOGICAL',
+        city: 'Campo Grande',
+        uf: 'MS',
+        address: 'Av. Bandeirantes, 350 - Tiradentes',
+        phone: '(67) 3321-1800',
+        price: 160,
+      },
+      {
+        name: 'Psico Bairro Amambai',
+        type: 'PSYCHOLOGICAL',
+        city: 'Campo Grande',
+        uf: 'MS',
+        address: 'Rua Pernambuco, 450 - Amambai',
+        phone: '(67) 3321-1900',
+        price: 165,
+      },
+    ];
 
   for (const c of clinicsData) {
     const existing = await prisma.clinic.findFirst({
@@ -695,14 +695,14 @@ async function main() {
   // Stripe para student-practical
   await prisma.student.update({
     where: { id: practical.id },
-    data: { stripeCustomerId: 'cus_seed_practical' },
+    data: { stripeCustomerId: '' },
   });
   const pmPractical = await prisma.paymentMethod.upsert({
-    where: { stripePaymentMethodId: 'pm_seed_practical_1' },
+    where: { stripePaymentMethodId: '' },
     update: {},
     create: {
       studentId: practical.id,
-      stripePaymentMethodId: 'pm_seed_practical_1',
+      stripePaymentMethodId: '',
       brand: 'mastercard',
       last4: '5555',
       cardholderName: 'ALUNO PRATICO',
@@ -776,7 +776,7 @@ async function main() {
       cnhExpiry: futureDate(400).toISOString(),
       credentialStatus: 'APPROVED',
       credentialValidUntil: futureDate(400),
-      stripeAccountId: 'acct_seed_pending',
+      stripeAccountId: '',
       stripeAccountStatus: 'PENDING',
       stripePayoutsEnabled: false,
       vehicles: {
@@ -871,7 +871,7 @@ async function main() {
 
   // Pagamentos
   await prisma.payment.upsert({
-    where: { stripePaymentIntentId: 'pi_seed_held_1' },
+    where: { stripePaymentIntentId: '' },
     update: {},
     create: {
       studentId: practical.id,
@@ -879,12 +879,12 @@ async function main() {
       paymentMethodId: pmPractical.id,
       amount: 85.00,
       status: 'HELD',
-      stripePaymentIntentId: 'pi_seed_held_1',
+      stripePaymentIntentId: '',
     },
   });
 
   await prisma.payment.upsert({
-    where: { stripePaymentIntentId: 'pi_seed_released_1' },
+    where: { stripePaymentIntentId: '' },
     update: {},
     create: {
       studentId: practical.id,
@@ -892,15 +892,15 @@ async function main() {
       paymentMethodId: pmPractical.id,
       amount: 85.00,
       status: 'RELEASED',
-      stripePaymentIntentId: 'pi_seed_released_1',
-      stripeTransferId: 'tr_seed_released_1',
+      stripePaymentIntentId: '',
+      stripeTransferId: '',
       platformFeeAmount: 17.00,
       instructorAmount: 68.00,
     },
   });
 
   await prisma.payment.upsert({
-    where: { stripePaymentIntentId: 'pi_seed_refunded_1' },
+    where: { stripePaymentIntentId: '' },
     update: {},
     create: {
       studentId: practical.id,
@@ -908,8 +908,8 @@ async function main() {
       paymentMethodId: pmPractical.id,
       amount: 85.00,
       status: 'REFUNDED',
-      stripePaymentIntentId: 'pi_seed_refunded_1',
-      stripeRefundId: 're_seed_refunded_1',
+      stripePaymentIntentId: '',
+      stripeRefundId: '',
     },
   });
 
