@@ -141,6 +141,17 @@ export class LadvProcessService {
     return this.persist(studentId, parsed, filePath);
   }
 
+  async uploadTestMode(studentId: string): Promise<LadvStatusDto> {
+    const issuedAt = new Date();
+    const validUntil = new Date(issuedAt);
+    validUntil.setFullYear(validUntil.getFullYear() + 1);
+    return this.persist(
+      studentId,
+      { ladvNumber: 'TEST-LADV-0000', issuedAt, validUntil, confidence: 100, status: 'PASS' },
+      null,
+    );
+  }
+
   async saveManual(
     studentId: string,
     dto: ManualLadvDto,
