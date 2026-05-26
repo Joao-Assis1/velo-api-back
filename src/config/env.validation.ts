@@ -39,6 +39,10 @@ class EnvironmentVariables {
   ESCROW_RETRY_CRON?: string;
 
   @IsOptional()
+  @IsIn(['true', 'false'])
+  ENABLE_TEST_MODE?: string;
+
+  @IsOptional()
   @IsIn(['mock', 'serpro'])
   DOCUMENT_VALIDATION_PROVIDER?: string = 'mock';
 

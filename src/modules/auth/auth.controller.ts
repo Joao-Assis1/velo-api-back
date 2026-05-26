@@ -50,11 +50,12 @@ export class AuthController {
   @Post('refresh')
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refreshTokens(dto.refreshToken);
+    return this.authService.refreshTokens(dto.refresh_token);
   }
 
   @Post('logout')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   logout(@Body() dto: RefreshTokenDto) {
-    return this.authService.logout(dto.refreshToken);
+    return this.authService.logout(dto.refresh_token);
   }
 }

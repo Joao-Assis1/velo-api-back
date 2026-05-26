@@ -64,4 +64,6 @@ uploads/
 !uploads/.gitkeep
 # Allow source files under src/common/uploads/
 !src/common/uploads/
+# Tesseract language data
+*.traineddata
 .vercel

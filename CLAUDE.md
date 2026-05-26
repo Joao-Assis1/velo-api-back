@@ -88,12 +88,14 @@ Validadas no startup via `src/config/env.validation.ts`:
 |----------|-----------|
 | `DATABASE_URL` | PostgreSQL connection string (Neon DB) |
 | `JWT_SECRET` | Gerar com `npm run jwt-key` |
+| `ADMIN_API_KEY` | **Obrigatória**; chave da API admin (min 16 chars); protege `/api/v1/admin/*` |
 | `STRIPE_SECRET_KEY` | Chave secreta da plataforma Stripe |
 | `STRIPE_WEBHOOK_SECRET` | Secret para verificação HMAC de webhooks |
 | `STRIPE_CONNECT_CLIENT_ID` | Opcional; client ID do Connect (Express) |
 | `STRIPE_CONNECT_REFRESH_URL` | Opcional; URL de refresh do Account Link |
 | `STRIPE_CONNECT_RETURN_URL` | Opcional; URL de return do Account Link |
 | `PORT` | Opcional; padrao: 3001 |
+| `ENABLE_TEST_MODE` | Opcional; `true` habilita bypass de OCR via header `X-Test-Mode: true` (nunca usar em produção) |
 | `DOCUMENT_VALIDATION_PROVIDER` | Opcional; `mock` (padrao) ou `serpro` |
 | `VIA_CEP_BASE_URL` | Opcional; padrao `https://viacep.com.br/ws` |
 | `BRASIL_API_BASE_URL` | Opcional; padrao `https://brasilapi.com.br/api` |
