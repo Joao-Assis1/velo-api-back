@@ -37,7 +37,6 @@ desktop.ini
 tlc-spec-driven
 .specs
 /generated/prisma
-FLOW_AND_FEATURES.md
 API_DATA_FLOW.md
 Design-System-Velo.drawio
 DESIGN_SYSTEM_SPEC.md
@@ -52,7 +51,6 @@ CLAUDE.md
 .claude/
 tsconfig.tsbuildinfo
 doc/
-docs/
 .tlc/specs
 APRESENTACAO-VALIDACOES.md
 # AI-generated plans and local tooling — not for remote
