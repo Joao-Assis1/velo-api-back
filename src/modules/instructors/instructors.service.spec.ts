@@ -92,6 +92,12 @@ describe('InstructorsService.seedTest', () => {
     expect(mockPrisma.instructor.update).toHaveBeenCalledWith({
       where: { id: 'inst-1' },
       data: { stripeAccountId: 'acct_test_123', stripeAccountStatus: 'ACTIVE', stripePayoutsEnabled: true },
+      select: {
+        id: true,
+        stripeAccountId: true,
+        stripeAccountStatus: true,
+        stripePayoutsEnabled: true,
+      },
     });
     expect(result.stripeAccountId).toBe('acct_test_123');
   });
@@ -116,6 +122,12 @@ describe('InstructorsService.seedTest', () => {
     expect(mockPrisma.instructor.update).toHaveBeenCalledWith({
       where: { id: 'inst-1' },
       data: { stripeAccountId: 'acct_existing', stripeAccountStatus: 'ACTIVE', stripePayoutsEnabled: true },
+      select: {
+        id: true,
+        stripeAccountId: true,
+        stripeAccountStatus: true,
+        stripePayoutsEnabled: true,
+      },
     });
   });
 });

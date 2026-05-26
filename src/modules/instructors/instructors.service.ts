@@ -174,6 +174,12 @@ export class InstructorsService {
         stripeAccountStatus: 'ACTIVE',
         stripePayoutsEnabled: true,
       },
+      select: {
+        id: true,
+        stripeAccountId: true,
+        stripeAccountStatus: true,
+        stripePayoutsEnabled: true,
+      },
     });
 
     return updated;
