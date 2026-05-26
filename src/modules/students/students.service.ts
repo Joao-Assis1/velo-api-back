@@ -1,19 +1,32 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { JourneyService } from '../journey/journey.service';
 import { CreateStudentDto } from './dto/create-student.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
+import { Student } from '@prisma/client';
 
 @Injectable()
 export class StudentsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(StudentsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private readonly journey: JourneyService,
+  ) {}
 
   private readonly omitPassword = { password: true } as const;
 
-  async create(data: CreateStudentDto) {
-    return this.prisma.student.create({ data, omit: this.omitPassword });
+  async create(data: CreateStudentDto): Promise<Omit<Student, 'password'>> {
+    return this.prisma.student.create({
+      data,
+      omit: this.omitPassword,
+    }) as unknown as Promise<Omit<Student, 'password'>>;
   }
 
-  async findAll() {
-    return this.prisma.student.findMany({ omit: this.omitPassword });
+  async findAll(): Promise<Omit<Student, 'password'>[]> {
+    return this.prisma.student.findMany({
+      omit: this.omitPassword,
+    }) as unknown as Promise<Omit<Student, 'password'>[]>;
   }
 
   async findOne(id: string) {
@@ -30,6 +43,10 @@ export class StudentsService {
         ladv_document_url: true,
         ladv_validation_date: true,
         termsAcceptedAt: true,
+        birthDate: true,
+        motherName: true,
+        ufDomicile: true,
+        intendedCategory: true,
         createdAt: true,
         updatedAt: true,
         paymentMethods: true,
@@ -37,45 +54,30 @@ export class StudentsService {
     });
   }
 
-  async update(id: string, data: any) {
+  async update(
+    id: string,
+    data: UpdateStudentDto,
+  ): Promise<Omit<Student, 'password'>> {
     return this.prisma.student.update({
       where: { id },
       data,
       omit: this.omitPassword,
-    });
+    }) as unknown as Promise<Omit<Student, 'password'>>;
   }
 
-  async uploadLadv(id: string, fileName: string, filePath: string) {
-    return this.prisma.student.update({
-      where: { id },
-      data: {
-        ladvUploaded: true,
-        ladv_document_url: filePath,
-        ladv_validation_date: new Date(),
-      },
-      omit: this.omitPassword,
-    });
-  }
-
-  async getLadvStatus(id: string) {
-    const student = await this.prisma.student.findUnique({
-      where: { id },
+  async startTheoryCourse(studentId: string) {
+    const updated = await this.prisma.student.update({
+      where: { id: studentId },
+      data: { theoryCourseStartedAt: new Date() },
       select: {
         id: true,
-        ladvUploaded: true,
-        ladv_validation_date: true,
+        theoryCourseStartedAt: true,
       },
     });
-
-    if (!student) {
-      throw new NotFoundException('Student not found');
-    }
-
+    const state = await this.journey.refresh(studentId);
     return {
-      studentId: student.id,
-      ladvUploaded: student.ladvUploaded,
-      ladvValidationDate: student.ladv_validation_date,
-      canBook: student.ladvUploaded,
+      theoryCourseStartedAt: updated.theoryCourseStartedAt,
+      stage: state.stage,
     };
   }
 }

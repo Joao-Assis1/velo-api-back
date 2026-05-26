@@ -1,18 +1,33 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { InstructorsService } from './instructors.service';
+import { PrismaService } from '../prisma/prisma.service';
 
-describe('InstructorsService', () => {
+describe('InstructorsService.findAll', () => {
   let service: InstructorsService;
+  let prisma: { instructor: { findMany: jest.Mock } };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [InstructorsService],
+    prisma = { instructor: { findMany: jest.fn() } };
+    const mod = await Test.createTestingModule({
+      providers: [
+        InstructorsService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
-
-    service = module.get<InstructorsService>(InstructorsService);
+    service = mod.get(InstructorsService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('filters by credentialStatus=APPROVED AND stripeAccountStatus=ACTIVE', async () => {
+    prisma.instructor.findMany.mockResolvedValue([]);
+    await service.findAll();
+    expect(prisma.instructor.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          credentialStatus: 'APPROVED',
+          stripeAccountStatus: 'ACTIVE',
+          isActive: true,
+        }),
+      }),
+    );
   });
 });

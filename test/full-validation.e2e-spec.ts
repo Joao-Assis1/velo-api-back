@@ -1,11 +1,24 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, HttpStatus, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { randomUUID } from 'crypto';
 import { join } from 'path';
 import { writeFileSync, unlinkSync } from 'fs';
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
+
+interface AuthResponse {
+  access_token: string;
+  user: { id: string; email: string };
+}
+
+interface IdResponse {
+  id: string;
+}
+
+interface PaymentResponse {
+  status: string;
+}
 
 // Increase timeout for full database population tests
 jest.setTimeout(90000);
@@ -13,12 +26,12 @@ jest.setTimeout(90000);
 describe('Full Data Population & Validation (e2e)', () => {
   let app: INestApplication;
   const prefix = '/api/v1';
-  
+
   // Human-friendly identifiers for demonstration
   const studentEmail = 'aluno@velo.com.br';
   const instructorEmail = 'instrutor@velo.com.br';
   const password = 'VeloPassword123!';
-  
+
   let studentId: string;
   let instructorId: string;
   let authToken: string;
@@ -36,8 +49,10 @@ describe('Full Data Population & Validation (e2e)', () => {
     // We EXPLICITLY set the same configuration as main.ts
     app.setGlobalPrefix('api/v1');
     app.useGlobalInterceptors(new ResponseInterceptor());
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
-    
+    app.useGlobalPipes(
+      new ValidationPipe({ transform: true, whitelist: true }),
+    );
+
     await app.init();
   }, 45000);
 
@@ -48,22 +63,23 @@ describe('Full Data Population & Validation (e2e)', () => {
   describe('Validation Flow', () => {
     it('Step 1: Register Student & Instructor', async () => {
       // Reg Student
-      let res = await request(app.getHttpServer())
+      const resStudent = await request(app.getHttpServer())
         .post(`${prefix}/auth/register/student`)
         .send({
           email: studentEmail,
           password: password,
           name: 'João Victor (Aluno)',
           phone: '+5511999991111',
-          cpf: '123.456.789-00'
+          cpf: '123.456.789-00',
         })
         .expect(HttpStatus.CREATED);
-      
-      studentId = res.body.data.user.id;
-      authToken = res.body.data.access_token;
+
+      const studentData = (resStudent.body as { data: AuthResponse }).data;
+      studentId = studentData.user.id;
+      authToken = studentData.access_token;
 
       // Reg Instructor
-      res = await request(app.getHttpServer())
+      const resInstructor = await request(app.getHttpServer())
         .post(`${prefix}/auth/register/instructor`)
         .send({
           email: instructorEmail,
@@ -71,12 +87,14 @@ describe('Full Data Population & Validation (e2e)', () => {
           name: 'Pedro Silva (Instrutor)',
           phone: '+5511988882222',
           cpf: '987.654.321-11',
-          instructorType: 'B'
+          instructorType: 'B',
         })
         .expect(HttpStatus.CREATED);
-      
-      instructorId = res.body.data.user.id;
-      instructorToken = res.body.data.access_token;
+
+      const instructorData = (resInstructor.body as { data: AuthResponse })
+        .data;
+      instructorId = instructorData.user.id;
+      instructorToken = instructorData.access_token;
     });
 
     it('Step 2: Fill Instructor Profile & Assets', async () => {
@@ -87,13 +105,13 @@ describe('Full Data Population & Validation (e2e)', () => {
         .send({
           bio: 'Instructor bio with all columns filled for validation.',
           location: 'São Paulo, SP',
-          pricePerClass: 150.00,
+          pricePerClass: 150.0,
           cnhNumber: 'CNH123456',
           cnhCategory: 'AD',
           cnhExpiry: '2030-01-01',
           cnhEar: true,
           certidaoNegativa: 'https://docs.test/cert.pdf',
-          termsAcceptedAt: new Date().toISOString()
+          termsAcceptedAt: new Date().toISOString(),
         })
         .expect(HttpStatus.OK);
 
@@ -107,10 +125,10 @@ describe('Full Data Population & Validation (e2e)', () => {
           model: 'VW Polo 2024',
           transmission: 'Automatic',
           year: '2024',
-          vehiclePhoto: 'https://images.test/polo.jpg'
+          vehiclePhoto: 'https://images.test/polo.jpg',
         })
         .expect(HttpStatus.CREATED);
-      vehicleId = vehRes.body.data.id;
+      vehicleId = (vehRes.body as { data: IdResponse }).data.id;
 
       // Add Availability
       await request(app.getHttpServer())
@@ -121,7 +139,7 @@ describe('Full Data Population & Validation (e2e)', () => {
           dayOfWeek: 1,
           startTime: '08:00',
           endTime: '18:00',
-          isEnabled: true
+          isEnabled: true,
         })
         .expect(HttpStatus.CREATED);
     });
@@ -147,14 +165,17 @@ describe('Full Data Population & Validation (e2e)', () => {
           cardholderName: 'JOAO E COMPLETO',
           expiryMonth: '12',
           expiryYear: '2030',
-          cvv: '123'
+          cvv: '123',
         });
-      
+
       if (pmRes.status !== 201) {
-        console.error('Payment Method Fail Details:', JSON.stringify(pmRes.body, null, 2));
+        console.error(
+          'Payment Method Fail Details:',
+          JSON.stringify(pmRes.body, null, 2),
+        );
       }
       expect(pmRes.status).toBe(HttpStatus.CREATED);
-      paymentMethodId = pmRes.body.data.id;
+      paymentMethodId = (pmRes.body as { data: IdResponse }).data.id;
     });
 
     it('Step 4: Full Lesson Lifecycle', async () => {
@@ -163,12 +184,16 @@ describe('Full Data Population & Validation (e2e)', () => {
         .post(`${prefix}/lessons`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          studentId, instructorId, vehicleId,
+          studentId,
+          instructorId,
+          vehicleId,
           date: '2026-06-01T00:00:00.000Z',
-          startTime: '09:00', endTime: '10:00', price: 150.00
+          startTime: '09:00',
+          endTime: '10:00',
+          price: 150.0,
         })
         .expect(HttpStatus.CREATED);
-      lessonId = bookRes.body.data.id;
+      lessonId = (bookRes.body as { data: IdResponse }).data.id;
 
       // Check-in
       await request(app.getHttpServer())
@@ -187,14 +212,22 @@ describe('Full Data Population & Validation (e2e)', () => {
         .post(`${prefix}/payments/process`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          studentId, lessonId, paymentMethodId, amount: 150.00
+          studentId,
+          lessonId,
+          paymentMethodId,
+          amount: 150.0,
         });
-      
+
       if (payRes.status !== 201) {
-        console.error('Payment Process Fail:', JSON.stringify(payRes.body, null, 2));
+        console.error(
+          'Payment Process Fail:',
+          JSON.stringify(payRes.body, null, 2),
+        );
       }
       expect(payRes.status).toBe(HttpStatus.CREATED);
-      expect(payRes.body.data.status).toBe('COMPLETED');
+      expect((payRes.body as { data: PaymentResponse }).data.status).toBe(
+        'COMPLETED',
+      );
     });
 
     it('Step 5: Final Database Integrity Validation', async () => {
@@ -203,8 +236,12 @@ describe('Full Data Population & Validation (e2e)', () => {
         .get(`${prefix}/students/${studentId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(HttpStatus.OK);
-      
-      const s = sRes.body.data;
+
+      const s = (
+        sRes.body as {
+          data: { paymentMethods: any[]; ladvUploaded: boolean; cpf: string };
+        }
+      ).data;
       expect(s.paymentMethods.length).toBeGreaterThan(0);
       expect(s.ladvUploaded).toBe(true);
       expect(s.cpf).toBe('123.456.789-00');
@@ -213,11 +250,20 @@ describe('Full Data Population & Validation (e2e)', () => {
       const iRes = await request(app.getHttpServer())
         .get(`${prefix}/instructors/${instructorId}`)
         .expect(HttpStatus.OK);
-      
-      const i = iRes.body.data;
+
+      const i = (
+        iRes.body as {
+          data: {
+            vehicles: any[];
+            availabilities: any[];
+            pricePerClass: number;
+            cnhEar: boolean;
+          };
+        }
+      ).data;
       expect(i.vehicles.length).toBeGreaterThan(0);
       expect(i.availabilities.length).toBeGreaterThan(0);
-      expect(i.pricePerClass).toBe(150.00);
+      expect(i.pricePerClass).toBe(150.0);
       expect(i.cnhEar).toBe(true);
     });
   });

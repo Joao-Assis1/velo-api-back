@@ -1,10 +1,8 @@
 import {
   Controller,
   Get,
-  Post,
   Patch,
-  Delete,
-  Body,
+  Post,
   Param,
   Query,
   HttpCode,
@@ -12,57 +10,50 @@ import {
   Req,
 } from '@nestjs/common';
 import { PaymentMethodsService } from './payment-methods.service';
-import { CreatePaymentMethodDto } from './dtos';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TestModeGuard } from '../../common/test-mode/test-mode.guard';
+import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
 @Controller('payment-methods')
 @UseGuards(JwtAuthGuard)
 export class PaymentMethodsController {
   constructor(private paymentMethodsService: PaymentMethodsService) {}
 
-  @Post()
-  @HttpCode(201)
-  async create(@Req() req: any, @Body() dto: CreatePaymentMethodDto) {
-    // Garantir que o studentId do DTO seja o do usuário logado se for um aluno
-    const userId = req.user.userId;
-    return this.paymentMethodsService.create({ ...dto, studentId: userId });
-  }
-
   @Get()
   @HttpCode(200)
-  async findAll(@Req() req: any, @Query('studentId') studentId?: string) {
-    // Se for um aluno, ele só pode ver os próprios cartões
+  async findAll(
+    @Req() req: RequestWithUser,
+    @Query('studentId') studentId?: string,
+  ) {
     const userId = req.user.userId;
     const role = req.user.role;
-    
-    const targetId = role === 'student' ? userId : (studentId || userId);
+    const targetId = role === 'student' ? userId : studentId || userId;
     return this.paymentMethodsService.findAll(targetId);
   }
 
   @Get('student/:studentId')
   @HttpCode(200)
-  async findByStudent(@Req() req: any, @Param('studentId') studentId: string) {
+  async findByStudent(
+    @Req() req: RequestWithUser,
+    @Param('studentId') studentId: string,
+  ) {
     const userId = req.user.userId;
     const role = req.user.role;
-    
     const targetId = role === 'student' ? userId : studentId;
     return this.paymentMethodsService.findAll(targetId);
   }
 
-  @Patch(':id/default')
-  @HttpCode(200)
-  async setDefault(
-    @Req() req: any,
-    @Param('id') id: string,
-  ) {
-    const userId = req.user.userId;
-    return this.paymentMethodsService.setDefault(id, userId);
+  @Post('me/seed-test')
+  @HttpCode(201)
+  @UseGuards(TestModeGuard)
+  async seedTest(@Req() req: RequestWithUser) {
+    return this.paymentMethodsService.seedTest(req.user.userId);
   }
 
-  @Delete(':id')
-  @HttpCode(204)
-  async delete(@Req() req: any, @Param('id') id: string) {
+  @Patch(':id/default')
+  @HttpCode(200)
+  async setDefault(@Req() req: RequestWithUser, @Param('id') id: string) {
     const userId = req.user.userId;
-    await this.paymentMethodsService.delete(id, userId);
+    return this.paymentMethodsService.setDefault(userId, id);
   }
 }

@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBusySlotDto, UpdateBusySlotDto } from './dtos';
 import { randomUUID } from 'crypto';
+import { BusySlot, Prisma } from '@prisma/client';
 
 @Injectable()
 export class BusySlotsService {
@@ -16,8 +17,8 @@ export class BusySlotsService {
   private validateTimeRange(startTime: string, endTime: string) {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
+    const startMinutes = (startH ?? 0) * 60 + (startM ?? 0);
+    const endMinutes = (endH ?? 0) * 60 + (endM ?? 0);
 
     if (startMinutes >= endMinutes) {
       throw new BadRequestException('startTime deve ser menor que endTime');
@@ -41,10 +42,10 @@ export class BusySlotsService {
     endTime: string,
   ) {
     const dateObj = new Date(date);
-    const dayStart = new Date(dateObj.setHours(0, 0, 0, 0));
-    const dayEnd = new Date(dateObj.setHours(23, 59, 59, 999));
+    const dayStart = new Date(new Date(dateObj).setHours(0, 0, 0, 0));
+    const dayEnd = new Date(new Date(dateObj).setHours(23, 59, 59, 999));
 
-    const conflictingLesson = await this.prisma.lesson.findFirst({
+    const lessons = await this.prisma.lesson.findMany({
       where: {
         instructorId,
         date: {
@@ -55,33 +56,31 @@ export class BusySlotsService {
       },
     });
 
-    if (conflictingLesson) {
-      // Verificar sobrelposição exata
-      const [lessonStartH, lessonStartM] = conflictingLesson.startTime
-        .split(':')
-        .map(Number);
-      const [lessonEndH, lessonEndM] = conflictingLesson.endTime
-        .split(':')
-        .map(Number);
-      const lessonStartMin = lessonStartH * 60 + lessonStartM;
-      const lessonEndMin = lessonEndH * 60 + lessonEndM;
+    const [blockStartH, blockStartM] = startTime.split(':').map(Number);
+    const [blockEndH, blockEndM] = endTime.split(':').map(Number);
+    const blockStartMin = (blockStartH ?? 0) * 60 + (blockStartM ?? 0);
+    const blockEndMin = (blockEndH ?? 0) * 60 + (blockEndM ?? 0);
 
-      const [blockStartH, blockStartM] = startTime.split(':').map(Number);
-      const [blockEndH, blockEndM] = endTime.split(':').map(Number);
-      const blockStartMin = blockStartH * 60 + blockStartM;
-      const blockEndMin = blockEndH * 60 + blockEndM;
+    for (const lesson of lessons) {
+      const [lessonStartH, lessonStartM] = lesson.startTime
+        .split(':')
+        .map(Number);
+      const [lessonEndH, lessonEndM] = lesson.endTime.split(':').map(Number);
+      const lessonStartMin = (lessonStartH ?? 0) * 60 + (lessonStartM ?? 0);
+      const lessonEndMin = (lessonEndH ?? 0) * 60 + (lessonEndM ?? 0);
 
       const overlaps =
         blockStartMin < lessonEndMin && blockEndMin > lessonStartMin;
+
       if (overlaps) {
         throw new ConflictException(
-          'Esta faixa horária já tem uma aula agendada',
+          `Esta faixa horária conflita com uma aula agendada (${lesson.startTime} - ${lesson.endTime})`,
         );
       }
     }
   }
 
-  async create(dto: CreateBusySlotDto) {
+  async create(dto: CreateBusySlotDto): Promise<BusySlot> {
     // Validações
     this.validateTimeRange(dto.startTime, dto.endTime);
     this.validateDate(dto.date);
@@ -104,20 +103,24 @@ export class BusySlotsService {
     return this.prisma.busySlot.create({
       data: {
         id: randomUUID(),
-        ...dto,
+        instructorId: dto.instructorId,
+        date: new Date(dto.date),
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        reason: dto.reason,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
   }
 
-  async findAll(instructorId: string, date?: string) {
-    const where: any = { instructorId };
+  async findAll(instructorId: string, date?: string): Promise<BusySlot[]> {
+    const where: Prisma.BusySlotWhereInput = { instructorId };
 
     if (date) {
       const dateObj = new Date(date);
-      const dayStart = new Date(dateObj.setHours(0, 0, 0, 0));
-      const dayEnd = new Date(dateObj.setHours(23, 59, 59, 999));
+      const dayStart = new Date(new Date(dateObj).setHours(0, 0, 0, 0));
+      const dayEnd = new Date(new Date(dateObj).setHours(23, 59, 59, 999));
       where.date = {
         gte: dayStart,
         lte: dayEnd,
@@ -130,7 +133,7 @@ export class BusySlotsService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<BusySlot> {
     const busySlot = await this.prisma.busySlot.findUnique({
       where: { id },
     });
@@ -142,8 +145,8 @@ export class BusySlotsService {
     return busySlot;
   }
 
-  async update(id: string, dto: UpdateBusySlotDto) {
-    const busySlot = await this.findOne(id);
+  async update(id: string, dto: UpdateBusySlotDto): Promise<BusySlot> {
+    await this.findOne(id);
 
     if (dto.startTime && dto.endTime) {
       this.validateTimeRange(dto.startTime, dto.endTime);
@@ -158,7 +161,7 @@ export class BusySlotsService {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: string): Promise<BusySlot> {
     await this.findOne(id);
     return this.prisma.busySlot.delete({
       where: { id },

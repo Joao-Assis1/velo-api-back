@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
+import { JourneyModule } from '../journey/journey.module';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { StudentsController } from './students.controller';
 import { StudentsService } from './students.service';
+import { ChecklistService } from './checklist.service';
 import * as fs from 'fs';
 
 @Module({
   imports: [
+    JourneyModule,
     MulterModule.register({
       storage: diskStorage({
         destination: (req, file, cb) => {
@@ -18,7 +21,8 @@ import * as fs from 'fs';
           cb(null, path);
         },
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
           cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
@@ -28,7 +32,7 @@ import * as fs from 'fs';
     }),
   ],
   controllers: [StudentsController],
-  providers: [StudentsService],
-  exports: [StudentsService],
+  providers: [StudentsService, ChecklistService],
+  exports: [StudentsService, ChecklistService],
 })
 export class StudentsModule {}

@@ -1,31 +1,40 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Body,
   Param,
   Patch,
-  UseInterceptors,
-  UploadedFile,
-  BadRequestException,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 import { StudentsService } from './students.service';
+import { ChecklistService } from './checklist.service';
 import { CreateStudentDto } from './dto/create-student.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
+import { Student } from '@prisma/client';
 
 @ApiTags('students')
 @Controller('students')
 export class StudentsController {
-  constructor(private readonly studentsService: StudentsService) {}
+  constructor(
+    private readonly studentsService: StudentsService,
+    private readonly checklistService: ChecklistService,
+  ) {}
 
   @Post()
-  create(@Body() createStudentDto: CreateStudentDto) {
+  create(
+    @Body() createStudentDto: CreateStudentDto,
+  ): Promise<Omit<Student, 'password'>> {
     return this.studentsService.create(createStudentDto);
   }
 
   @Get()
-  findAll() {
+  findAll(): Promise<Omit<Student, 'password'>[]> {
     return this.studentsService.findAll();
   }
 
@@ -35,24 +44,37 @@ export class StudentsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateData: any) {
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  update(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+    @Body() updateData: UpdateStudentDto,
+  ): Promise<Omit<Student, 'password'>> {
+    if (req.user.userId !== id) {
+      throw new ForbiddenException('You can only update your own profile');
+    }
     return this.studentsService.update(id, updateData);
   }
 
-  @Post(':id/ladv-upload')
-  @UseInterceptors(FileInterceptor('file'))
-  uploadLadv(
-    @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-    return this.studentsService.uploadLadv(id, file.originalname, file.path);
+  @Get(':id/checklist')
+  getChecklist(@Param('id') id: string) {
+    return this.checklistService.getChecklist(id);
   }
 
-  @Get(':id/ladv-status')
-  getLadvStatus(@Param('id') id: string) {
-    return this.studentsService.getLadvStatus(id);
+  @Patch(':id/checklist/:step')
+  updateChecklist(
+    @Param('id') id: string,
+    @Param('step') step: string,
+    @Body('completed') completed: boolean,
+  ) {
+    return this.checklistService.updateStep(id, step, completed);
+  }
+
+  @Post('me/theory-course/start')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  startTheoryCourse(@Req() req: RequestWithUser) {
+    return this.studentsService.startTheoryCourse(req.user.userId);
   }
 }

@@ -1,114 +1,94 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreatePaymentMethodDto } from './dtos';
-import { randomUUID } from 'crypto';
+import { STRIPE_CLIENT } from '../payments-stripe/stripe.client';
+import { idempotencyKey } from '../payments-stripe/lib/idempotency';
+
+type StripeInstance = InstanceType<typeof Stripe>;
+const SEED_PM = 'pm_card_visa';
 
 @Injectable()
 export class PaymentMethodsService {
-  constructor(private prisma: PrismaService) {}
-
-  private luhnCheck(cardNumber: string): boolean {
-    let sum = 0;
-    let shouldDouble = false;
-    for (let i = cardNumber.length - 1; i >= 0; i--) {
-      let digit = parseInt(cardNumber.charAt(i));
-      if (shouldDouble) {
-        if ((digit *= 2) > 9) digit -= 9;
-      }
-      sum += digit;
-      shouldDouble = !shouldDouble;
-    }
-    return sum % 10 === 0;
-  }
-
-  private validateExpiration(month: string, year: string) {
-    const now = new Date();
-    const expDate = new Date(parseInt(year), parseInt(month), 0);
-    if (expDate < now && (now.getMonth() + 1 !== parseInt(month) || now.getFullYear() !== parseInt(year))) {
-       if (expDate < now) throw new BadRequestException('Cartão expirado');
-    }
-  }
-
-  async create(dto: CreatePaymentMethodDto) {
-    const isTestCard = 
-      dto.cardNumber === '1'.repeat(16) || 
-      dto.cardNumber === '4'.repeat(16) || 
-      dto.cardNumber.startsWith('4242');
-
-    if (!isTestCard && !this.luhnCheck(dto.cardNumber)) {
-      throw new BadRequestException('Número de cartão inválido (Luhn check failed)');
-    }
-
-    this.validateExpiration(dto.expiryMonth, dto.expiryYear);
-
-    // No esquema atual, Student ID é a identidade primária
-    const student = await this.prisma.student.findUnique({
-      where: { id: dto.studentId },
-    });
-
-    if (!student) {
-      throw new NotFoundException('Aluno não encontrado. Verifique se sua conta é de Aluno.');
-    }
-
-    const token = `tok_${randomUUID().replace(/-/g, '')}`;
-    const last4 = dto.cardNumber.slice(-4);
-
-    return this.prisma.paymentMethod.create({
-      data: {
-        studentId: student.id,
-        token,
-        last4,
-        cardholderName: dto.cardholderName,
-        expiryMonth: dto.expiryMonth,
-        expiryYear: dto.expiryYear,
-        isDefault: dto.isDefault ?? false,
-      },
-    });
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STRIPE_CLIENT) private readonly stripe: StripeInstance,
+  ) {}
 
   async findAll(studentId: string) {
     return this.prisma.paymentMethod.findMany({
       where: { studentId, isDeleted: false },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        stripePaymentMethodId: true,
+        brand: true,
+        last4: true,
+        cardholderName: true,
+        expiryMonth: true,
+        expiryYear: true,
+        isDefault: true,
+      },
     });
   }
 
-  async setDefault(id: string, studentId: string) {
-    const pm = await this.prisma.paymentMethod.findFirst({
-      where: { id, studentId },
+  async seedTest(studentId: string) {
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      select: { id: true, email: true, name: true, stripeCustomerId: true },
     });
+    if (!student) throw new NotFoundException(`Student ${studentId} not found`);
 
-    if (!pm) {
-      throw new NotFoundException('Cartão não encontrado ou não pertence a este aluno');
+    let customerId = student.stripeCustomerId;
+    if (!customerId) {
+      const customer = await this.stripe.customers.create(
+        { email: student.email, name: student.name, metadata: { studentId } },
+        { idempotencyKey: idempotencyKey(studentId, 'connect-account') },
+      );
+      customerId = customer.id;
+      await this.prisma.student.update({ where: { id: studentId }, data: { stripeCustomerId: customerId } });
     }
 
-    await this.prisma.paymentMethod.updateMany({
-      where: { studentId, id: { not: id } },
-      data: { isDefault: false },
+    const pm = await this.stripe.paymentMethods.attach(
+      SEED_PM,
+      { customer: customerId },
+      { idempotencyKey: idempotencyKey(studentId, 'seed-payment-method') },
+    );
+
+    const existing = await this.prisma.paymentMethod.findMany({
+      where: { studentId, isDeleted: false },
     });
 
-    return this.prisma.paymentMethod.update({
-      where: { id },
-      data: { isDefault: true },
+    const row = await this.prisma.paymentMethod.create({
+      data: {
+        studentId,
+        stripePaymentMethodId: pm.id,
+        brand: pm.card!.brand,
+        last4: pm.card!.last4,
+        cardholderName: pm.billing_details?.name ?? student.name,
+        expiryMonth: String(pm.card!.exp_month).padStart(2, '0'),
+        expiryYear: String(pm.card!.exp_year),
+        isDefault: existing.length === 0,
+      },
     });
+
+    return { paymentMethod: row };
   }
 
-  async delete(id: string, studentId: string) {
+  async setDefault(studentId: string, id: string) {
     const pm = await this.prisma.paymentMethod.findFirst({
-      where: { id, studentId },
+      where: { id, studentId, isDeleted: false },
     });
-
-    if (!pm) {
-      throw new NotFoundException('Cartão não encontrado ou não pertence a este aluno');
-    }
-
-    return this.prisma.paymentMethod.update({
-      where: { id },
-      data: { isDeleted: true, isDefault: false },
-    });
+    if (!pm) throw new NotFoundException('Payment method not found');
+    await this.prisma.$transaction([
+      this.prisma.paymentMethod.updateMany({
+        where: { studentId, isDefault: true },
+        data: { isDefault: false },
+      }),
+      this.prisma.paymentMethod.update({
+        where: { id },
+        data: { isDefault: true },
+      }),
+    ]);
+    return { ok: true };
   }
 }

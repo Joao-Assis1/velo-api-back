@@ -1,13 +1,38 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { raw } from 'express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors();
+  // Stripe webhook needs raw body for HMAC signature verification
+  app.use(
+    '/api/v1/webhooks/stripe',
+    raw({ type: 'application/json' }),
+    (req: any, _res: any, next: any) => {
+      req.rawBody = req.body;
+      next();
+    },
+  );
+
+  app.use(helmet());
+
+  const corsOriginRaw = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  const corsOrigins = corsOriginRaw.split(',').map((o) => {
+    const t = o.trim();
+    const m = t.match(/^\/(.+)\/([gimsuy]*)$/);
+    return m ? new RegExp(m[1], m[2]) : t;
+  });
+  app.enableCors({
+    origin: corsOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key'],
+    credentials: true,
+  });
   app.setGlobalPrefix('api/v1');
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalPipes(
@@ -51,4 +76,4 @@ async function bootstrap() {
     'Bootstrap',
   );
 }
-bootstrap();
+void bootstrap();

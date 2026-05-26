@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateStudentDto {
   @IsEmail()
@@ -14,8 +20,8 @@ export class CreateStudentDto {
   phone?: string;
 
   @IsString()
-  @IsOptional()
-  cpf?: string;
+  @IsNotEmpty()
+  cpf: string;
 
   @IsString()
   @IsOptional()

@@ -1,4 +1,10 @@
-import { IsString, IsUUID, Matches, IsNotEmpty, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  Matches,
+  IsNotEmpty,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateBusySlotDto {
   @IsUUID('4')
