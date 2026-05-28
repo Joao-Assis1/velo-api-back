@@ -8,6 +8,7 @@ import { JourneyService } from '../journey/journey.service';
 import { ScheduleRenachDto } from './dto/schedule-renach.dto';
 import { CompleteRenachDto } from './dto/complete-renach.dto';
 import { RenachProcessDto } from './dto/renach-process.dto';
+import { SubmitRenachDto } from './dto/submit-renach.dto';
 
 const UF_GUIDES: Record<string, { steps: string[] }> = {
   MS: {
@@ -65,6 +66,30 @@ export class RenachProcessService {
       update: {
         ufDetran: dto.uf.toUpperCase(),
         status: 'SCHEDULED',
+      },
+    });
+    await this.journey.refresh(studentId);
+    return r as RenachProcessDto;
+  }
+
+  async submit(
+    studentId: string,
+    dto: SubmitRenachDto,
+  ): Promise<RenachProcessDto> {
+    const r = await this.prisma.renachProcess.upsert({
+      where: { studentId },
+      create: {
+        studentId,
+        ufDetran: dto.ufDetran.toUpperCase(),
+        renachNumber: dto.renachNumber,
+        biometryDoneAt: dto.biometryDoneAt,
+        status: 'DONE',
+      },
+      update: {
+        ufDetran: dto.ufDetran.toUpperCase(),
+        renachNumber: dto.renachNumber,
+        biometryDoneAt: dto.biometryDoneAt,
+        status: 'DONE',
       },
     });
     await this.journey.refresh(studentId);
