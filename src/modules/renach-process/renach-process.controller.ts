@@ -21,6 +21,7 @@ import { RenachProcessService } from './renach-process.service';
 import { ScheduleRenachDto } from './dto/schedule-renach.dto';
 import { CompleteRenachDto } from './dto/complete-renach.dto';
 import { RenachProcessDto } from './dto/renach-process.dto';
+import { SubmitRenachDto } from './dto/submit-renach.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   buildUploadStorage,
@@ -52,6 +53,15 @@ export class RenachProcessController {
   @ApiOkResponse({ type: RenachProcessDto })
   getMine(@Req() req: RequestWithUser): Promise<RenachProcessDto> {
     return this.service.getMine(req.user.userId);
+  }
+
+  @Post('me')
+  @ApiOkResponse({ type: RenachProcessDto })
+  submit(
+    @Req() req: RequestWithUser,
+    @Body() dto: SubmitRenachDto,
+  ): Promise<RenachProcessDto> {
+    return this.service.submit(req.user.userId, dto);
   }
 
   @Post('me/schedule')
