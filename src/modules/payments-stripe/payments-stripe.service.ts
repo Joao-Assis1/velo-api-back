@@ -312,10 +312,11 @@ export class PaymentsStripeService {
           `Payment in status ${payment.status} cannot be released`,
         );
       }
-      const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
-      const instructor = await this.prisma.instructor.findUnique({
-        where: { id: lesson?.instructorId ?? '' },
+      const lesson = await this.prisma.lesson.findUnique({
+        where: { id: lessonId },
+        include: { instructor: { select: { stripeAccountId: true } } },
       });
+      const instructor = lesson?.instructor;
       if (!instructor?.stripeAccountId) {
         throw new BadRequestException('Instructor has no Stripe account');
       }

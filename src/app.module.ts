@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { CacheModule } from '@nestjs/cache-manager';
 import { validate } from './config/env.validation';
 import { HealthModule } from './modules/health/health.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
@@ -34,6 +35,7 @@ import { AdminModule } from './modules/admin/admin.module';
       validate,
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 10 }]),
+    CacheModule.register({ isGlobal: true, ttl: 60 * 1000 }),
     ScheduleModule.forRoot(),
     HealthModule,
     PrismaModule,
