@@ -1,21 +1,40 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service';
+
+const SIMULADO_CACHE_KEY = 'academy:questions:pool';
+const SIMULADO_CACHE_TTL = 10 * 60 * 1000; // 10 min — questões raramente mudam
 
 @Injectable()
 export class AcademyService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cache: Cache,
+  ) {}
 
   async getSimulado() {
-    // C-013: Variedade (at least 4 categories)
-    const questions = await this.prisma.question.findMany();
-    
-    if (questions.length < 30) {
-      // If we don't have enough questions, return what we have (mocking for now)
-      return questions;
+    let pool = await this.cache.get<any[]>(SIMULADO_CACHE_KEY);
+
+    if (!pool) {
+      const total = await this.prisma.question.count();
+
+      if (total < 30) {
+        pool = await this.prisma.question.findMany();
+      } else {
+        pool = await this.prisma.$queryRaw<any[]>`
+          SELECT id, text, category, options, correct
+          FROM "Question"
+          ORDER BY RANDOM()
+          LIMIT 30
+        `;
+      }
+
+      await this.cache.set(SIMULADO_CACHE_KEY, pool, SIMULADO_CACHE_TTL);
     }
 
-    // Shuffle and pick 30
-    return questions.sort(() => 0.5 - Math.random()).slice(0, 30);
+    // Cada aluno recebe ordem embaralhada do pool cacheado
+    return [...pool].sort(() => 0.5 - Math.random());
   }
 
   async submitSimulado(studentId: string, answers: { questionId: string; answer: number }[], startedAt: string) {
