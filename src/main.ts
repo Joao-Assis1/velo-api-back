@@ -3,6 +3,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { raw } from 'express';
 import helmet from 'helmet';
+import compression from 'compression';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
@@ -19,6 +20,7 @@ async function bootstrap() {
     },
   );
 
+  app.use(compression());
   app.use(helmet());
 
   const corsOriginRaw = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
