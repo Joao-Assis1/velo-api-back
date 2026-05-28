@@ -210,6 +210,8 @@ model Lesson {
   events                LessonEvent[]     // Eventos de orientação (Navegador)
 
   @@unique([instructorId, date, startTime], name: "unique_booking_slot")
+  @@index([studentId])
+  @@index([studentId, status])
 }
 
 model LessonTelemetry {
@@ -282,6 +284,7 @@ model Payment {
 
   @@index([status])
   @@index([stripePaymentIntentId])
+  @@index([studentId])
 }
 
 // ============================================================================
