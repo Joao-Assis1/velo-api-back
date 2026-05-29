@@ -9,9 +9,11 @@ import {
   Patch,
   Req,
   UseGuards,
+  HttpCode,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TestModeGuard } from '../../common/test-mode/test-mode.guard';
 import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 import { InstructorsService } from './instructors.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
@@ -25,6 +27,14 @@ export class InstructorsController {
   @Post()
   create(@Body() createInstructorDto: CreateInstructorDto) {
     return this.instructorsService.create(createInstructorDto);
+  }
+
+  @Post('me/seed-test')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, TestModeGuard)
+  @HttpCode(200)
+  async seedTest(@Req() req: RequestWithUser) {
+    return this.instructorsService.seedTest(req.user.userId);
   }
 
   @Get()
