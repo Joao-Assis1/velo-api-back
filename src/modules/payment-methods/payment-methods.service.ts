@@ -48,13 +48,39 @@ export class PaymentMethodsService {
       await this.prisma.student.update({ where: { id: studentId }, data: { stripeCustomerId: customerId } });
     }
 
-    const pm = await this.stripe.paymentMethods.attach(
-      SEED_PM,
-      { customer: customerId },
-      { idempotencyKey: idempotencyKey(studentId, 'seed-payment-method') },
-    );
+    type PM = Awaited<ReturnType<StripeInstance['paymentMethods']['retrieve']>>;
+    let pm: PM;
+    try {
+      pm = await this.stripe.paymentMethods.attach(
+        SEED_PM,
+        { customer: customerId },
+        { idempotencyKey: idempotencyKey(studentId, 'seed-payment-method') },
+      );
+    } catch (err: any) {
+      // pm_card_visa already attached to this customer — retrieve it instead
+      if (err?.code === 'payment_method_already_attached') {
+        pm = await this.stripe.paymentMethods.retrieve(SEED_PM);
+      } else {
+        throw err;
+      }
+    }
 
-    const existing = await this.prisma.paymentMethod.findMany({
+    // Return existing record if already seeded (avoids unique constraint violation)
+    const existingRecord = await this.prisma.paymentMethod.findFirst({
+      where: { studentId, stripePaymentMethodId: pm.id },
+    });
+    if (existingRecord) {
+      if (existingRecord.isDeleted) {
+        const restored = await this.prisma.paymentMethod.update({
+          where: { id: existingRecord.id },
+          data: { isDeleted: false },
+        });
+        return { paymentMethod: restored };
+      }
+      return { paymentMethod: existingRecord };
+    }
+
+    const activeCount = await this.prisma.paymentMethod.count({
       where: { studentId, isDeleted: false },
     });
 
@@ -67,7 +93,7 @@ export class PaymentMethodsService {
         cardholderName: pm.billing_details?.name ?? student.name,
         expiryMonth: String(pm.card!.exp_month).padStart(2, '0'),
         expiryYear: String(pm.card!.exp_year),
-        isDefault: existing.length === 0,
+        isDefault: activeCount === 0,
       },
     });
 
