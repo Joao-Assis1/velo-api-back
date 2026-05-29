@@ -13,8 +13,8 @@ async function main() {
     data: {
       credentialValidUntil: new Date("2028-01-01"),
       credentialStatus: "APPROVED",
-      detranCredentialNumber: "DETRAN-TEST-001",
-      detranCredentialUf: "SP",
+      detranCredentialNumber: "100001",
+      detranCredentialUf: "MS",
       isActive: true,
       stripeAccountStatus: "ACTIVE",
       cnhNumber: "12345678900",
