@@ -20,11 +20,7 @@ import { ComplianceModule } from './modules/compliance/compliance.module';
 import { AcademyModule } from './modules/academy/academy.module';
 import { JourneyModule } from './modules/journey/journey.module';
 import { ValidationModule } from './modules/validation/validation.module';
-import { ClinicsModule } from './modules/clinics/clinics.module';
 import { RenachProcessModule } from './modules/renach-process/renach-process.module';
-import { MedicalExamModule } from './modules/medical-exam/medical-exam.module';
-import { PsychologicalExamModule } from './modules/psychological-exam/psychological-exam.module';
-import { TheoryExamOfficialModule } from './modules/theory-exam-official/theory-exam.module';
 import { LadvProcessModule } from './modules/ladv-process/ladv-process.module';
 import { AdminModule } from './modules/admin/admin.module';
 
@@ -53,11 +49,7 @@ import { AdminModule } from './modules/admin/admin.module';
     AcademyModule,
     JourneyModule,
     ValidationModule,
-    ClinicsModule,
     RenachProcessModule,
-    MedicalExamModule,
-    PsychologicalExamModule,
-    TheoryExamOfficialModule,
     LadvProcessModule,
     AdminModule,
   ],
