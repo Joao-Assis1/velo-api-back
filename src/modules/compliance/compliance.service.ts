@@ -1,9 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateComplianceStepDto } from './dto/update-compliance-step.dto';
 import { PracticalSummaryDto } from './dto/practical-summary.dto';
 
-// CONTRAN 1.020/2025 — mínimo de 2 horas (120 min) de aulas práticas concluídas
 const MINIMUM_PRACTICAL_MINUTES = 120;
 
 @Injectable()
@@ -55,7 +53,6 @@ export class ComplianceService {
     const teoricoCompleted = !!bestSimulado;
     const praticoCompleted = totalPracticalMinutes >= MINIMUM_PRACTICAL_MINUTES;
 
-    // Auto-sync derived steps so the DB stays consistent
     if (
       checklist.teorico !== teoricoCompleted ||
       checklist.pratico !== praticoCompleted
@@ -70,14 +67,6 @@ export class ComplianceService {
     }
 
     const steps = {
-      medico: {
-        completed: checklist.medico,
-        derivedFrom: 'manual' as const,
-      },
-      psicotecnico: {
-        completed: checklist.psicotecnico,
-        derivedFrom: 'manual' as const,
-      },
       teorico: {
         completed: teoricoCompleted,
         derivedFrom: 'simulado' as const,
@@ -107,24 +96,9 @@ export class ComplianceService {
         student.ladvValidUntil > new Date(),
       steps,
       completedSteps: completedCount,
-      totalSteps: 4,
-      allCompleted: completedCount === 4,
+      totalSteps: 2,
+      allCompleted: completedCount === 2,
     };
-  }
-
-  async updateManualStep(studentId: string, dto: UpdateComplianceStepDto) {
-    const student = await this.prisma.student.findUnique({
-      where: { id: studentId },
-      select: { id: true },
-    });
-
-    if (!student) throw new NotFoundException('Student not found');
-
-    return this.prisma.studentChecklist.upsert({
-      where: { studentId },
-      create: { studentId, [dto.step]: dto.completed },
-      update: { [dto.step]: dto.completed },
-    });
   }
 
   async getPracticalSummary(studentId: string): Promise<PracticalSummaryDto> {
@@ -171,7 +145,6 @@ export class ComplianceService {
       student.ladvOcrStatus === 'PASS' &&
       !!student.ladvValidUntil &&
       student.ladvValidUntil > new Date();
-    const canDeclareReadyForExam = meetsMinimumLegal && ladvValid;
 
     return {
       studentId,
@@ -180,7 +153,7 @@ export class ComplianceService {
       requiredMinutes: MINIMUM_PRACTICAL_MINUTES,
       meetsMinimumLegal,
       lessonsWithIntegrityIssues: lessons.length - valid.length,
-      canDeclareReadyForExam,
+      canDeclareReadyForExam: meetsMinimumLegal && ladvValid,
     };
   }
 }
