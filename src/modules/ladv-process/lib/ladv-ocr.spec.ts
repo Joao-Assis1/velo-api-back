@@ -61,4 +61,45 @@ describe('extractLadvFields', () => {
     expect(r.status).toBe('NEEDS_REVIEW');
     expect(r.validUntil?.toISOString().startsWith('2020-07-10')).toBe(true);
   });
+
+  // Real-world format — pure numeric LADV number (DETRAN-MS)
+  it('extracts pure-numeric LADV number (DETRAN-MS real format)', () => {
+    const r = extractLadvFields(
+      'LICENÇA DE APRENDIZAGEM DE DIREÇÃO VEICULAR\nLADV Nº 1490188\nDETRAN-MS\nEmissão: 10/05/2026 Validade: 10/11/2026',
+      80,
+    );
+    expect(r.status).toBe('PASS');
+    expect(r.ladvNumber).toBe('1490188');
+  });
+
+  // OCR misreads Nº as No (letter O) — very common with Tesseract
+  it('extracts number when OCR reads Nº as No', () => {
+    const r = extractLadvFields(
+      'LICENÇA DE APRENDIZAGEM\nLADV No 1490188\nDETRAN-MS\nEmissão: 10/05/2026 Validade: 10/11/2026',
+      75,
+    );
+    expect(r.status).toBe('PASS');
+    expect(r.ladvNumber).toBe('1490188');
+  });
+
+  // Date labels: EXPEDIÇÃO / VENCIMENTO variants used by some DETRANs
+  it('parses dates with EXPEDIÇÃO and VENCIMENTO label variants', () => {
+    const r = extractLadvFields(
+      'LADV Nº 9876543\nLICENÇA DE APRENDIZAGEM DETRAN\nExpedição: 10/05/2026 Vencimento: 10/11/2026',
+      80,
+    );
+    expect(r.status).toBe('PASS');
+    expect(r.issuedAt?.toISOString().startsWith('2026-05-10')).toBe(true);
+    expect(r.validUntil?.toISOString().startsWith('2026-11-10')).toBe(true);
+  });
+
+  // Date labels: EXPEDIDA EM / VENCE EM variants
+  it('parses dates with EXPEDIDA EM and VENCE EM label variants', () => {
+    const r = extractLadvFields(
+      'LADV Nº 1111111\nLICENÇA APRENDIZAGEM DETRAN\nExpedida em 10/05/2026 Vence em 10/11/2026',
+      80,
+    );
+    expect(r.status).toBe('PASS');
+    expect(r.issuedAt?.toISOString().startsWith('2026-05-10')).toBe(true);
+  });
 });

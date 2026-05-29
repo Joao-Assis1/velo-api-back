@@ -72,14 +72,15 @@ export function extractLadvFields(
     };
   }
 
-  const ladvMatch = text.match(/LADV[\s-]*(?:N[º°.]?\s*)?([A-Z]{0,4}-?[A-Z]{0,3}-?\d{4,12})/);
+  // N[º°.oO0] covers OCR misreads of the ordinal indicator (Nº → No, N0, N.)
+  const ladvMatch = text.match(/LADV[\s-]*(?:N[º°.oO0]?\s*)?(\d{4,12}|[A-Z]{1,4}-[A-Z]{0,3}-?\d{4,12})/);
   const ladvNumber = ladvMatch ? ladvMatch[1].replace(/\s+/g, '') : null;
 
   const issuedAt =
-    findFirstDateAfter(text, /EMITID[AO]\s+EM|EMISS[ÃA]O[:\s]/) ??
-    findFirstDateAfter(text, /DATA[\s]+EMISS/);
+    findFirstDateAfter(text, /EMITID[AO]\s+EM|EMISS[ÃA]O[:\s]|EXPEDI[ÇC][ÃA]O[:\s]|EXPEDIDA\s+EM/) ??
+    findFirstDateAfter(text, /DATA[\s]+(?:EMISS|EXPEDI)/);
   const validUntil =
-    findFirstDateAfter(text, /V[ÁA]LID[AO]\s+AT[ÉE]|VALIDADE[:\s]/) ??
+    findFirstDateAfter(text, /V[ÁA]LID[AO]\s+AT[ÉE]|VALIDADE[:\s]|VENCIMENTO[:\s]|VENCE\s+EM/) ??
     findFirstDateAfter(text, /DATA[\s]+VALIDADE/);
 
   const now = new Date();
