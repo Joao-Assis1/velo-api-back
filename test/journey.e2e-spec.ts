@@ -44,7 +44,6 @@ describe('Journey (e2e)', () => {
   const cases: Array<{ email: string; expectedStage: string }> = [
     { email: 'student-registered@email.com', expectedStage: 'REGISTERED' },
     { email: 'student-renach@email.com', expectedStage: 'RENACH_PENDING' },
-    { email: 'student-medical@email.com', expectedStage: 'MEDICAL_PENDING' },
     { email: 'student-ladv@email.com', expectedStage: 'LADV_UPLOADED_VALID' },
     { email: 'student-ready@email.com', expectedStage: 'READY_FOR_PRACTICAL_EXAM' },
   ];
@@ -71,7 +70,7 @@ describe('Journey (e2e)', () => {
       .expect(200);
 
     const timeline = (res.body as { data: Array<{ key: string; status: string }> }).data;
-    expect(timeline).toHaveLength(10);
+    expect(timeline).toHaveLength(7);
 
     const ladvStep = timeline.find((s) => s.key === 'LADV_UPLOADED_VALID');
     expect(ladvStep?.status).toBe('in_progress');

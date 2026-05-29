@@ -18,9 +18,6 @@ describe('JourneyService', () => {
           useValue: {
             student: { findUnique: jest.fn(), update: jest.fn() },
             renachProcess: { findUnique: jest.fn() },
-            medicalExam: { findUnique: jest.fn() },
-            psychologicalExam: { findUnique: jest.fn() },
-            officialTheoryExam: { findUnique: jest.fn() },
             lesson: { findMany: jest.fn() },
           },
         },
@@ -47,9 +44,6 @@ describe('JourneyService', () => {
         readyForPracticalExamAt: null,
       });
       (prisma.renachProcess.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.medicalExam.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.psychologicalExam.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.officialTheoryExam.findUnique as jest.Mock).mockResolvedValue(null);
       (prisma.lesson.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.computeStage('stu-1');
@@ -68,20 +62,6 @@ describe('JourneyService', () => {
       (prisma.renachProcess.findUnique as jest.Mock).mockResolvedValue({
         status: 'DONE',
         renachNumber: 'RNC',
-      });
-      (prisma.medicalExam.findUnique as jest.Mock).mockResolvedValue({
-        result: 'APTO',
-        validUntil: new Date(Date.now() + 86400000),
-        status: 'RESULT_UPLOADED',
-      });
-      (prisma.psychologicalExam.findUnique as jest.Mock).mockResolvedValue({
-        result: 'APTO',
-        validUntil: new Date(Date.now() + 86400000),
-        status: 'RESULT_UPLOADED',
-      });
-      (prisma.officialTheoryExam.findUnique as jest.Mock).mockResolvedValue({
-        passed: true,
-        takenAt: new Date(),
       });
       (prisma.lesson.findMany as jest.Mock).mockResolvedValue([
         {
@@ -131,9 +111,6 @@ describe('JourneyService', () => {
         readyForPracticalExamAt: null,
       });
       (prisma.renachProcess.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.medicalExam.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.psychologicalExam.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.officialTheoryExam.findUnique as jest.Mock).mockResolvedValue(null);
       (prisma.lesson.findMany as jest.Mock).mockResolvedValue([]);
 
       await expect(service.assertCanScheduleLesson('stu-1')).rejects.toThrow(
@@ -156,20 +133,6 @@ describe('JourneyService', () => {
         status: 'DONE',
         renachNumber: 'RNC',
       });
-      (prisma.medicalExam.findUnique as jest.Mock).mockResolvedValue({
-        result: 'APTO',
-        validUntil: new Date(Date.now() + 86400000),
-        status: 'RESULT_UPLOADED',
-      });
-      (prisma.psychologicalExam.findUnique as jest.Mock).mockResolvedValue({
-        result: 'APTO',
-        validUntil: new Date(Date.now() + 86400000),
-        status: 'RESULT_UPLOADED',
-      });
-      (prisma.officialTheoryExam.findUnique as jest.Mock).mockResolvedValue({
-        passed: true,
-        takenAt: new Date(),
-      });
       (prisma.lesson.findMany as jest.Mock).mockResolvedValue([]);
 
       await expect(service.declareReadyForExam('stu-1')).rejects.toThrow(BadRequestException);
@@ -187,20 +150,6 @@ describe('JourneyService', () => {
       (prisma.renachProcess.findUnique as jest.Mock).mockResolvedValue({
         status: 'DONE',
         renachNumber: 'RNC',
-      });
-      (prisma.medicalExam.findUnique as jest.Mock).mockResolvedValue({
-        result: 'APTO',
-        validUntil: new Date(Date.now() + 86400000),
-        status: 'RESULT_UPLOADED',
-      });
-      (prisma.psychologicalExam.findUnique as jest.Mock).mockResolvedValue({
-        result: 'APTO',
-        validUntil: new Date(Date.now() + 86400000),
-        status: 'RESULT_UPLOADED',
-      });
-      (prisma.officialTheoryExam.findUnique as jest.Mock).mockResolvedValue({
-        passed: true,
-        takenAt: new Date(),
       });
       (prisma.lesson.findMany as jest.Mock).mockResolvedValue([
         {
