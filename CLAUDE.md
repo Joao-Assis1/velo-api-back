@@ -25,11 +25,7 @@ src/
 ├── instructors/       # perfis, avaliacoes, ganhos mensais
 ├── ladv-process/      # upload + OCR Tesseract + entrada manual da LADV (CONTRAN etapa 7)
 ├── journey/           # orquestrador da jornada CONTRAN 1.020/2025 (estados + gates)
-├── clinics/           # catalogo de clinicas medicas e psicologicas (CONTRAN 1.020/2025)
-├── medical-exam/      # agendamento + upload de laudo + protocolo PDF (CONTRAN etapa 4)
-├── psychological-exam/ # agendamento + upload de laudo (CONTRAN etapa 5)
 ├── renach-process/    # guia por UF + auto-declaração RENACH (CONTRAN etapa 3)
-├── theory-exam-official/ # exame teórico oficial auto-declarado (CONTRAN etapa 6)
 ├── lessons/           # agendamento, biometria 3 pontos, hash SHA-256
 ├── telemetria/        # deteccao GPS (excesso de velocidade, freada brusca)
 ├── availability/      # slots semanais do instrutor (replace-all)
@@ -78,7 +74,7 @@ npm run jwt-key          # gera novo JWT secret
 - **Hash de integridade:** telemetria selada com SHA-256 via Shield service; hash imutavel apos disputa aberta
 - **Pagamentos:** Stripe Destination Charges; release via `stripe.transfers.create` após aula `completed` + `isValidForCompliance(lesson)=true` (≥50 min, biometria OK, sem disputa); idempotência via SHA-256 derivada de `(subject, action)`. Instrutor precisa de `stripeAccountStatus=ACTIVE` para cobrar.
 - **Simulado:** >=21 de 30 questoes corretas em <=15 min; faz parte do checklist de compliance de 4 etapas
-- **Refresh da journey:** após qualquer mutação em RenachProcess, MedicalExam, PsychologicalExam, OfficialTheoryExam ou theoryCourseStartedAt, chamar `JourneyService.refresh(studentId)` para atualizar o cache de `journeyStage`
+- **Refresh da journey:** após qualquer mutação em RenachProcess ou theoryCourseStartedAt, chamar `JourneyService.refresh(studentId)` para atualizar o cache de `journeyStage`
 
 ## Variaveis de Ambiente
 

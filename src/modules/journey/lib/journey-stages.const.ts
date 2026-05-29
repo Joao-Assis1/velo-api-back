@@ -23,31 +23,13 @@ export const JOURNEY_STAGE_METADATA: Record<JourneyStage, JourneyStageMetadata> 
   [JourneyStage.RENACH_PENDING]: {
     key: JourneyStage.RENACH_PENDING,
     label: 'Abrir processo no DETRAN',
-    description: 'Abra seu processo no DETRAN da sua UF e faça a coleta biométrica.',
+    description: 'Abra seu processo no DETRAN e faça a coleta biométrica. O DETRAN vai agendar os exames médico e psicológico.',
     helpRoute: '/app/student/renach',
-  },
-  [JourneyStage.MEDICAL_PENDING]: {
-    key: JourneyStage.MEDICAL_PENDING,
-    label: 'Exame médico',
-    description: 'Realize o exame de aptidão física e mental em clínica credenciada.',
-    helpRoute: '/app/student/exams/medical',
-  },
-  [JourneyStage.PSYCH_PENDING]: {
-    key: JourneyStage.PSYCH_PENDING,
-    label: 'Avaliação psicológica',
-    description: 'Realize a avaliação psicológica em clínica credenciada.',
-    helpRoute: '/app/student/exams/psychological',
-  },
-  [JourneyStage.THEORY_EXAM_PENDING]: {
-    key: JourneyStage.THEORY_EXAM_PENDING,
-    label: 'Exame teórico oficial',
-    description: 'Faça o exame teórico oficial no DETRAN e registre o resultado.',
-    helpRoute: '/app/student/exams/theory-official',
   },
   [JourneyStage.AWAITING_LADV_UPLOAD]: {
     key: JourneyStage.AWAITING_LADV_UPLOAD,
     label: 'Emissão da LADV',
-    description: 'Solicite sua LADV pelo app CNH do Brasil e faça o upload aqui.',
+    description: 'Após aprovação nos exames e na prova teórica, solicite sua LADV pelo app CNH do Brasil e faça o upload aqui.',
     helpRoute: '/app/student/ladv',
   },
   [JourneyStage.LADV_UPLOADED_VALID]: {

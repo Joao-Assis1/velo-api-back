@@ -48,9 +48,6 @@ model Student {
   checklist             StudentChecklist?
   simulados             StudentSimuladoHistory[]
   renachProcess         RenachProcess?
-  medicalExam           MedicalExam?
-  psychologicalExam     PsychologicalExam?
-  officialTheoryExam    OfficialTheoryExam?
 }
 
 model Question {
@@ -75,8 +72,6 @@ model StudentSimuladoHistory {
 model StudentChecklist {
   id              String   @id @default(uuid())
   studentId       String   @unique
-  medico          Boolean  @default(false)
-  psicotecnico    Boolean  @default(false)
   teorico         Boolean  @default(false)
   pratico         Boolean  @default(false)
   updatedAt       DateTime @updatedAt
@@ -304,79 +299,6 @@ model RenachProcess {
   student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([status])
-}
-
-model Clinic {
-  id          String    @id @default(uuid())
-  name        String
-  type        String
-  city        String
-  uf          String
-  address     String
-  phone       String?
-  price       Float
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-
-  medicalExams       MedicalExam[]
-  psychologicalExams PsychologicalExam[]
-
-  @@index([uf, city, type])
-}
-
-model MedicalExam {
-  id              String    @id @default(uuid())
-  studentId       String    @unique
-  clinicId        String?
-  protocolCode    String    @unique
-  scheduledAt     DateTime?
-  performedAt     DateTime?
-  result          String?
-  restrictions    String?
-  validUntil      DateTime?
-  laudoUrl        String?
-  status          String    @default("PENDING")
-  rejectionReason String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  clinic          Clinic?   @relation(fields: [clinicId], references: [id])
-
-  @@index([status])
-}
-
-model PsychologicalExam {
-  id              String    @id @default(uuid())
-  studentId       String    @unique
-  clinicId        String?
-  protocolCode    String    @unique
-  scheduledAt     DateTime?
-  performedAt     DateTime?
-  result          String?
-  restrictions    String?
-  validUntil      DateTime?
-  laudoUrl        String?
-  status          String    @default("PENDING")
-  rejectionReason String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  clinic          Clinic?   @relation(fields: [clinicId], references: [id])
-
-  @@index([status])
-}
-
-model OfficialTheoryExam {
-  id          String    @id @default(uuid())
-  studentId   String    @unique
-  takenAt     DateTime
-  score       Int?
-  passed      Boolean
-  proofUrl    String?
-  createdAt   DateTime  @default(now())
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@index([passed])
 }
 
 model RefreshToken {

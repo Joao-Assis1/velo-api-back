@@ -50,8 +50,6 @@ describe('ComplianceService', () => {
       });
       mockPrisma.studentChecklist.upsert.mockResolvedValue({
         studentId: 's1',
-        medico: false,
-        psicotecnico: false,
         teorico: false,
         pratico: false,
       });
@@ -74,8 +72,6 @@ describe('ComplianceService', () => {
       });
       mockPrisma.studentChecklist.upsert.mockResolvedValue({
         studentId: 's1',
-        medico: false,
-        psicotecnico: false,
         teorico: false,
         pratico: false,
       });
@@ -98,8 +94,6 @@ describe('ComplianceService', () => {
       });
       mockPrisma.studentChecklist.upsert.mockResolvedValue({
         studentId: 's1',
-        medico: false,
-        psicotecnico: false,
         teorico: false,
         pratico: false,
       });
@@ -127,8 +121,6 @@ describe('ComplianceService', () => {
       });
       mockPrisma.studentChecklist.upsert.mockResolvedValue({
         studentId: 's1',
-        medico: false,
-        psicotecnico: false,
         teorico: false,
         pratico: false,
       });
@@ -155,8 +147,6 @@ describe('ComplianceService', () => {
       });
       mockPrisma.studentChecklist.upsert.mockResolvedValue({
         studentId: 's1',
-        medico: false,
-        psicotecnico: false,
         teorico: false,
         pratico: false,
       });
@@ -170,7 +160,7 @@ describe('ComplianceService', () => {
       expect(report.steps.pratico.totalMinutes).toBe(60);
     });
 
-    it('reports allCompleted true when all 4 steps are done', async () => {
+    it('reports allCompleted true when teorico AND pratico are both done', async () => {
       mockPrisma.student.findUnique.mockResolvedValue({
         id: 's1',
         name: 'Ana',
@@ -178,8 +168,6 @@ describe('ComplianceService', () => {
       });
       mockPrisma.studentChecklist.upsert.mockResolvedValue({
         studentId: 's1',
-        medico: true,
-        psicotecnico: true,
         teorico: false,
         pratico: false,
       });
@@ -198,7 +186,8 @@ describe('ComplianceService', () => {
       const report = await service.getComplianceReport('s1');
 
       expect(report.allCompleted).toBe(true);
-      expect(report.completedSteps).toBe(4);
+      expect(report.completedSteps).toBe(2);
+      expect(report.totalSteps).toBe(2);
     });
 
     it('auto-syncs DB when derived steps diverge from stored values', async () => {
@@ -209,8 +198,6 @@ describe('ComplianceService', () => {
       });
       mockPrisma.studentChecklist.upsert.mockResolvedValue({
         studentId: 's1',
-        medico: false,
-        psicotecnico: false,
         teorico: false, // stale — simulado was passed
         pratico: false,
       });
@@ -306,60 +293,6 @@ describe('ComplianceService', () => {
       const r = await service.getPracticalSummary('stu-1');
       expect(r.meetsMinimumLegal).toBe(true);
       expect(r.canDeclareReadyForExam).toBe(false);
-    });
-  });
-
-  describe('updateManualStep', () => {
-    it('throws NotFoundException when student does not exist', async () => {
-      mockPrisma.student.findUnique.mockResolvedValue(null);
-      await expect(
-        service.updateManualStep('unknown', { step: 'medico', completed: true }),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('upserts the checklist for medico step', async () => {
-      mockPrisma.student.findUnique.mockResolvedValue({ id: 's1' });
-      mockPrisma.studentChecklist.upsert.mockResolvedValue({
-        studentId: 's1',
-        medico: true,
-        psicotecnico: false,
-        teorico: false,
-        pratico: false,
-      });
-
-      const result = await service.updateManualStep('s1', {
-        step: 'medico',
-        completed: true,
-      });
-
-      expect(mockPrisma.studentChecklist.upsert).toHaveBeenCalledWith({
-        where: { studentId: 's1' },
-        create: { studentId: 's1', medico: true },
-        update: { medico: true },
-      });
-      expect(result.medico).toBe(true);
-    });
-
-    it('upserts the checklist for psicotecnico step', async () => {
-      mockPrisma.student.findUnique.mockResolvedValue({ id: 's1' });
-      mockPrisma.studentChecklist.upsert.mockResolvedValue({
-        studentId: 's1',
-        medico: false,
-        psicotecnico: true,
-        teorico: false,
-        pratico: false,
-      });
-
-      await service.updateManualStep('s1', {
-        step: 'psicotecnico',
-        completed: true,
-      });
-
-      expect(mockPrisma.studentChecklist.upsert).toHaveBeenCalledWith({
-        where: { studentId: 's1' },
-        create: { studentId: 's1', psicotecnico: true },
-        update: { psicotecnico: true },
-      });
     });
   });
 });

@@ -42,59 +42,6 @@ async function main() {
   });
   console.log("2. RENACH DONE ✓");
 
-  // 3. Medical exam — upsert
-  await prisma.medicalExam.upsert({
-    where: { studentId: sid },
-    update: {
-      result: "APTO",
-      status: "RESULT_UPLOADED",
-      validUntil: new Date("2027-01-01"),
-      performedAt: new Date("2026-02-01"),
-    },
-    create: {
-      studentId: sid,
-      protocolCode: `MED-TEST-${sid.slice(0, 8)}`,
-      result: "APTO",
-      status: "RESULT_UPLOADED",
-      validUntil: new Date("2027-01-01"),
-      performedAt: new Date("2026-02-01"),
-    },
-  });
-  console.log("3. MedicalExam APTO ✓");
-
-  // 4. Psychological exam — upsert
-  await prisma.psychologicalExam.upsert({
-    where: { studentId: sid },
-    update: {
-      result: "APTO",
-      status: "RESULT_UPLOADED",
-      validUntil: new Date("2027-01-01"),
-      performedAt: new Date("2026-02-15"),
-    },
-    create: {
-      studentId: sid,
-      protocolCode: `PSY-TEST-${sid.slice(0, 8)}`,
-      result: "APTO",
-      status: "RESULT_UPLOADED",
-      validUntil: new Date("2027-01-01"),
-      performedAt: new Date("2026-02-15"),
-    },
-  });
-  console.log("4. PsychologicalExam APTO ✓");
-
-  // 5. Official theory exam — upsert
-  await prisma.officialTheoryExam.upsert({
-    where: { studentId: sid },
-    update: { passed: true, score: 28, takenAt: new Date("2026-03-01") },
-    create: {
-      studentId: sid,
-      passed: true,
-      score: 28,
-      takenAt: new Date("2026-03-01"),
-    },
-  });
-  console.log("5. OfficialTheoryExam passed ✓");
-
   console.log("\nStudent journey unlocked → LADV_UPLOADED_VALID 🎉");
 }
 

@@ -17,7 +17,7 @@ A Velo API foi concebida sob o paradigma de **Compliance-first**, atendendo plen
 
 ### 🛣️ 1. Máquina de Estados da Jornada Burocrática
 O progresso do aluno para obtenção da 1ª CNH (Categoria B) é modelado de forma estrita em uma máquina de estados pura (`Student.journeyStage`). Nenhuma aula prática pode ser agendada se o aluno não passar pelas validações de conformidade anteriores.
-* **Transições Sequenciais:** `REGISTERED` ➡️ `THEORY_COURSE_IN_PROGRESS` ➡️ `RENACH_PENDING` ➡️ `MEDICAL_PENDING` ➡️ `PSYCH_PENDING` ➡️ `THEORY_EXAM_PENDING` ➡️ `AWAITING_LADV_UPLOAD` ➡️ `LADV_UPLOADED_VALID` ➡️ `PRACTICAL_IN_PROGRESS` ➡️ `READY_FOR_PRACTICAL_EXAM`.
+* **Transições Sequenciais:** `REGISTERED` ➡️ `THEORY_COURSE_IN_PROGRESS` ➡️ `RENACH_PENDING` ➡️ `AWAITING_LADV_UPLOAD` ➡️ `LADV_UPLOADED_VALID` ➡️ `PRACTICAL_IN_PROGRESS` ➡️ `READY_FOR_PRACTICAL_EXAM`.
 * **Trava Regulatória:** O `LessonsService.create()` valida ativamente se o `journeyStage` do aluno é igual ou superior a `LADV_UPLOADED_VALID` antes de liberar qualquer agendamento.
 
 ### 📸 2. Biometria em 3 Tempos & Geofencing

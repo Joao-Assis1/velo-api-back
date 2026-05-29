@@ -416,10 +416,7 @@ describe('PaymentsStripeService', () => {
         biometryEndStatus: 'SUCCESS',
         integrityHash: 'h',
         disputeOpened: true,
-      });
-      prisma.instructor.findUnique.mockResolvedValue({
-        id: 'inst-1',
-        stripeAccountId: 'acct_INST',
+        instructor: { stripeAccountId: 'acct_INST' },
       });
       stripe.transfers.create.mockResolvedValue({ id: 'tr_RES' });
       prisma.payment.update.mockResolvedValue({});

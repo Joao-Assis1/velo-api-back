@@ -23,7 +23,7 @@ describe('RenachProcessService', () => {
         update: jest.fn(),
       },
     };
-    journey = { refresh: jest.fn().mockResolvedValue({ stage: 'MEDICAL_PENDING' }) };
+    journey = { refresh: jest.fn().mockResolvedValue({ stage: 'AWAITING_LADV_UPLOAD' }) };
     const mod: TestingModule = await Test.createTestingModule({
       providers: [
         RenachProcessService,

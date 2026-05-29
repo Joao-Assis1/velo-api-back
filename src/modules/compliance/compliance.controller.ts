@@ -1,7 +1,6 @@
-import { Controller, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ComplianceService } from './compliance.service';
-import { UpdateComplianceStepDto } from './dto/update-compliance-step.dto';
 import { PracticalSummaryDto } from './dto/practical-summary.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -16,7 +15,7 @@ export class ComplianceController {
   @ApiOperation({
     summary: 'Relatório de conformidade CONTRAN 1.020/2025 do aluno',
     description:
-      'Retorna o checklist de 4 etapas. Teórico e prático são derivados automaticamente do simulado e das aulas concluídas.',
+      'Retorna o checklist de 2 etapas (teórico e prático). Ambas são derivadas automaticamente do simulado e das aulas concluídas.',
   })
   @ApiResponse({ status: 200, description: 'Relatório gerado com sucesso' })
   @ApiResponse({ status: 404, description: 'Aluno não encontrado' })
@@ -34,21 +33,5 @@ export class ComplianceController {
   @ApiResponse({ status: 404, description: 'Aluno não encontrado' })
   getPracticalSummary(@Param('studentId') studentId: string) {
     return this.complianceService.getPracticalSummary(studentId);
-  }
-
-  @Patch('students/:studentId/step')
-  @ApiOperation({
-    summary: 'Atualizar etapa manual (médico ou psicotécnico)',
-    description:
-      'Apenas etapas medico e psicotecnico podem ser atualizadas manualmente. Teórico e prático são derivados automaticamente.',
-  })
-  @ApiResponse({ status: 200, description: 'Etapa atualizada com sucesso' })
-  @ApiResponse({ status: 400, description: 'Etapa inválida para atualização manual' })
-  @ApiResponse({ status: 404, description: 'Aluno não encontrado' })
-  updateManualStep(
-    @Param('studentId') studentId: string,
-    @Body() dto: UpdateComplianceStepDto,
-  ) {
-    return this.complianceService.updateManualStep(studentId, dto);
   }
 }

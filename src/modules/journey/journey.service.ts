@@ -35,37 +35,24 @@ export class JourneyService {
     });
     if (!student) throw new NotFoundException(`Student ${studentId} not found`);
 
-    const [renach, medicalExam, psychologicalExam, officialTheoryExam, lessons] =
-      await Promise.all([
-        this.prisma.renachProcess.findUnique({
-          where: { studentId },
-          select: { status: true, renachNumber: true },
-        }),
-        this.prisma.medicalExam.findUnique({
-          where: { studentId },
-          select: { result: true, validUntil: true, status: true },
-        }),
-        this.prisma.psychologicalExam.findUnique({
-          where: { studentId },
-          select: { result: true, validUntil: true, status: true },
-        }),
-        this.prisma.officialTheoryExam.findUnique({
-          where: { studentId },
-          select: { passed: true, takenAt: true },
-        }),
-        this.prisma.lesson.findMany({
-          where: { studentId, status: 'completed' },
-          select: {
-            status: true,
-            durationMinutes: true,
-            biometryStartStatus: true,
-            biometryMidStatus: true,
-            biometryEndStatus: true,
-            integrityHash: true,
-            disputeOpened: true,
-          },
-        }),
-      ]);
+    const [renach, lessons] = await Promise.all([
+      this.prisma.renachProcess.findUnique({
+        where: { studentId },
+        select: { status: true, renachNumber: true },
+      }),
+      this.prisma.lesson.findMany({
+        where: { studentId, status: 'completed' },
+        select: {
+          status: true,
+          durationMinutes: true,
+          biometryStartStatus: true,
+          biometryMidStatus: true,
+          biometryEndStatus: true,
+          integrityHash: true,
+          disputeOpened: true,
+        },
+      }),
+    ]);
 
     const validLessons = lessons.filter(
       (l) =>
@@ -85,9 +72,6 @@ export class JourneyService {
     return {
       student,
       renach,
-      medicalExam,
-      psychologicalExam,
-      officialTheoryExam,
       practicalSummary: {
         totalCompletedLessons: validLessons.length,
         totalValidatedMinutes,
