@@ -7,6 +7,7 @@ import { RefreshTokenCleanupService } from './refresh-token-cleanup.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JourneyModule } from '../journey/journey.module';
+import { PaymentsStripeModule } from '../payments-stripe/payments-stripe.module';
 
 export const jwtSecret = process.env.JWT_SECRET || 'MUITO_SECRETO';
 
@@ -21,6 +22,7 @@ export const jwtSecret = process.env.JWT_SECRET || 'MUITO_SECRETO';
       signOptions: { expiresIn: '1d' },
     }),
     JourneyModule,
+    PaymentsStripeModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, RefreshTokenCleanupService],

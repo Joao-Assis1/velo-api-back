@@ -4,6 +4,8 @@ import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { JourneyService } from '../journey/journey.service';
+import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
+import { StripeConnectService } from '../payments-stripe/stripe-connect.service';
 
 const mockPrisma = {
   student: {
@@ -30,6 +32,8 @@ const FAMILY_ID = 'family-uuid-1';
 
 const mockJwt = { signAsync: jest.fn().mockResolvedValue('mock-token') };
 const mockJourney = { initForStudent: jest.fn().mockResolvedValue(undefined) };
+const mockPaymentsStripe = { provisionCustomer: jest.fn().mockResolvedValue(undefined) };
+const mockStripeConnect = { provisionAccount: jest.fn().mockResolvedValue(undefined) };
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -42,6 +46,8 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
         { provide: JourneyService, useValue: mockJourney },
+        { provide: PaymentsStripeService, useValue: mockPaymentsStripe },
+        { provide: StripeConnectService, useValue: mockStripeConnect },
       ],
     }).compile();
     service = module.get<AuthService>(AuthService);

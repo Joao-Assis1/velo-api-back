@@ -81,6 +81,17 @@ export class PaymentsStripeService {
     };
   }
 
+  async provisionCustomer(studentId: string, email: string, name: string): Promise<void> {
+    const customer = await this.stripe.customers.create(
+      { email, name, metadata: { studentId } },
+      { idempotencyKey: idempotencyKey(studentId, 'connect-account') },
+    );
+    await this.prisma.student.update({
+      where: { id: studentId },
+      data: { stripeCustomerId: customer.id },
+    });
+  }
+
   async attachPaymentMethod(
     studentId: string,
     dto: AttachPaymentMethodDto,

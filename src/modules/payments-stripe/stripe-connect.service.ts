@@ -32,6 +32,29 @@ export class StripeConnectService {
     private readonly config: ConfigService,
   ) {}
 
+  async provisionAccount(instructorId: string, email: string): Promise<void> {
+    const account = await this.stripe.accounts.create(
+      {
+        type: 'express',
+        country: 'BR',
+        email,
+        capabilities: {
+          transfers: { requested: true },
+          card_payments: { requested: true },
+        },
+        metadata: { instructorId },
+      },
+      { idempotencyKey: idempotencyKey(instructorId, 'connect-account') },
+    );
+    await this.prisma.instructor.update({
+      where: { id: instructorId },
+      data: {
+        stripeAccountId: account.id,
+        stripeAccountStatus: 'ONBOARDING',
+      },
+    });
+  }
+
   async startOnboarding(instructorId: string): Promise<ConnectOnboardResponseDto> {
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: instructorId },
