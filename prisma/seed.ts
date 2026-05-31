@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import Stripe from 'stripe';
+import { DETRAN_QUESTIONS } from './questions';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -79,21 +80,9 @@ async function main() {
   console.log('🌱 Iniciando seed...');
 
   // ── Questões do Simulado ────────────────────────────────────────────────────
-  const qCount = await prisma.question.count();
-  if (qCount === 0) {
-    const categories = ['Legislacao', 'Direcao Defensiva', 'Primeiros Socorros', 'Meio Ambiente', 'Mecanica'];
-    await prisma.question.createMany({
-      data: Array.from({ length: 40 }, (_, i) => ({
-        text: `Questão ${i + 1} — ${categories[i % 5]}: qual alternativa está correta?`,
-        category: categories[i % 5],
-        options: ['Alternativa A', 'Alternativa B', 'Alternativa C', 'Alternativa D'],
-        correct: i % 4,
-      })),
-    });
-    console.log('  ✔ 40 questões criadas');
-  } else {
-    console.log(`  ✔ ${qCount} questões já existem`);
-  }
+  await prisma.question.deleteMany({});
+  await prisma.question.createMany({ data: DETRAN_QUESTIONS });
+  console.log(`  ✔ ${DETRAN_QUESTIONS.length} questões DETRAN inseridas`);
 
   // ── Instrutor Principal ─────────────────────────────────────────────────────
   const instructor = await prisma.instructor.upsert({
