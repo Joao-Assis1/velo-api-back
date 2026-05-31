@@ -1,6 +1,8 @@
 import {
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Post,
   Body,
   Query,
@@ -74,7 +76,15 @@ export class VehiclesController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('File is required');
-    return this.vehiclesService.updatePhoto(id, req.user.userId, file.path);
+    const photoUrl = '/' + file.path.replace(/\\/g, '/');
+    return this.vehiclesService.updatePhoto(id, req.user.userId, photoUrl);
+  }
+
+  @Delete(':id/photo')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(200)
+  removePhoto(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.vehiclesService.removePhoto(id, req.user.userId);
   }
 
   @Get()

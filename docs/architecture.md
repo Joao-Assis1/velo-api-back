@@ -27,33 +27,29 @@ Todas as rotas são prefixadas com `/api/v1`. A documentação interativa está 
 ## Módulos Registrados (AppModule)
 
 ```
-ConfigModule       — variáveis de ambiente validadas no startup
-ThrottlerModule    — rate limiting global (ttl=60s, limit=10); overridable por rota
-ScheduleModule     — cron jobs (@Cron)
-HealthModule       — /health endpoint
-PrismaModule       — singleton global do PrismaService
+ConfigModule         — variáveis de ambiente validadas no startup
+ThrottlerModule      — rate limiting global (ttl=60s, limit=10); overridable por rota
+ScheduleModule       — cron jobs (@Cron)
+HealthModule         — /health endpoint
+PrismaModule         — singleton global do PrismaService
 
-AuthModule         — login, registro, refresh token, reset de senha
-StudentsModule     — perfil e ciclo de vida do aluno
-InstructorsModule  — perfil, avaliações, ganhos mensais
-VehiclesModule     — gestão de veículos do instrutor
-AvailabilityModule — slots semanais (replace-all em transação)
-BusySlotsModule    — bloqueios avulsos de disponibilidade
-LessonsModule      — agendamento, biometria, checkout + hash de integridade
-TelemetriaModule   — GPS em tempo real (velocidade, frenagem brusca)
+AuthModule           — login, registro, refresh token, reset de senha
+StudentsModule       — perfil e ciclo de vida do aluno
+InstructorsModule    — perfil, avaliações, ganhos mensais
+VehiclesModule       — gestão de veículos do instrutor
+AvailabilityModule   — slots semanais (replace-all em transação)
+BusySlotsModule      — bloqueios avulsos de disponibilidade
+LessonsModule        — agendamento, biometria, checkout + hash de integridade
+TelemetriaModule     — GPS em tempo real (velocidade, frenagem brusca)
 PaymentsStripeModule — setup-intent, charge, escrow, release, dispute, webhooks
 PaymentMethodsModule — cartões salvos do aluno
-JourneyModule      — máquina de estados CONTRAN 1.020/2025
-ComplianceModule   — checklist de 4 etapas + resumo prático
-AcademyModule      — simulado (30 questões, 15 min, 70% aprovação)
-ClinicsModule      — catálogo de clínicas médicas e psicológicas
-MedicalExamModule  — agendamento + upload de laudo médico
-PsychologicalExamModule — agendamento + upload de laudo psicotécnico
-RenachProcessModule — guia RENACH por UF + auto-declaração
-TheoryExamOfficialModule — exame teórico oficial auto-declarado
-LadvProcessModule  — upload + OCR LADV
-ValidationModule   — CPF/CNH local + ViaCEP + BrasilAPI + provider plugável
-AdminModule        — rotas administrativas protegidas por ADMIN_API_KEY
+JourneyModule        — máquina de estados CONTRAN 1.020/2025
+ComplianceModule     — checklist de 4 etapas + resumo prático
+AcademyModule        — simulado (30 questões, 15 min, 70% aprovação)
+RenachProcessModule  — guia RENACH por UF + auto-declaração
+LadvProcessModule    — upload + OCR LADV
+ValidationModule     — CPF/CNH local + ViaCEP + BrasilAPI + provider plugável
+AdminModule          — rotas administrativas protegidas por ADMIN_API_KEY
 ```
 
 ---
@@ -145,27 +141,26 @@ O `DOCUMENT_VALIDATION_PROVIDER` controla o gate 5 da criação de aula:
 
 ```
 src/
-├── auth/
-├── students/
-├── instructors/
-├── ladv-process/
-├── journey/
-├── clinics/
-├── medical-exam/
-├── psychological-exam/
-├── renach-process/
-├── theory-exam-official/
-├── lessons/
-├── telemetria/
-├── availability/
-├── busy-slots/
-├── payments-stripe/
-├── payment-methods/
-├── academy/
-├── compliance/
-├── vehicles/
-├── validation/
-├── common/           # guards, interceptors, geo utils (Haversine)
-├── config/           # env.validation.ts
-└── prisma/           # PrismaService singleton
+├── common/                  # guards, interceptors, geo utils (Haversine)
+├── config/                  # env.validation.ts
+└── modules/
+    ├── admin/
+    ├── auth/
+    ├── academy/
+    ├── availability/
+    ├── busy-slots/
+    ├── compliance/
+    ├── health/
+    ├── instructors/
+    ├── journey/
+    ├── ladv-process/
+    ├── lessons/
+    ├── payment-methods/
+    ├── payments-stripe/
+    ├── prisma/              # PrismaService singleton
+    ├── renach-process/
+    ├── students/
+    ├── telemetria/
+    ├── validation/
+    └── vehicles/
 ```

@@ -10,6 +10,10 @@ import {
 } from 'class-validator';
 
 class EnvironmentVariables {
+  @IsString()
+  @MinLength(32)
+  JWT_SECRET!: string;
+
   @IsOptional()
   @IsNumberString()
   PORT?: string;
@@ -71,6 +75,18 @@ class EnvironmentVariables {
   @IsOptional()
   @IsUrl({ require_tld: false, require_protocol: true })
   STRIPE_CONNECT_RETURN_URL?: string = 'http://localhost:3001/api/v1/payments-stripe/connect/return';
+
+  @IsOptional()
+  @IsString()
+  RESEND_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  MAIL_FROM?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false, require_protocol: true })
+  FRONTEND_URL?: string = 'http://localhost:3000';
 }
 
 export function validate(config: Record<string, unknown>) {

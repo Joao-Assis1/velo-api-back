@@ -16,6 +16,7 @@ import { Student, Instructor } from '@prisma/client';
 import { JourneyService } from '../journey/journey.service';
 import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
 import { StripeConnectService } from '../payments-stripe/stripe-connect.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly journeyService: JourneyService,
     private readonly paymentsStripeService: PaymentsStripeService,
     private readonly stripeConnectService: StripeConnectService,
+    private readonly mailService: MailService,
   ) {}
 
   private hashToken(token: string): string {
@@ -256,23 +258,27 @@ export class AuthService {
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; token?: string }> {
     const message = 'Se esse e-mail estiver cadastrado, você receberá um link em breve.';
+    const testMode = process.env.ENABLE_TEST_MODE === 'true';
 
     let userId: string | null = null;
     let userRole: 'student' | 'instructor' | null = null;
+    let userEmail: string | null = null;
 
     const student = await this.prisma.student.findUnique({ where: { email: dto.email } });
     if (student) {
       userId = student.id;
       userRole = 'student';
+      userEmail = student.email;
     } else {
       const instructor = await this.prisma.instructor.findUnique({ where: { email: dto.email } });
       if (instructor) {
         userId = instructor.id;
         userRole = 'instructor';
+        userEmail = instructor.email;
       }
     }
 
-    if (!userId || !userRole) {
+    if (!userId || !userRole || !userEmail) {
       return { message };
     }
 
@@ -289,6 +295,16 @@ export class AuthService {
         where: { id: userId },
         data: { passwordResetToken: token, passwordResetExpires: expires },
       });
+    }
+
+    // Fire-and-forget: log on failure but don't break the response.
+    this.mailService.sendPasswordReset(userEmail, token).catch((err) =>
+      this.logger.error(`Failed to send password reset email to ${userEmail}: ${err}`),
+    );
+
+    // In test mode the token is also returned directly so the frontend can complete the flow without checking email.
+    if (testMode) {
+      return { message, token };
     }
 
     return { message };

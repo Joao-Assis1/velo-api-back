@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -55,5 +56,11 @@ export class PaymentMethodsController {
   async setDefault(@Req() req: RequestWithUser, @Param('id') id: string) {
     const userId = req.user.userId;
     return this.paymentMethodsService.setDefault(userId, id);
+  }
+
+  @Delete(':id')
+  @HttpCode(200)
+  async remove(@Req() req: RequestWithUser, @Param('id') id: string) {
+    return this.paymentMethodsService.remove(req.user.userId, id);
   }
 }

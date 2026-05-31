@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Post,
@@ -59,6 +60,14 @@ export class InstructorsController {
       throw new ForbiddenException('You can only update your own profile');
     }
     return this.instructorsService.update(id, updateData);
+  }
+
+  @Delete('me/photo')
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  removePhoto(@Req() req: RequestWithUser) {
+    return this.instructorsService.removePhoto(req.user.userId);
   }
 
   @Get(':id/earnings')

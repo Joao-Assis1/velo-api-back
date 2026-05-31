@@ -1,7 +1,9 @@
 import {
   Controller,
+  Delete,
   ForbiddenException,
   Get,
+  HttpCode,
   Post,
   Body,
   Param,
@@ -69,6 +71,14 @@ export class StudentsController {
     @Body('completed') completed: boolean,
   ) {
     return this.checklistService.updateStep(id, step, completed);
+  }
+
+  @Delete('me/photo')
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  removePhoto(@Req() req: RequestWithUser) {
+    return this.studentsService.removePhoto(req.user.userId);
   }
 
   @Post('me/theory-course/start')

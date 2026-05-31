@@ -89,6 +89,14 @@ export class InstructorsService {
     }) as unknown as Promise<Omit<Instructor, 'password'>>;
   }
 
+  async removePhoto(instructorId: string): Promise<Omit<Instructor, 'password'>> {
+    return this.prisma.instructor.update({
+      where: { id: instructorId },
+      data: { profilePicture: null },
+      omit: this.omitPassword,
+    }) as unknown as Promise<Omit<Instructor, 'password'>>;
+  }
+
   async getEarnings(id: string, month?: string, year?: string) {
     const completedWhere: Prisma.LessonWhereInput = {
       instructorId: id,

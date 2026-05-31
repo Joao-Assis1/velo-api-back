@@ -37,7 +37,7 @@ Ao fim de cada aula prática, a plataforma executa uma rotina criptográfica que
 * Um worker recorrente automático audita diariamente a regularidade das CNHs de todos os instrutores cadastrados. Caso a CNH expire ou apresente irregularidade, o instrutor é preventivamente alterado para `isActive: false`, bloqueando novas agendas.
 
 ### 📜 5. Motor OCR de LADV via Tesseract.js
-O upload da Licença de Aprendizagem de Direção Veicular (LADV) passa por um processamento de imagem automatizado que realiza a extração do texto do documento. O sistema exige uma taxa de confiança mínima de **80%** e a detecção de termos governamentais obrigatórios para validação automática, do contrário, a licença é retida em fila para auditoria manual pela administração.
+O upload da Licença de Aprendizagem de Direção Veicular (LADV) passa por um processamento de imagem automatizado que realiza a extração do texto do documento. O sistema exige uma taxa de confiança mínima de **50%** e a detecção de termos governamentais obrigatórios para validação automática, do contrário, a licença é retida em fila para auditoria manual pela administração.
 
 ---
 
@@ -84,6 +84,14 @@ Crie um arquivo `.env` na raiz do projeto (use o `.env.example` como modelo):
 ```env
 DATABASE_URL="postgresql://usuario:senha@host:porta/banco?schema=public"
 JWT_SECRET="sua_chave_secreta_jwt_aqui"
+ADMIN_API_KEY="chave_admin_minimo_16_chars"
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+# Opcionais
+PORT=3001
+ENABLE_TEST_MODE=false
+DOCUMENT_VALIDATION_PROVIDER=mock
+PLATFORM_FEE_PERCENT=20
 ```
 
 > [!NOTE]  
@@ -92,7 +100,7 @@ JWT_SECRET="sua_chave_secreta_jwt_aqui"
 ### 3. Preparação do Banco de Dados e Carga de Dados (Seed)
 ```bash
 # Executar as migrations para criar a estrutura de tabelas no Neon DB
-npx prisma db push
+npx prisma migrate dev
 
 # Popular o banco com dados iniciais (simulados, questões do simulado, etc.)
 npm run seed
@@ -123,7 +131,7 @@ Com a aplicação em execução local, você pode acessar a documentação inter
 
 * **Módulo Aluno & Jornada:**
   * `POST /students` - Cadastro de novos alunos.
-  * `POST /students/:id/ladv-upload` - Upload e disparo do motor OCR de LADV.
+  * `POST /ladv/me/upload` - Upload e disparo do motor OCR de LADV.
   * `GET /students/:id/checklist` - Consulta das etapas burocráticas concluídas perante a Jornada CNH.
   * `GET /academy/simulado` - Geração de prova contendo 30 questões dinâmicas de trânsito.
 
