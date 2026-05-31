@@ -58,4 +58,12 @@ export class UpdateInstructorDto {
   @IsDateString()
   @IsOptional()
   termsAcceptedAt?: string;
+
+  @IsString()
+  @IsOptional()
+  detranCredentialNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  detranCredentialUf?: string;
 }
