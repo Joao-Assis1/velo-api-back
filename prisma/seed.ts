@@ -97,7 +97,7 @@ async function main() {
       instructorType: 'B',
       location: 'Campo Grande, MS',
       pricePerClass: 120.0,
-      cnhNumber: '01234567890',
+      cnhNumber: '12345678900',
       cnhCategory: 'B',
       cnhExpiry: '2030-12-31',
       credentialStatus: 'APPROVED',
