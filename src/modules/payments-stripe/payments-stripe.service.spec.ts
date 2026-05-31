@@ -82,7 +82,6 @@ describe('PaymentsStripeService', () => {
           customer: 'cus_AAA',
           payment_method_types: ['card'],
         }),
-        { idempotencyKey: expect.any(String) },
       );
       expect(r).toEqual({ clientSecret: 'seti_secret_XYZ', customerId: 'cus_AAA' });
     });

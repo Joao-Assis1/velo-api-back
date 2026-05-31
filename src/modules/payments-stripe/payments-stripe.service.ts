@@ -66,14 +66,11 @@ export class PaymentsStripeService {
       });
     }
 
-    const setupIntent = await this.stripe.setupIntents.create(
-      {
-        customer: customerId,
-        payment_method_types: ['card'],
-        usage: 'off_session',
-      },
-      { idempotencyKey: idempotencyKey(student.id, 'setup-intent') },
-    );
+    const setupIntent = await this.stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      usage: 'off_session',
+    });
 
     return {
       clientSecret: setupIntent.client_secret as string,
