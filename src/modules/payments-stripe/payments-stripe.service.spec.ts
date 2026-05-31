@@ -16,6 +16,7 @@ describe('PaymentsStripeService', () => {
         findUnique: jest.fn(),
         findMany: jest.fn(),
         findFirst: jest.fn(),
+        count: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
         updateMany: jest.fn(),
@@ -119,7 +120,8 @@ describe('PaymentsStripeService', () => {
         },
         billing_details: { name: 'JOAO SILVA' },
       });
-      prisma.paymentMethod.findMany.mockResolvedValue([]);
+      prisma.paymentMethod.count.mockResolvedValue(0);
+      prisma.paymentMethod.findFirst.mockResolvedValue(null);
       prisma.paymentMethod.create.mockResolvedValue({
         id: 'pm-row-1',
         stripePaymentMethodId: 'pm_1Q',

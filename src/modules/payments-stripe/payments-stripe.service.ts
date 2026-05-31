@@ -114,23 +114,43 @@ export class PaymentsStripeService {
       throw new BadRequestException('Only card payment methods are supported');
     }
 
-    const existing = await this.prisma.paymentMethod.findMany({
+    const activeCount = await this.prisma.paymentMethod.count({
       where: { studentId, isDeleted: false },
     });
-    const isDefault = existing.length === 0;
+    const isDefault = activeCount === 0;
 
-    const row = await this.prisma.paymentMethod.create({
-      data: {
-        studentId,
-        stripePaymentMethodId: pm.id,
-        brand: pm.card.brand,
-        last4: pm.card.last4,
-        cardholderName: pm.billing_details?.name ?? 'UNKNOWN',
-        expiryMonth: String(pm.card.exp_month).padStart(2, '0'),
-        expiryYear: String(pm.card.exp_year),
-        isDefault,
-      },
+    const softDeleted = await this.prisma.paymentMethod.findFirst({
+      where: { studentId, stripePaymentMethodId: pm.id },
     });
+
+    let row;
+    if (softDeleted) {
+      row = await this.prisma.paymentMethod.update({
+        where: { id: softDeleted.id },
+        data: {
+          isDeleted: false,
+          isDefault,
+          brand: pm.card.brand,
+          last4: pm.card.last4,
+          cardholderName: pm.billing_details?.name ?? softDeleted.cardholderName,
+          expiryMonth: String(pm.card.exp_month).padStart(2, '0'),
+          expiryYear: String(pm.card.exp_year),
+        },
+      });
+    } else {
+      row = await this.prisma.paymentMethod.create({
+        data: {
+          studentId,
+          stripePaymentMethodId: pm.id,
+          brand: pm.card.brand,
+          last4: pm.card.last4,
+          cardholderName: pm.billing_details?.name ?? 'UNKNOWN',
+          expiryMonth: String(pm.card.exp_month).padStart(2, '0'),
+          expiryYear: String(pm.card.exp_year),
+          isDefault,
+        },
+      });
+    }
     return row as unknown as PaymentMethodResponseDto;
   }
 
