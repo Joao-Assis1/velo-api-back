@@ -3,16 +3,27 @@ import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
-  private readonly resend: Resend;
+  private readonly resend: Resend | null;
   private readonly logger = new Logger(MailService.name);
   private readonly from = process.env.MAIL_FROM ?? 'Velo <noreply@velo.app>';
   private readonly frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
 
   constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
+    } else {
+      this.resend = null;
+      this.logger.warn('RESEND_API_KEY not set — e-mail sending is disabled');
+    }
   }
 
   async sendPasswordReset(email: string, token: string): Promise<void> {
+    if (!this.resend) {
+      this.logger.warn(`E-mail não enviado para ${email}: RESEND_API_KEY ausente`);
+      return;
+    }
+
     const link = `${this.frontendUrl}/reset-password?token=${token}`;
 
     const { error } = await this.resend.emails.send({
