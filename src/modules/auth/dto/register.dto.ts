@@ -7,6 +7,7 @@ import {
   IsNumber,
   Matches,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class RegisterDto {
   @IsEmail()
@@ -108,6 +109,7 @@ export class RegisterDto {
   @IsOptional()
   vehiclePlate?: string;
 
+  @Transform(({ value }) => (value != null ? String(value) : value))
   @IsString()
   @IsOptional()
   vehicleYear?: string;
