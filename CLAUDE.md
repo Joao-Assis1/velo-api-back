@@ -95,6 +95,10 @@ Validadas no startup via `src/config/env.validation.ts`:
 | `DOCUMENT_VALIDATION_PROVIDER` | Opcional; `mock` (padrao) ou `serpro` |
 | `VIA_CEP_BASE_URL` | Opcional; padrao `https://viacep.com.br/ws` |
 | `BRASIL_API_BASE_URL` | Opcional; padrao `https://brasilapi.com.br/api` |
+| `PLATFORM_FEE_PERCENT` | Opcional; percentual de taxa da plataforma; padrao: `20` |
+| `ESCROW_RETRY_CRON` | Opcional; expressão cron para retry do escrow release |
+| `ESCROW_MAX_RETRY_ATTEMPTS` | Opcional; número máximo de tentativas de release |
+| `CORS_ORIGIN` | Opcional; origem permitida pelo CORS |
 
 ## Dados de Seed (prisma/seed.ts)
 
