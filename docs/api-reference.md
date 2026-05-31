@@ -145,6 +145,7 @@ Todas as rotas são prefixadas com `/api/v1`. Documentação interativa disponí
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
+| GET | `/ladv/guide?uf=:uf` | JWT | Guia do processo LADV por UF |
 | POST | `/ladv/me/upload` | JWT | Upload + OCR da LADV |
 | GET | `/ladv/me` | JWT | Status do documento |
 
@@ -173,55 +174,6 @@ Todas as rotas são prefixadas com `/api/v1`. Documentação interativa disponí
 
 ---
 
-## Clinics (`/clinics`)
-
-| Método | Rota | Auth | Descrição |
-|--------|------|------|-----------|
-| GET | `/clinics` | JWT | Listar clínicas (filtrável por tipo e UF) |
-| GET | `/clinics/:id` | JWT | Detalhes de uma clínica |
-
----
-
-## Medical Exam (`/medical-exam`)
-
-| Método | Rota | Auth | Descrição |
-|--------|------|------|-----------|
-| POST | `/medical-exam/me` | JWT | Agendar exame médico |
-| GET | `/medical-exam/me` | JWT | Consultar exame |
-| POST | `/medical-exam/me/upload` | JWT | Upload do laudo |
-
----
-
-## Psychological Exam (`/psychological-exam`)
-
-| Método | Rota | Auth | Descrição |
-|--------|------|------|-----------|
-| POST | `/psychological-exam/me` | JWT | Agendar exame psicotécnico |
-| GET | `/psychological-exam/me` | JWT | Consultar exame |
-| POST | `/psychological-exam/me/upload` | JWT | Upload do laudo |
-
----
-
-## Theory Exam Official (`/theory-exam-official`)
-
-| Método | Rota | Auth | Descrição |
-|--------|------|------|-----------|
-| POST | `/theory-exam-official/me` | JWT | Auto-declarar exame teórico |
-| GET | `/theory-exam-official/me` | JWT | Consultar declaração |
-
-### POST `/theory-exam-official/me`
-```json
-// Request
-{
-  "takenAt": "2026-05-01T10:00:00.000Z",
-  "score": 25,
-  "passed": true,
-  "proofUrl": "https://..."
-}
-```
-
----
-
 ## Lessons (`/lessons`)
 
 | Método | Rota | Auth | Descrição |
@@ -234,8 +186,8 @@ Todas as rotas são prefixadas com `/api/v1`. Documentação interativa disponí
 | PATCH | `/lessons/:id/checkin` | JWT (instrutor) | Iniciar aula |
 | PATCH | `/lessons/:id/checkout` | JWT (instrutor) | Encerrar aula + gerar hash |
 | PATCH | `/lessons/:id/cancel` | JWT | Cancelar aula |
-| PATCH | `/lessons/:id/feedback-instructor` | JWT (aluno) | Avaliar desempenho do aluno |
-| PATCH | `/lessons/:id/feedback-student` | JWT (instrutor) | Avaliar o instrutor |
+| PATCH | `/lessons/:id/feedback-instructor` | JWT (instrutor) | Avaliar desempenho do aluno |
+| PATCH | `/lessons/:id/feedback-student` | JWT (aluno) | Avaliar o instrutor |
 | POST | `/lessons/:id/biometry` | JWT | Registrar biometria com geofencing |
 
 ### POST `/lessons`
