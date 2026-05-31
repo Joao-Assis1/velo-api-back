@@ -100,6 +100,33 @@ export class PaymentMethodsService {
     return { paymentMethod: row };
   }
 
+  async remove(studentId: string, id: string) {
+    const pm = await this.prisma.paymentMethod.findFirst({
+      where: { id, studentId, isDeleted: false },
+    });
+    if (!pm) throw new NotFoundException('Payment method not found');
+
+    await this.prisma.paymentMethod.update({
+      where: { id },
+      data: { isDeleted: true, isDefault: false },
+    });
+
+    if (pm.isDefault) {
+      const next = await this.prisma.paymentMethod.findFirst({
+        where: { studentId, isDeleted: false },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (next) {
+        await this.prisma.paymentMethod.update({
+          where: { id: next.id },
+          data: { isDefault: true },
+        });
+      }
+    }
+
+    return { ok: true };
+  }
+
   async setDefault(studentId: string, id: string) {
     const pm = await this.prisma.paymentMethod.findFirst({
       where: { id, studentId, isDeleted: false },

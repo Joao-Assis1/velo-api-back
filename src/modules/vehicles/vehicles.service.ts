@@ -67,6 +67,20 @@ export class VehiclesService {
     });
   }
 
+  async removePhoto(vehicleId: string, instructorId: string) {
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+    });
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    if (vehicle.instructorId !== instructorId)
+      throw new ForbiddenException('Vehicle does not belong to this instructor');
+
+    return this.prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { vehiclePhoto: null },
+    });
+  }
+
   async findAll(instructorId?: string) {
     if (instructorId) {
       return this.prisma.vehicle.findMany({

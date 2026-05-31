@@ -23,6 +23,7 @@ import { ValidationModule } from './modules/validation/validation.module';
 import { RenachProcessModule } from './modules/renach-process/renach-process.module';
 import { LadvProcessModule } from './modules/ladv-process/ladv-process.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { MailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { AdminModule } from './modules/admin/admin.module';
     RenachProcessModule,
     LadvProcessModule,
     AdminModule,
+    MailModule,
   ],
 })
 export class AppModule {}

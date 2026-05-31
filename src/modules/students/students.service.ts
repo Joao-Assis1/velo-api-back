@@ -65,6 +65,14 @@ export class StudentsService {
     }) as unknown as Promise<Omit<Student, 'password'>>;
   }
 
+  async removePhoto(studentId: string): Promise<Omit<Student, 'password'>> {
+    return this.prisma.student.update({
+      where: { id: studentId },
+      data: { profilePicture: null },
+      omit: this.omitPassword,
+    }) as unknown as Promise<Omit<Student, 'password'>>;
+  }
+
   async startTheoryCourse(studentId: string) {
     const updated = await this.prisma.student.update({
       where: { id: studentId },
