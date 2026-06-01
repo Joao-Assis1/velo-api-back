@@ -5,7 +5,6 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { TelemetriaModule } from '../telemetria/telemetria.module';
 import { PaymentsStripeModule } from '../payments-stripe/payments-stripe.module';
 import { JourneyModule } from '../journey/journey.module';
-import { ValidationModule } from '../validation/validation.module';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
@@ -14,7 +13,6 @@ import { AuthModule } from '../auth/auth.module';
     TelemetriaModule,
     PaymentsStripeModule,
     JourneyModule,
-    ValidationModule,
     AuthModule,
   ],
   controllers: [LessonsController],

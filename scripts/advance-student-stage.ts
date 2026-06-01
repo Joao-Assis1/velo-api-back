@@ -15,7 +15,7 @@ async function main() {
       journeyStage: "LADV_UPLOADED_VALID",
       ladvUploaded: true,
       ladvOcrStatus: "PASS",
-      ladvNumber: "LADV-MS-TEST-001",
+      ladvNumber: "1234567",
       ladvIssuedAt: new Date("2026-01-01"),
       ladvValidUntil: new Date("2027-01-01"),
     },
