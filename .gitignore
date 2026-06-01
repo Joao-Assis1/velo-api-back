@@ -64,3 +64,4 @@ uploads/
 # Tesseract language data
 *.traineddata
 .vercel
+.worktrees/

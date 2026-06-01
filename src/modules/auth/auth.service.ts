@@ -188,10 +188,13 @@ export class AuthService {
       }
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
-        const target = (e as any)?.meta?.target as string[] | undefined;
-        if (target?.includes('cpf')) throw new BadRequestException('CPF já cadastrado.');
+        const target = (e as any)?.meta?.target;
+        const targetStr = Array.isArray(target) ? target.join(',') : String(target ?? '');
+        if (targetStr.includes('cpf')) throw new BadRequestException('CPF já cadastrado.');
+        if (targetStr.includes('plate')) throw new BadRequestException('Placa já cadastrada.');
         throw new BadRequestException('E-mail já está em uso.');
       }
+      this.logger.error(`Register error [${role}]: code=${(e as any)?.code} name=${(e as any)?.name} msg=${(e as any)?.message}`);
       throw e;
     }
 

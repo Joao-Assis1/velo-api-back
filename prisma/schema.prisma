@@ -106,10 +106,6 @@ model Instructor {
   isActive        Boolean        @default(true)
   passwordResetToken   String?
   passwordResetExpires DateTime?
-  pixKey          String?
-  bankCode        String?
-  bankAgency      String?
-  bankAccount     String?
   // === Credenciamento DETRAN (Resolução 1.020/2025) ===
   detranCredentialNumber String?
   detranCredentialUf     String?

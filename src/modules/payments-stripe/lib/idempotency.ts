@@ -1,7 +1,6 @@
 import { createHash } from 'crypto';
 
 export type IdempotentAction =
-  | 'setup-intent'
   | 'attach-payment-method'
   | 'detach-payment-method'
   | 'charge'

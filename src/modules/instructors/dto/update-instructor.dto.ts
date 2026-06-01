@@ -55,7 +55,31 @@ export class UpdateInstructorDto {
   @IsOptional()
   certidaoNegativa?: string;
 
+  @IsString()
+  @IsOptional()
+  birthDate?: string;
+
+  @IsString()
+  @IsOptional()
+  educationLevel?: string;
+
+  @IsString()
+  @IsOptional()
+  renachNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  instructorType?: string;
+
   @IsDateString()
   @IsOptional()
   termsAcceptedAt?: string;
+
+  @IsString()
+  @IsOptional()
+  detranCredentialNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  detranCredentialUf?: string;
 }

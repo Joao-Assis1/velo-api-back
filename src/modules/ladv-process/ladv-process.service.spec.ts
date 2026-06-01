@@ -55,7 +55,7 @@ describe('LadvProcessService', () => {
   describe('getMine', () => {
     it('returns canBook=true when status=PASS and validUntil is in the future', async () => {
       prisma.student.findUnique.mockResolvedValue({
-        ladvNumber: 'LADV-MS-1',
+        ladvNumber: '0000001',
         ladvIssuedAt: new Date('2026-01-01'),
         ladvValidUntil: new Date(Date.now() + 86400000),
         ladvOcrConfidence: 0.91,
@@ -70,7 +70,7 @@ describe('LadvProcessService', () => {
 
     it('returns canBook=false when validUntil is past', async () => {
       prisma.student.findUnique.mockResolvedValue({
-        ladvNumber: 'LADV-MS-1',
+        ladvNumber: '0000001',
         ladvIssuedAt: new Date('2020-01-01'),
         ladvValidUntil: new Date('2020-06-01'),
         ladvOcrConfidence: 0.91,
@@ -155,7 +155,7 @@ describe('LadvProcessService', () => {
     it('persists manual LADV with status=PASS and refreshes journey', async () => {
       prisma.student.update.mockResolvedValue({});
       prisma.student.findUnique.mockResolvedValue({
-        ladvNumber: 'LADV-MS-9999',
+        ladvNumber: '0009999',
         ladvIssuedAt: new Date('2026-05-10'),
         ladvValidUntil: new Date('2030-11-10'),
         ladvOcrConfidence: null,
@@ -164,14 +164,14 @@ describe('LadvProcessService', () => {
         journeyStage: 'AWAITING_LADV_UPLOAD',
       });
       const r = await service.saveManual('stu-1', {
-        ladvNumber: 'LADV-MS-9999',
+        ladvNumber: '0009999',
         ladvIssuedAt: new Date('2026-05-10'),
         ladvValidUntil: new Date('2030-11-10'),
       });
       expect(prisma.student.update).toHaveBeenCalledWith({
         where: { id: 'stu-1' },
         data: expect.objectContaining({
-          ladvNumber: 'LADV-MS-9999',
+          ladvNumber: '0009999',
           ladvOcrStatus: 'PASS',
           ladvOcrConfidence: null,
         }),
@@ -183,7 +183,7 @@ describe('LadvProcessService', () => {
     it('rejects when validUntil is in the past', async () => {
       await expect(
         service.saveManual('stu-1', {
-          ladvNumber: 'LADV-MS-9999',
+          ladvNumber: '0009999',
           ladvIssuedAt: new Date('2020-01-01'),
           ladvValidUntil: new Date('2020-06-01'),
         }),
