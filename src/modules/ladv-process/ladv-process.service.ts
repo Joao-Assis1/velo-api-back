@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  InternalServerErrorException,
   Injectable,
   Logger,
   NotFoundException,
@@ -85,19 +86,27 @@ export class LadvProcessService {
     parsed: LadvOcrResult,
     documentUrl: string | null,
   ): Promise<LadvStatusDto> {
-    await this.prisma.student.update({
-      where: { id: studentId },
-      data: {
-        ladvNumber: parsed.ladvNumber,
-        ladvIssuedAt: parsed.issuedAt,
-        ladvValidUntil: parsed.validUntil,
-        ladvOcrConfidence: parsed.confidence === 0 ? null : parsed.confidence,
-        ladvOcrStatus: parsed.status,
-        ladvUploaded: parsed.status === 'PASS',
-        ladv_document_url: documentUrl,
-        ladv_validation_date: new Date(),
-      },
-    });
+    try {
+      await this.prisma.student.update({
+        where: { id: studentId },
+        data: {
+          ladvNumber: parsed.ladvNumber,
+          ladvIssuedAt: parsed.issuedAt,
+          ladvValidUntil: parsed.validUntil,
+          ladvOcrConfidence: parsed.confidence === 0 ? null : parsed.confidence,
+          ladvOcrStatus: parsed.status,
+          ladvUploaded: parsed.status === 'PASS',
+          ladv_document_url: documentUrl,
+          ladv_validation_date: new Date(),
+        },
+      });
+    } catch (e: any) {
+      if (e?.code === 'P2025') {
+        throw new NotFoundException(`Student ${studentId} not found`);
+      }
+      this.logger.error(`persist failed: ${(e as Error).message}`);
+      throw new InternalServerErrorException('Failed to save LADV data');
+    }
     await this.journey.refresh(studentId);
     return this.getMine(studentId);
   }

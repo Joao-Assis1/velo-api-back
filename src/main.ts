@@ -8,6 +8,7 @@ import compression from 'compression';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { MulterExceptionFilter } from './common/filters/multer-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -45,6 +46,7 @@ async function bootstrap() {
     credentials: true,
   });
   app.setGlobalPrefix('api/v1');
+  app.useGlobalFilters(new MulterExceptionFilter());
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalPipes(
     new ValidationPipe({

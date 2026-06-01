@@ -347,12 +347,15 @@ async function main() {
       journeyStage: 'RENACH_PENDING',
       theoryCourseStartedAt: new Date('2026-04-01'),
     },
-    update: {},
+    update: {
+      journeyStage: 'RENACH_PENDING',
+      theoryCourseStartedAt: new Date('2026-04-01'),
+    },
   });
   await prisma.renachProcess.upsert({
     where: { studentId: aluno2.id },
     create: { studentId: aluno2.id, ufDetran: 'MS', status: 'PENDING' },
-    update: {},
+    update: { status: 'PENDING' },
   });
   console.log(`  ✔ Aluno RENACH: ${aluno2.email} (RENACH_PENDING)`);
 
@@ -372,7 +375,18 @@ async function main() {
       journeyStage: 'AWAITING_LADV_UPLOAD',
       theoryCourseStartedAt: new Date('2026-03-01'),
     },
-    update: {},
+    update: {
+      journeyStage: 'AWAITING_LADV_UPLOAD',
+      theoryCourseStartedAt: new Date('2026-03-01'),
+      ladvNumber: null,
+      ladvIssuedAt: null,
+      ladvValidUntil: null,
+      ladvOcrStatus: null,
+      ladvOcrConfidence: null,
+      ladvUploaded: false,
+      ladv_document_url: null,
+      ladv_validation_date: null,
+    },
   });
   await prisma.renachProcess.upsert({
     where: { studentId: aluno3.id },
@@ -383,7 +397,10 @@ async function main() {
       status: 'DONE',
       biometryDoneAt: new Date('2026-03-10'),
     },
-    update: {},
+    update: {
+      renachNumber: 'MS202600310',
+      status: 'DONE',
+    },
   });
   console.log(`  ✔ Aluno LADV: ${aluno3.email} (AWAITING_LADV_UPLOAD)`);
 
