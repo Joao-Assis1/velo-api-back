@@ -15,8 +15,12 @@ export function buildUploadStorage(folder: string): StorageEngine {
       const studentId =
         (req.user as { userId: string } | undefined)?.userId ?? 'anonymous';
       const path = `uploads/${folder}/${studentId}`;
-      if (!existsSync(path)) mkdirSync(path, { recursive: true });
-      cb(null, path);
+      try {
+        if (!existsSync(path)) mkdirSync(path, { recursive: true });
+        cb(null, path);
+      } catch (err) {
+        cb(err as Error, path);
+      }
     },
     filename: (_req, file, cb) => {
       cb(null, `${randomUUID()}${extname(file.originalname).toLowerCase()}`);

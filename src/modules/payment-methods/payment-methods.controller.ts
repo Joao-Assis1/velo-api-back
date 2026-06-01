@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -14,6 +15,7 @@ import { PaymentMethodsService } from './payment-methods.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TestModeGuard } from '../../common/test-mode/test-mode.guard';
 import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
+import { CreatePaymentMethodDto } from './dtos';
 
 @Controller('payment-methods')
 @UseGuards(JwtAuthGuard)
@@ -42,6 +44,15 @@ export class PaymentMethodsController {
     const role = req.user.role;
     const targetId = role === 'student' ? userId : studentId;
     return this.paymentMethodsService.findAll(targetId);
+  }
+
+  @Post()
+  @HttpCode(201)
+  async addCard(
+    @Req() req: RequestWithUser,
+    @Body() dto: CreatePaymentMethodDto,
+  ) {
+    return this.paymentMethodsService.addCard(req.user.userId, dto);
   }
 
   @Post('me/seed-test')

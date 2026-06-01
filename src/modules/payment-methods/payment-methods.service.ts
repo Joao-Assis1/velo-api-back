@@ -1,8 +1,14 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import Stripe from 'stripe';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import type Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { STRIPE_CLIENT } from '../payments-stripe/stripe.client';
 import { idempotencyKey } from '../payments-stripe/lib/idempotency';
+import { CreatePaymentMethodDto } from './dtos';
 
 type StripeInstance = InstanceType<typeof Stripe>;
 const SEED_PM = 'pm_card_visa';
@@ -13,6 +19,67 @@ export class PaymentMethodsService {
     private readonly prisma: PrismaService,
     @Inject(STRIPE_CLIENT) private readonly stripe: StripeInstance,
   ) {}
+
+  async addCard(studentId: string, dto: CreatePaymentMethodDto) {
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      select: { id: true, email: true, name: true, stripeCustomerId: true },
+    });
+    if (!student) throw new NotFoundException(`Student ${studentId} not found`);
+
+    let customerId = student.stripeCustomerId;
+    if (!customerId) {
+      const customer = await this.stripe.customers.create(
+        { email: student.email, name: student.name, metadata: { studentId } },
+        { idempotencyKey: idempotencyKey(studentId, 'connect-account') },
+      );
+      customerId = customer.id;
+      await this.prisma.student.update({
+        where: { id: studentId },
+        data: { stripeCustomerId: customerId },
+      });
+    }
+
+    type PM = Awaited<ReturnType<StripeInstance['paymentMethods']['create']>>;
+    let pm: PM;
+    try {
+      pm = await this.stripe.paymentMethods.create({
+        type: 'card',
+        card: {
+          number: dto.cardNumber.replace(/\s/g, ''),
+          exp_month: parseInt(dto.expiryMonth, 10),
+          exp_year: parseInt(dto.expiryYear, 10),
+          cvc: dto.cvv,
+        },
+        billing_details: { name: dto.cardholderName },
+      });
+    } catch (err: any) {
+      throw new BadRequestException(
+        err?.message ?? 'Invalid card details',
+      );
+    }
+
+    await this.stripe.paymentMethods.attach(pm.id, { customer: customerId });
+
+    const activeCount = await this.prisma.paymentMethod.count({
+      where: { studentId, isDeleted: false },
+    });
+
+    const row = await this.prisma.paymentMethod.create({
+      data: {
+        studentId,
+        stripePaymentMethodId: pm.id,
+        brand: pm.card!.brand,
+        last4: pm.card!.last4,
+        cardholderName: dto.cardholderName,
+        expiryMonth: dto.expiryMonth.padStart(2, '0'),
+        expiryYear: dto.expiryYear,
+        isDefault: dto.isDefault ?? activeCount === 0,
+      },
+    });
+
+    return { paymentMethod: row };
+  }
 
   async findAll(studentId: string) {
     return this.prisma.paymentMethod.findMany({
