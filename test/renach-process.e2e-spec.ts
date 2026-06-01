@@ -4,10 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 
-const login = async (
-  app: INestApplication,
-  email: string,
-): Promise<string> => {
+const login = async (app: INestApplication, email: string): Promise<string> => {
   const res = await request(app.getHttpServer())
     .post('/api/v1/auth/login/student')
     .send({ email, password: '123456' })

@@ -42,7 +42,9 @@ describe('NavigatorService', () => {
         { lat: 1, lng: 1, velocity: 70, timestamp: '2024-01-01T10:01:00Z' }, // Speeding
       ];
 
-      const createSpy = jest.spyOn(prisma.lessonEvent, 'create').mockResolvedValue({} as any);
+      const createSpy = jest
+        .spyOn(prisma.lessonEvent, 'create')
+        .mockResolvedValue({} as any);
 
       await service.analyzeTelemetry(lessonId, points);
 

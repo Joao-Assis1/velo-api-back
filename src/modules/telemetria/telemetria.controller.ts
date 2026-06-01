@@ -30,7 +30,9 @@ export class TelemetriaController {
 
   @Get('lesson/:lessonId/events')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Obter eventos de orientação (Navegador) de uma aula' })
+  @ApiOperation({
+    summary: 'Obter eventos de orientação (Navegador) de uma aula',
+  })
   async getEvents(@Param('lessonId') lessonId: string) {
     return this.navigator.getLessonEvents(lessonId);
   }

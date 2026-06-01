@@ -145,11 +145,17 @@ export class AuthService {
         try {
           await this.journeyService.initForStudent(user.id);
         } catch (err) {
-          this.logger.error(`Failed to initialize journey for student ${user.id}: ${err}`);
+          this.logger.error(
+            `Failed to initialize journey for student ${user.id}: ${err}`,
+          );
         }
         this.paymentsStripeService
           .provisionCustomer(user.id, user.email, user.name)
-          .catch((err) => this.logger.error(`Failed to provision Stripe customer for student ${user.id}: ${err}`));
+          .catch((err) =>
+            this.logger.error(
+              `Failed to provision Stripe customer for student ${user.id}: ${err}`,
+            ),
+          );
       } else {
         user = await this.prisma.instructor.create({
           data: {
@@ -171,30 +177,43 @@ export class AuthService {
             birthDate: registerDto.birthDate,
             educationLevel: registerDto.educationLevel,
             renachNumber: registerDto.renachNumber,
-            vehicles: (registerDto.vehiclePlate && registerDto.vehicleModel) ? {
-              create: {
-                plate: registerDto.vehiclePlate,
-                model: registerDto.vehicleModel,
-                year: registerDto.vehicleYear,
-                transmission: registerDto.transmission,
-              }
-            } : undefined,
+            vehicles:
+              registerDto.vehiclePlate && registerDto.vehicleModel
+                ? {
+                    create: {
+                      plate: registerDto.vehiclePlate,
+                      model: registerDto.vehicleModel,
+                      year: registerDto.vehicleYear,
+                      transmission: registerDto.transmission,
+                    },
+                  }
+                : undefined,
           },
           include: { availabilities: true, busySlots: true, vehicles: true },
         });
         this.stripeConnectService
           .provisionAccount(user.id, user.email)
-          .catch((err) => this.logger.error(`Failed to provision Stripe account for instructor ${user.id}: ${err}`));
+          .catch((err) =>
+            this.logger.error(
+              `Failed to provision Stripe account for instructor ${user.id}: ${err}`,
+            ),
+          );
       }
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
         const target = (e as any)?.meta?.target;
-        const targetStr = Array.isArray(target) ? target.join(',') : String(target ?? '');
-        if (targetStr.includes('cpf')) throw new BadRequestException('CPF já cadastrado.');
-        if (targetStr.includes('plate')) throw new BadRequestException('Placa já cadastrada.');
+        const targetStr = Array.isArray(target)
+          ? target.join(',')
+          : String(target ?? '');
+        if (targetStr.includes('cpf'))
+          throw new BadRequestException('CPF já cadastrado.');
+        if (targetStr.includes('plate'))
+          throw new BadRequestException('Placa já cadastrada.');
         throw new BadRequestException('E-mail já está em uso.');
       }
-      this.logger.error(`Register error [${role}]: code=${(e as any)?.code} name=${(e as any)?.name} msg=${(e as any)?.message}`);
+      this.logger.error(
+        `Register error [${role}]: code=${(e as any)?.code} name=${(e as any)?.name} msg=${(e as any)?.message}`,
+      );
       throw e;
     }
 
@@ -246,7 +265,11 @@ export class AuthService {
     const email = await this.getUserEmail(record.userId, role);
     const payload = { sub: record.userId, email, role };
     const access_token = await this.jwtService.signAsync(payload);
-    const refresh_token = await this.issueRefreshToken(record.userId, role, record.familyId);
+    const refresh_token = await this.issueRefreshToken(
+      record.userId,
+      role,
+      record.familyId,
+    );
 
     return { access_token, refresh_token };
   }
@@ -259,21 +282,28 @@ export class AuthService {
     return { revoked: count > 0 };
   }
 
-  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; token?: string }> {
-    const message = 'Se esse e-mail estiver cadastrado, você receberá um link em breve.';
+  async forgotPassword(
+    dto: ForgotPasswordDto,
+  ): Promise<{ message: string; token?: string }> {
+    const message =
+      'Se esse e-mail estiver cadastrado, você receberá um link em breve.';
     const testMode = process.env.ENABLE_TEST_MODE === 'true';
 
     let userId: string | null = null;
     let userRole: 'student' | 'instructor' | null = null;
     let userEmail: string | null = null;
 
-    const student = await this.prisma.student.findUnique({ where: { email: dto.email } });
+    const student = await this.prisma.student.findUnique({
+      where: { email: dto.email },
+    });
     if (student) {
       userId = student.id;
       userRole = 'student';
       userEmail = student.email;
     } else {
-      const instructor = await this.prisma.instructor.findUnique({ where: { email: dto.email } });
+      const instructor = await this.prisma.instructor.findUnique({
+        where: { email: dto.email },
+      });
       if (instructor) {
         userId = instructor.id;
         userRole = 'instructor';
@@ -301,9 +331,13 @@ export class AuthService {
     }
 
     // Fire-and-forget: log on failure but don't break the response.
-    this.mailService.sendPasswordReset(userEmail, token).catch((err) =>
-      this.logger.error(`Failed to send password reset email to ${userEmail}: ${err}`),
-    );
+    this.mailService
+      .sendPasswordReset(userEmail, token)
+      .catch((err) =>
+        this.logger.error(
+          `Failed to send password reset email to ${userEmail}: ${err}`,
+        ),
+      );
 
     // In test mode the token is also returned directly so the frontend can complete the flow without checking email.
     if (testMode) {
@@ -350,12 +384,20 @@ export class AuthService {
     if (userRole === 'student') {
       await this.prisma.student.update({
         where: { id: userId },
-        data: { password: hashedPassword, passwordResetToken: null, passwordResetExpires: null },
+        data: {
+          password: hashedPassword,
+          passwordResetToken: null,
+          passwordResetExpires: null,
+        },
       });
     } else {
       await this.prisma.instructor.update({
         where: { id: userId },
-        data: { password: hashedPassword, passwordResetToken: null, passwordResetExpires: null },
+        data: {
+          password: hashedPassword,
+          passwordResetToken: null,
+          passwordResetExpires: null,
+        },
       });
     }
 

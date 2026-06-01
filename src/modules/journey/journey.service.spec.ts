@@ -31,7 +31,9 @@ describe('JourneyService', () => {
   describe('computeStage', () => {
     it('throws NotFoundException when student does not exist', async () => {
       (prisma.student.findUnique as jest.Mock).mockResolvedValue(null);
-      await expect(service.computeStage('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.computeStage('missing')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns REGISTERED for a brand-new student with no related data', async () => {
@@ -135,7 +137,9 @@ describe('JourneyService', () => {
       });
       (prisma.lesson.findMany as jest.Mock).mockResolvedValue([]);
 
-      await expect(service.declareReadyForExam('stu-1')).rejects.toThrow(BadRequestException);
+      await expect(service.declareReadyForExam('stu-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('sets readyForPracticalExamAt when minimum is met', async () => {

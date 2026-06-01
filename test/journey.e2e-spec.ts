@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
@@ -45,7 +45,10 @@ describe('Journey (e2e)', () => {
     { email: 'student-registered@email.com', expectedStage: 'REGISTERED' },
     { email: 'student-renach@email.com', expectedStage: 'RENACH_PENDING' },
     { email: 'student-ladv@email.com', expectedStage: 'LADV_UPLOADED_VALID' },
-    { email: 'student-ready@email.com', expectedStage: 'READY_FOR_PRACTICAL_EXAM' },
+    {
+      email: 'student-ready@email.com',
+      expectedStage: 'READY_FOR_PRACTICAL_EXAM',
+    },
   ];
 
   it.each(cases)(
@@ -69,7 +72,9 @@ describe('Journey (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    const timeline = (res.body as { data: Array<{ key: string; status: string }> }).data;
+    const timeline = (
+      res.body as { data: Array<{ key: string; status: string }> }
+    ).data;
     expect(timeline).toHaveLength(7);
 
     const ladvStep = timeline.find((s) => s.key === 'LADV_UPLOADED_VALID');

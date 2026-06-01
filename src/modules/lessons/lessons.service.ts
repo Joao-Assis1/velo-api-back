@@ -50,9 +50,7 @@ export class LessonsService {
       !instructor.credentialValidUntil ||
       instructor.credentialValidUntil <= new Date()
     ) {
-      throw new BadRequestException(
-        'Instructor DETRAN credential is expired',
-      );
+      throw new BadRequestException('Instructor DETRAN credential is expired');
     }
 
     // === STAGE 3: Instructor CNH checksum + expiry ===
@@ -162,7 +160,9 @@ export class LessonsService {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
     if (!lesson) throw new BadRequestException('Lesson not found');
     if (lesson.instructorId !== actorId) {
-      throw new ForbiddenException('Only the assigned instructor can check in this lesson');
+      throw new ForbiddenException(
+        'Only the assigned instructor can check in this lesson',
+      );
     }
     return this.prisma.lesson.update({
       where: { id },
@@ -179,7 +179,9 @@ export class LessonsService {
       throw new BadRequestException('Lesson not found');
     }
     if (lesson.instructorId !== actorId) {
-      throw new ForbiddenException('Only the assigned instructor can check out this lesson');
+      throw new ForbiddenException(
+        'Only the assigned instructor can check out this lesson',
+      );
     }
 
     const checkOutTime = new Date();
@@ -220,7 +222,9 @@ export class LessonsService {
       throw new BadRequestException('Lesson not found');
     }
     if (lesson.studentId !== actorId && lesson.instructorId !== actorId) {
-      throw new ForbiddenException('Only the student or instructor of this lesson can cancel it');
+      throw new ForbiddenException(
+        'Only the student or instructor of this lesson can cancel it',
+      );
     }
     if (lesson.status === 'in-progress') {
       throw new BadRequestException(
@@ -259,11 +263,17 @@ export class LessonsService {
     });
   }
 
-  async giveInstructorFeedback(id: string, actorId: string, feedback: string): Promise<Lesson> {
+  async giveInstructorFeedback(
+    id: string,
+    actorId: string,
+    feedback: string,
+  ): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
     if (!lesson) throw new BadRequestException('Lesson not found');
     if (lesson.instructorId !== actorId) {
-      throw new ForbiddenException('Only the assigned instructor can give feedback on this lesson');
+      throw new ForbiddenException(
+        'Only the assigned instructor can give feedback on this lesson',
+      );
     }
     return this.prisma.lesson.update({
       where: { id },
@@ -280,7 +290,9 @@ export class LessonsService {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
     if (!lesson) throw new BadRequestException('Lesson not found');
     if (lesson.studentId !== actorId) {
-      throw new ForbiddenException('Only the assigned student can give feedback on this lesson');
+      throw new ForbiddenException(
+        'Only the assigned student can give feedback on this lesson',
+      );
     }
     const updatedLesson = await this.prisma.lesson.update({
       where: { id },
@@ -323,7 +335,9 @@ export class LessonsService {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
     if (!lesson) throw new BadRequestException('Lesson not found');
     if (lesson.instructorId !== actorId) {
-      throw new ForbiddenException('Only the assigned instructor can accept this lesson');
+      throw new ForbiddenException(
+        'Only the assigned instructor can accept this lesson',
+      );
     }
     if (lesson.status !== 'pending_acceptance') {
       throw new BadRequestException(
@@ -348,7 +362,9 @@ export class LessonsService {
         paymentMethodId: pm.id,
       });
     } catch (err: any) {
-      this.logger.warn(`Payment failed on accept for lesson ${id}: ${err.message}`);
+      this.logger.warn(
+        `Payment failed on accept for lesson ${id}: ${err.message}`,
+      );
       throw new HttpException(
         err.message ?? 'Payment failed — lesson remains pending',
         HttpStatus.PAYMENT_REQUIRED,
@@ -365,7 +381,9 @@ export class LessonsService {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
     if (!lesson) throw new BadRequestException('Lesson not found');
     if (lesson.instructorId !== actorId) {
-      throw new ForbiddenException('Only the assigned instructor can reject this lesson');
+      throw new ForbiddenException(
+        'Only the assigned instructor can reject this lesson',
+      );
     }
     if (lesson.status !== 'pending_acceptance') {
       throw new BadRequestException(

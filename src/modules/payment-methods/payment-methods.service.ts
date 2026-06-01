@@ -45,7 +45,10 @@ export class PaymentMethodsService {
         { idempotencyKey: idempotencyKey(studentId, 'connect-account') },
       );
       customerId = customer.id;
-      await this.prisma.student.update({ where: { id: studentId }, data: { stripeCustomerId: customerId } });
+      await this.prisma.student.update({
+        where: { id: studentId },
+        data: { stripeCustomerId: customerId },
+      });
     }
 
     type PM = Awaited<ReturnType<StripeInstance['paymentMethods']['retrieve']>>;

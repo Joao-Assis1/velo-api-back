@@ -33,8 +33,12 @@ const FAMILY_ID = 'family-uuid-1';
 
 const mockJwt = { signAsync: jest.fn().mockResolvedValue('mock-token') };
 const mockJourney = { initForStudent: jest.fn().mockResolvedValue(undefined) };
-const mockPaymentsStripe = { provisionCustomer: jest.fn().mockResolvedValue(undefined) };
-const mockStripeConnect = { provisionAccount: jest.fn().mockResolvedValue(undefined) };
+const mockPaymentsStripe = {
+  provisionCustomer: jest.fn().mockResolvedValue(undefined),
+};
+const mockStripeConnect = {
+  provisionAccount: jest.fn().mockResolvedValue(undefined),
+};
 const mockMail = { sendPasswordReset: jest.fn().mockResolvedValue(undefined) };
 
 describe('AuthService', () => {
@@ -102,19 +106,26 @@ describe('AuthService', () => {
 
       const result = await service.forgotPassword({ email: 'nao@existe.com' });
 
-      expect(result.message).toBe('Se esse e-mail estiver cadastrado, você receberá um link em breve.');
+      expect(result.message).toBe(
+        'Se esse e-mail estiver cadastrado, você receberá um link em breve.',
+      );
       expect(result.token).toBeUndefined();
       expect(mockPrisma.student.update).not.toHaveBeenCalled();
       expect(mockPrisma.instructor.update).not.toHaveBeenCalled();
     });
 
     it('should generate token and update student when email found', async () => {
-      mockPrisma.student.findUnique.mockResolvedValue({ id: 'student-1', email: 'aluno@test.com' });
+      mockPrisma.student.findUnique.mockResolvedValue({
+        id: 'student-1',
+        email: 'aluno@test.com',
+      });
       mockPrisma.student.update.mockResolvedValue({});
 
       const result = await service.forgotPassword({ email: 'aluno@test.com' });
 
-      expect(result.message).toBe('Se esse e-mail estiver cadastrado, você receberá um link em breve.');
+      expect(result.message).toBe(
+        'Se esse e-mail estiver cadastrado, você receberá um link em breve.',
+      );
       expect(result).not.toHaveProperty('token');
       expect(mockPrisma.student.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -127,7 +138,10 @@ describe('AuthService', () => {
     });
 
     it('should overwrite existing token on repeated call', async () => {
-      mockPrisma.student.findUnique.mockResolvedValue({ id: 'student-1', email: 'aluno@test.com' });
+      mockPrisma.student.findUnique.mockResolvedValue({
+        id: 'student-1',
+        email: 'aluno@test.com',
+      });
       mockPrisma.student.update.mockResolvedValue({});
 
       await service.forgotPassword({ email: 'aluno@test.com' });
@@ -138,10 +152,15 @@ describe('AuthService', () => {
 
     it('should generate token and update instructor when email found', async () => {
       mockPrisma.student.findUnique.mockResolvedValue(null);
-      mockPrisma.instructor.findUnique.mockResolvedValue({ id: 'instructor-1', email: 'instrutor@test.com' });
+      mockPrisma.instructor.findUnique.mockResolvedValue({
+        id: 'instructor-1',
+        email: 'instrutor@test.com',
+      });
       mockPrisma.instructor.update.mockResolvedValue({});
 
-      const result = await service.forgotPassword({ email: 'instrutor@test.com' });
+      const result = await service.forgotPassword({
+        email: 'instrutor@test.com',
+      });
 
       expect(result).not.toHaveProperty('token');
       expect(mockPrisma.instructor.update).toHaveBeenCalledWith(
@@ -204,18 +223,25 @@ describe('AuthService', () => {
 
     it('rejeita token inexistente', async () => {
       mockPrisma.refreshToken.findUnique.mockResolvedValue(null);
-      await expect(service.refreshTokens('x')).rejects.toThrow('Refresh token inválido');
+      await expect(service.refreshTokens('x')).rejects.toThrow(
+        'Refresh token inválido',
+      );
     });
 
     it('revoga família e rejeita ao detectar reuso de token já revogado', async () => {
       mockPrisma.refreshToken.findUnique.mockResolvedValue({
-        id: 'rt-1', userId: 'stu-1', role: 'student',
+        id: 'rt-1',
+        userId: 'stu-1',
+        role: 'student',
         familyId: FAMILY_ID,
-        expiresAt: new Date(Date.now() + 1000000), revokedAt: new Date(),
+        expiresAt: new Date(Date.now() + 1000000),
+        revokedAt: new Date(),
       });
       mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 2 });
 
-      await expect(service.refreshTokens('stolen-token')).rejects.toThrow('Refresh token inválido');
+      await expect(service.refreshTokens('stolen-token')).rejects.toThrow(
+        'Refresh token inválido',
+      );
 
       expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith({
         where: { familyId: FAMILY_ID, revokedAt: null },
@@ -225,9 +251,12 @@ describe('AuthService', () => {
 
     it('revoga família e rejeita ao detectar corrida concorrente (count === 0)', async () => {
       mockPrisma.refreshToken.findUnique.mockResolvedValue({
-        id: 'rt-1', userId: 'stu-1', role: 'student',
+        id: 'rt-1',
+        userId: 'stu-1',
+        role: 'student',
         familyId: FAMILY_ID,
-        expiresAt: new Date(Date.now() + 1000000), revokedAt: null,
+        expiresAt: new Date(Date.now() + 1000000),
+        revokedAt: null,
       });
       // First updateMany (conditional revoke) returns 0 → already consumed
       // Second updateMany (revokeFamily) returns count 0 too
@@ -235,7 +264,9 @@ describe('AuthService', () => {
         .mockResolvedValueOnce({ count: 0 })
         .mockResolvedValue({ count: 0 });
 
-      await expect(service.refreshTokens('concurrent-token')).rejects.toThrow('Refresh token inválido');
+      await expect(service.refreshTokens('concurrent-token')).rejects.toThrow(
+        'Refresh token inválido',
+      );
 
       expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledTimes(2);
       expect(mockPrisma.refreshToken.updateMany).toHaveBeenNthCalledWith(2, {
@@ -246,9 +277,12 @@ describe('AuthService', () => {
 
     it('rejeita token expirado', async () => {
       mockPrisma.refreshToken.findUnique.mockResolvedValue({
-        id: 'rt-1', userId: 'stu-1', role: 'student',
+        id: 'rt-1',
+        userId: 'stu-1',
+        role: 'student',
         familyId: FAMILY_ID,
-        expiresAt: new Date(Date.now() - 1000), revokedAt: null,
+        expiresAt: new Date(Date.now() - 1000),
+        revokedAt: null,
       });
       await expect(service.refreshTokens('x')).rejects.toThrow();
     });
@@ -275,7 +309,10 @@ describe('AuthService', () => {
       mockPrisma.instructor.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.resetPassword({ token: 'invalid-token', newPassword: 'newpass123' }),
+        service.resetPassword({
+          token: 'invalid-token',
+          newPassword: 'newpass123',
+        }),
       ).rejects.toThrow(new BadRequestException('Token inválido ou expirado.'));
     });
 
@@ -287,7 +324,10 @@ describe('AuthService', () => {
       });
       mockPrisma.student.update.mockResolvedValue({});
 
-      const result = await service.resetPassword({ token: 'valid-token', newPassword: 'newpass123' });
+      const result = await service.resetPassword({
+        token: 'valid-token',
+        newPassword: 'newpass123',
+      });
 
       expect(result.message).toBe('Senha redefinida com sucesso.');
       expect(mockPrisma.student.update).toHaveBeenCalledWith(
@@ -310,7 +350,10 @@ describe('AuthService', () => {
       });
       mockPrisma.instructor.update.mockResolvedValue({});
 
-      const result = await service.resetPassword({ token: 'valid-token', newPassword: 'newpass123' });
+      const result = await service.resetPassword({
+        token: 'valid-token',
+        newPassword: 'newpass123',
+      });
 
       expect(result.message).toBe('Senha redefinida com sucesso.');
       expect(mockPrisma.instructor.update).toHaveBeenCalledWith(

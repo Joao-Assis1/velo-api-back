@@ -75,7 +75,8 @@ export class JourneyService {
       practicalSummary: {
         totalCompletedLessons: validLessons.length,
         totalValidatedMinutes,
-        meetsMinimumLegal: totalValidatedMinutes >= MIN_PRACTICAL_MINUTES_FOR_READY,
+        meetsMinimumLegal:
+          totalValidatedMinutes >= MIN_PRACTICAL_MINUTES_FOR_READY,
       },
     };
   }
@@ -99,7 +100,9 @@ export class JourneyService {
 
   async assertCanScheduleLesson(studentId: string): Promise<void> {
     const state = await this.computeStage(studentId);
-    const minIdx = JOURNEY_STAGE_ORDER.indexOf(JourneyStage.LADV_UPLOADED_VALID);
+    const minIdx = JOURNEY_STAGE_ORDER.indexOf(
+      JourneyStage.LADV_UPLOADED_VALID,
+    );
     const curIdx = JOURNEY_STAGE_ORDER.indexOf(state.stage);
     if (curIdx < minIdx) {
       throw new BadRequestException(

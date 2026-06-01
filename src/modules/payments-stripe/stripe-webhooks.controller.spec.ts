@@ -48,10 +48,7 @@ describe('StripeWebhooksController', () => {
       throw new Error('Invalid signature');
     });
     await expect(
-      controller.handle(
-        { rawBody: Buffer.from('{}') } as any,
-        't=1,v1=bad',
-      ),
+      controller.handle({ rawBody: Buffer.from('{}') } as any, 't=1,v1=bad'),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -65,7 +62,9 @@ describe('StripeWebhooksController', () => {
       { rawBody: Buffer.from('{}') } as any,
       'sig',
     );
-    expect(payments.handlePaymentIntentSucceeded).toHaveBeenCalledWith({ id: 'pi_1' });
+    expect(payments.handlePaymentIntentSucceeded).toHaveBeenCalledWith({
+      id: 'pi_1',
+    });
     expect(res).toEqual({ received: true });
   });
 

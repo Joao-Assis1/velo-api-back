@@ -21,5 +21,8 @@ export interface FaceMatchResult {
 export interface DocumentValidationProvider {
   validateCnh(cnhNumber: string, cpf: string): Promise<CnhExternalCheck>;
   validateRenach(renach: string, cpf: string): Promise<RenachExternalCheck>;
-  matchFaceWithCnh(cpf: string, faceImageBase64: string): Promise<FaceMatchResult>;
+  matchFaceWithCnh(
+    cpf: string,
+    faceImageBase64: string,
+  ): Promise<FaceMatchResult>;
 }

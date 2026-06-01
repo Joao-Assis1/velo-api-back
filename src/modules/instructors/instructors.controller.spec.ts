@@ -12,7 +12,10 @@ describe('InstructorsController', () => {
       controllers: [InstructorsController],
       providers: [
         { provide: InstructorsService, useValue: {} },
-        { provide: TestModeService, useValue: { isEnabled: jest.fn().mockReturnValue(true) } },
+        {
+          provide: TestModeService,
+          useValue: { isEnabled: jest.fn().mockReturnValue(true) },
+        },
         TestModeGuard,
       ],
     }).compile();

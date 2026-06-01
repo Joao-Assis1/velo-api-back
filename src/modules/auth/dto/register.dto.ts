@@ -90,7 +90,9 @@ export class RegisterDto {
   motherName?: string;
 
   @IsOptional()
-  @Matches(/^[A-Z]{2}$/, { message: 'ufDomicile must be a 2-letter uppercase state code (e.g. MS)' })
+  @Matches(/^[A-Z]{2}$/, {
+    message: 'ufDomicile must be a 2-letter uppercase state code (e.g. MS)',
+  })
   ufDomicile?: string;
 
   @IsString()

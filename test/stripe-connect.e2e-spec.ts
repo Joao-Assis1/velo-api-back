@@ -14,7 +14,9 @@ const loginInstructor = async (
     .post('/api/v1/auth/login/instructor')
     .send({ email, password: '123456' });
   if (res.status !== 201) {
-    throw new Error(`Login failed for ${email}: ${res.status} ${JSON.stringify(res.body)}`);
+    throw new Error(
+      `Login failed for ${email}: ${res.status} ${JSON.stringify(res.body)}`,
+    );
   }
   return res.body.data?.access_token ?? res.body.access_token;
 };
@@ -36,7 +38,11 @@ describe('StripeConnect (e2e)', () => {
     },
     customers: { create: jest.fn() },
     setupIntents: { create: jest.fn() },
-    paymentMethods: { attach: jest.fn(), retrieve: jest.fn(), detach: jest.fn() },
+    paymentMethods: {
+      attach: jest.fn(),
+      retrieve: jest.fn(),
+      detach: jest.fn(),
+    },
     paymentIntents: { create: jest.fn() },
     transfers: { create: jest.fn() },
     refunds: { create: jest.fn() },
@@ -54,7 +60,9 @@ describe('StripeConnect (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
     app.useGlobalInterceptors(new ResponseInterceptor());
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
     prisma = app.get(PrismaService);
   });

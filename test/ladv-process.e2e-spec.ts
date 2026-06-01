@@ -4,10 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 
-const login = async (
-  app: INestApplication,
-  email: string,
-): Promise<string> => {
+const login = async (app: INestApplication, email: string): Promise<string> => {
   const res = await request(app.getHttpServer())
     .post('/api/v1/auth/login/student')
     .send({ email, password: '123456' })
@@ -57,9 +54,7 @@ describe('LadvProcess (e2e)', () => {
       .send({
         ladvNumber: 'LADV-MS-77777',
         ladvIssuedAt: new Date().toISOString(),
-        ladvValidUntil: new Date(
-          Date.now() + 365 * 86400000,
-        ).toISOString(),
+        ladvValidUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
       })
       .expect(201);
 

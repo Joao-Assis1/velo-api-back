@@ -8,11 +8,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PaymentsStripeService } from './payments-stripe.service';
 import { StripeConnectService } from './stripe-connect.service';
 import { ChargeDto } from './dto/charge.dto';
@@ -76,5 +72,4 @@ export class PaymentsStripeController {
   connectStatus(@Req() req: RequestWithUser) {
     return this.connect.getStatus(req.user.userId);
   }
-
 }

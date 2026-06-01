@@ -84,7 +84,9 @@ export class ComplianceService {
       },
     };
 
-    const completedCount = Object.values(steps).filter((s) => s.completed).length;
+    const completedCount = Object.values(steps).filter(
+      (s) => s.completed,
+    ).length;
 
     return {
       studentId,
@@ -140,7 +142,8 @@ export class ComplianceService {
       (sum, l) => sum + (l.durationMinutes ?? 0),
       0,
     );
-    const meetsMinimumLegal = totalValidatedMinutes >= MINIMUM_PRACTICAL_MINUTES;
+    const meetsMinimumLegal =
+      totalValidatedMinutes >= MINIMUM_PRACTICAL_MINUTES;
     const ladvValid =
       student.ladvOcrStatus === 'PASS' &&
       !!student.ladvValidUntil &&

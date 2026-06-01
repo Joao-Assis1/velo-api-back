@@ -10,7 +10,12 @@ import { TestModeGuard } from '../../common/test-mode/test-mode.guard';
 @Module({
   imports: [PrismaModule, ConfigModule],
   controllers: [PaymentMethodsController],
-  providers: [PaymentMethodsService, stripeClientProvider, TestModeService, TestModeGuard],
+  providers: [
+    PaymentMethodsService,
+    stripeClientProvider,
+    TestModeService,
+    TestModeGuard,
+  ],
   exports: [PaymentMethodsService],
 })
 export class PaymentMethodsModule {}

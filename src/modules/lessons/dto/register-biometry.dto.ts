@@ -12,7 +12,10 @@ export class RegisterBiometryDto {
   @IsNotEmpty()
   lng: number;
 
-  @ApiProperty({ example: 'SUCCESS', description: 'Status retornado pelo SDK de Biometria do App' })
+  @ApiProperty({
+    example: 'SUCCESS',
+    description: 'Status retornado pelo SDK de Biometria do App',
+  })
   @IsString()
   @IsNotEmpty()
   status: string;

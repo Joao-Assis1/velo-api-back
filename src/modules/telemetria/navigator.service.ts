@@ -26,7 +26,9 @@ export class NavigatorService {
     lat: number;
     lng: number;
   }) {
-    this.logger.log(`Registering orientation event: ${data.type} for lesson ${data.lessonId}`);
+    this.logger.log(
+      `Registering orientation event: ${data.type} for lesson ${data.lessonId}`,
+    );
 
     return this.prisma.lessonEvent.create({
       data: {

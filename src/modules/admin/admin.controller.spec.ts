@@ -27,7 +27,10 @@ describe('AdminController', () => {
       providers: [
         { provide: PrismaService, useValue: prisma },
         { provide: STRIPE_CLIENT, useValue: stripe },
-        { provide: PaymentsStripeService, useValue: { resolveDispute: jest.fn() } },
+        {
+          provide: PaymentsStripeService,
+          useValue: { resolveDispute: jest.fn() },
+        },
       ],
     })
       .overrideGuard(AdminApiKeyGuard)

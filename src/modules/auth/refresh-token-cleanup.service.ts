@@ -13,10 +13,7 @@ export class RefreshTokenCleanupService {
     const cutoff = new Date();
     const { count } = await this.prisma.refreshToken.deleteMany({
       where: {
-        OR: [
-          { expiresAt: { lt: cutoff } },
-          { revokedAt: { lt: cutoff } },
-        ],
+        OR: [{ expiresAt: { lt: cutoff } }, { revokedAt: { lt: cutoff } }],
       },
     });
     this.logger.log(`Purged ${count} stale refresh tokens`);

@@ -10,7 +10,10 @@ import { AppModule } from '../src/app.module';
 import { STRIPE_CLIENT } from '../src/modules/payments-stripe/stripe.client';
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 
-const loginInstructor = async (app: INestApplication, email: string): Promise<string> => {
+const loginInstructor = async (
+  app: INestApplication,
+  email: string,
+): Promise<string> => {
   const res = await request(app.getHttpServer())
     .post('/api/v1/auth/login/instructor')
     .send({ email, password: '123456' })
@@ -39,7 +42,9 @@ describe('InstructorSeed (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
     app.useGlobalInterceptors(new ResponseInterceptor());
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    );
     await app.init();
   });
 

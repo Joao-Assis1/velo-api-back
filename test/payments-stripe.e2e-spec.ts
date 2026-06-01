@@ -14,7 +14,9 @@ const loginStudent = async (
     .post('/api/v1/auth/login/student')
     .send({ email, password: '123456' });
   if (res.status !== 201) {
-    throw new Error(`Login failed for ${email}: ${res.status} ${JSON.stringify(res.body)}`);
+    throw new Error(
+      `Login failed for ${email}: ${res.status} ${JSON.stringify(res.body)}`,
+    );
   }
   return res.body.data?.access_token ?? res.body.access_token;
 };
@@ -41,7 +43,9 @@ describe('PaymentsStripe (e2e)', () => {
       detach: jest.fn().mockResolvedValue({}),
     },
     paymentIntents: {
-      create: jest.fn().mockResolvedValue({ id: 'pi_test_e2e', status: 'requires_capture' }),
+      create: jest
+        .fn()
+        .mockResolvedValue({ id: 'pi_test_e2e', status: 'requires_capture' }),
     },
     transfers: { create: jest.fn() },
     refunds: { create: jest.fn() },
@@ -62,13 +66,19 @@ describe('PaymentsStripe (e2e)', () => {
     app.setGlobalPrefix('api/v1');
     app.useGlobalInterceptors(new ResponseInterceptor());
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
     await app.init();
     prisma = app.get(PrismaService);
 
     // Garantir estado limpo para os testes
-    await prisma.paymentMethod.deleteMany({ where: { stripePaymentMethodId: 'pm_test_e2e' } });
+    await prisma.paymentMethod.deleteMany({
+      where: { stripePaymentMethodId: 'pm_test_e2e' },
+    });
     await prisma.student.updateMany({
       where: { email: 'student-ladv@email.com' },
       data: { stripeCustomerId: null },
@@ -76,7 +86,9 @@ describe('PaymentsStripe (e2e)', () => {
   });
 
   afterAll(async () => {
-    await prisma.paymentMethod.deleteMany({ where: { stripePaymentMethodId: 'pm_test_e2e' } });
+    await prisma.paymentMethod.deleteMany({
+      where: { stripePaymentMethodId: 'pm_test_e2e' },
+    });
     await app.close();
   });
 

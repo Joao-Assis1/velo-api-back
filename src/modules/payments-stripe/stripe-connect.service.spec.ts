@@ -18,7 +18,8 @@ describe('StripeConnectService', () => {
     };
     const config = {
       get: (k: string) => {
-        if (k === 'STRIPE_CONNECT_REFRESH_URL') return 'http://localhost/refresh';
+        if (k === 'STRIPE_CONNECT_REFRESH_URL')
+          return 'http://localhost/refresh';
         if (k === 'STRIPE_CONNECT_RETURN_URL') return 'http://localhost/return';
         return undefined;
       },
@@ -100,7 +101,9 @@ describe('StripeConnectService', () => {
 
     it('throws NotFoundException when instructor does not exist', async () => {
       prisma.instructor.findUnique.mockResolvedValue(null);
-      await expect(service.getStatus('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.getStatus('missing')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

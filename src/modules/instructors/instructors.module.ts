@@ -10,7 +10,12 @@ import { TestModeGuard } from '../../common/test-mode/test-mode.guard';
 @Module({
   imports: [PrismaModule, ConfigModule],
   controllers: [InstructorsController],
-  providers: [InstructorsService, stripeClientProvider, TestModeService, TestModeGuard],
+  providers: [
+    InstructorsService,
+    stripeClientProvider,
+    TestModeService,
+    TestModeGuard,
+  ],
   exports: [InstructorsService],
 })
 export class InstructorsModule {}

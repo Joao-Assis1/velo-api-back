@@ -6,7 +6,8 @@ export class SubmitRenachDto {
   @ApiProperty({ example: 'MS000000001' })
   @IsString()
   @Matches(/^[A-Z]{2}\d{9}$/, {
-    message: 'renachNumber deve ter 2 letras da UF + 9 dígitos (ex: MS000000001)',
+    message:
+      'renachNumber deve ter 2 letras da UF + 9 dígitos (ex: MS000000001)',
   })
   renachNumber!: string;
 

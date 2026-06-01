@@ -14,9 +14,11 @@ describe('AcademyService', () => {
       question: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
         createMany: jest.fn().mockResolvedValue({ count: 30 }),
-        findMany: jest.fn().mockResolvedValue(
-          DETRAN_QUESTIONS.map((q, i) => ({ id: `q-${i}`, ...q })),
-        ),
+        findMany: jest
+          .fn()
+          .mockResolvedValue(
+            DETRAN_QUESTIONS.map((q, i) => ({ id: `q-${i}`, ...q })),
+          ),
         count: jest.fn().mockResolvedValue(30),
       },
       studentSimuladoHistory: {
@@ -80,7 +82,10 @@ describe('AcademyService', () => {
     });
 
     it('usa o cache quando disponível e não chama o banco', async () => {
-      const cachedQuestions = DETRAN_QUESTIONS.map((q, i) => ({ id: `q-${i}`, ...q }));
+      const cachedQuestions = DETRAN_QUESTIONS.map((q, i) => ({
+        id: `q-${i}`,
+        ...q,
+      }));
       cache.get.mockResolvedValue(cachedQuestions);
 
       const result = await service.getSimulado();

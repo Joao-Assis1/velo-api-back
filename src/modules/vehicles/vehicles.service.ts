@@ -59,7 +59,9 @@ export class VehiclesService {
     });
     if (!vehicle) throw new NotFoundException('Vehicle not found');
     if (vehicle.instructorId !== instructorId)
-      throw new ForbiddenException('Vehicle does not belong to this instructor');
+      throw new ForbiddenException(
+        'Vehicle does not belong to this instructor',
+      );
 
     return this.prisma.vehicle.update({
       where: { id: vehicleId },
@@ -73,7 +75,9 @@ export class VehiclesService {
     });
     if (!vehicle) throw new NotFoundException('Vehicle not found');
     if (vehicle.instructorId !== instructorId)
-      throw new ForbiddenException('Vehicle does not belong to this instructor');
+      throw new ForbiddenException(
+        'Vehicle does not belong to this instructor',
+      );
 
     return this.prisma.vehicle.update({
       where: { id: vehicleId },
