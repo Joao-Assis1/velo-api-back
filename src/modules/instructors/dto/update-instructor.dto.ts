@@ -82,4 +82,20 @@ export class UpdateInstructorDto {
   @IsString()
   @IsOptional()
   detranCredentialUf?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  hasDoubleCommand?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  noGravissima?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  hasInstructorCourse?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  noCassacao?: boolean;
 }
