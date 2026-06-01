@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import * as Tesseract from 'tesseract.js';
 import pdfParse from 'pdf-parse';
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { extname } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { JourneyService } from '../journey/journey.service';
@@ -115,7 +115,7 @@ export class LadvProcessService {
     filePath: string,
   ): Promise<{ text: string; confidence: number }> {
     const isPdf = extname(filePath).toLowerCase() === '.pdf';
-    const buffer = readFileSync(filePath);
+    const buffer = await readFile(filePath);
 
     if (isPdf) {
       const isPdfMagic =
