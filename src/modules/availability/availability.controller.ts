@@ -37,7 +37,9 @@ export class AvailabilityController {
     @Req() req: RequestWithUser,
   ): Promise<Availability> {
     if (req.user.userId !== createAvailabilityDto.instructorId) {
-      throw new ForbiddenException('You can only create availability for your own account');
+      throw new ForbiddenException(
+        'You can only create availability for your own account',
+      );
     }
     return this.availabilityService.create(createAvailabilityDto);
   }

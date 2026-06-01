@@ -5,18 +5,15 @@ import { randomUUID } from 'crypto';
 import { BadRequestException } from '@nestjs/common';
 import type { Request } from 'express';
 
-const ALLOWED_MIME = new Set([
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-]);
+const ALLOWED_MIME = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export function buildUploadStorage(folder: string): StorageEngine {
   return diskStorage({
     destination: (req: Request, _file, cb) => {
-      const studentId = (req.user as { userId: string } | undefined)?.userId ?? 'anonymous';
+      const studentId =
+        (req.user as { userId: string } | undefined)?.userId ?? 'anonymous';
       const path = `uploads/${folder}/${studentId}`;
       if (!existsSync(path)) mkdirSync(path, { recursive: true });
       cb(null, path);

@@ -6,7 +6,8 @@ export class MailService {
   private readonly resend: Resend | null;
   private readonly logger = new Logger(MailService.name);
   private readonly from = process.env.MAIL_FROM ?? 'Velo <noreply@velo.app>';
-  private readonly frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+  private readonly frontendUrl =
+    process.env.FRONTEND_URL ?? 'http://localhost:3000';
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY;
@@ -20,7 +21,9 @@ export class MailService {
 
   async sendPasswordReset(email: string, token: string): Promise<void> {
     if (!this.resend) {
-      this.logger.warn(`E-mail não enviado para ${email}: RESEND_API_KEY ausente`);
+      this.logger.warn(
+        `E-mail não enviado para ${email}: RESEND_API_KEY ausente`,
+      );
       return;
     }
 
@@ -52,7 +55,9 @@ export class MailService {
     });
 
     if (error) {
-      this.logger.error(`Failed to send password reset email to ${email}: ${JSON.stringify(error)}`);
+      this.logger.error(
+        `Failed to send password reset email to ${email}: ${JSON.stringify(error)}`,
+      );
     }
   }
 }

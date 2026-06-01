@@ -84,7 +84,10 @@ describe('PaymentsStripeService', () => {
           payment_method_types: ['card'],
         }),
       );
-      expect(r).toEqual({ clientSecret: 'seti_secret_XYZ', customerId: 'cus_AAA' });
+      expect(r).toEqual({
+        clientSecret: 'seti_secret_XYZ',
+        customerId: 'cus_AAA',
+      });
     });
 
     it('reuses existing customer when stripeCustomerId is set', async () => {
@@ -133,7 +136,9 @@ describe('PaymentsStripeService', () => {
         isDefault: true,
       });
 
-      const r = await service.attachPaymentMethod('stu-1', { stripePaymentMethodId: 'pm_1Q' });
+      const r = await service.attachPaymentMethod('stu-1', {
+        stripePaymentMethodId: 'pm_1Q',
+      });
       expect(stripe.paymentMethods.attach).toHaveBeenCalledWith(
         'pm_1Q',
         { customer: 'cus_EXISTING' },
@@ -158,7 +163,9 @@ describe('PaymentsStripeService', () => {
         stripeCustomerId: null,
       });
       await expect(
-        service.attachPaymentMethod('stu-1', { stripePaymentMethodId: 'pm_1Q' }),
+        service.attachPaymentMethod('stu-1', {
+          stripePaymentMethodId: 'pm_1Q',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -286,7 +293,10 @@ describe('PaymentsStripeService', () => {
       });
       prisma.payment.findFirst.mockResolvedValue(null);
       await expect(
-        service.charge('stu-1', { lessonId: 'lsn-1', paymentMethodId: 'pm-row-1' }),
+        service.charge('stu-1', {
+          lessonId: 'lsn-1',
+          paymentMethodId: 'pm-row-1',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -342,7 +352,7 @@ describe('PaymentsStripeService', () => {
       await service.releaseEscrow('lsn-1');
       expect(stripe.transfers.create).toHaveBeenCalledWith(
         {
-          amount: 9600,          // 80% de R$120 = R$96,00 → 9600 centavos
+          amount: 9600, // 80% de R$120 = R$96,00 → 9600 centavos
           currency: 'brl',
           destination: 'acct_INST',
           transfer_group: 'lsn-1',
@@ -356,8 +366,8 @@ describe('PaymentsStripeService', () => {
         data: {
           status: 'RELEASED',
           stripeTransferId: 'tr_XYZ',
-          platformFeeAmount: 24,   // 20% de R$120
-          instructorAmount: 96,    // 80% de R$120
+          platformFeeAmount: 24, // 20% de R$120
+          instructorAmount: 96, // 80% de R$120
         },
       });
     });
@@ -421,10 +431,13 @@ describe('PaymentsStripeService', () => {
       });
       stripe.transfers.create.mockResolvedValue({ id: 'tr_RES' });
       prisma.payment.update.mockResolvedValue({});
-      await service.resolveDispute('lsn-1', { action: 'release', reason: 'admin override' });
+      await service.resolveDispute('lsn-1', {
+        action: 'release',
+        reason: 'admin override',
+      });
       expect(stripe.transfers.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          amount: 9600,  // 80% de R$120
+          amount: 9600, // 80% de R$120
           destination: 'acct_INST',
           source_transaction: 'ch_ABCD',
         }),
@@ -449,12 +462,19 @@ describe('PaymentsStripeService', () => {
       });
       stripe.refunds.create.mockResolvedValue({ id: 're_XYZ' });
       prisma.payment.update.mockResolvedValue({});
-      await service.resolveDispute('lsn-1', { action: 'refund', reason: 'fraud' });
+      await service.resolveDispute('lsn-1', {
+        action: 'refund',
+        reason: 'fraud',
+      });
       expect(stripe.refunds.create).toHaveBeenCalledWith(
         {
           payment_intent: 'pi_ABCD',
           reason: 'requested_by_customer',
-          metadata: { lessonId: 'lsn-1', resolution: 'refund', reason: 'fraud' },
+          metadata: {
+            lessonId: 'lsn-1',
+            resolution: 'refund',
+            reason: 'fraud',
+          },
         },
         { idempotencyKey: expect.any(String) },
       );
@@ -510,7 +530,10 @@ describe('PaymentsStripeService', () => {
       );
       expect(prisma.payment.update).toHaveBeenCalledWith({
         where: { id: 'pay-1' },
-        data: expect.objectContaining({ platformFeeAmount: 0, instructorAmount: 100 }),
+        data: expect.objectContaining({
+          platformFeeAmount: 0,
+          instructorAmount: 100,
+        }),
       });
     });
 
@@ -523,7 +546,10 @@ describe('PaymentsStripeService', () => {
       );
       expect(prisma.payment.update).toHaveBeenCalledWith({
         where: { id: 'pay-1' },
-        data: expect.objectContaining({ platformFeeAmount: 100, instructorAmount: 0 }),
+        data: expect.objectContaining({
+          platformFeeAmount: 100,
+          instructorAmount: 0,
+        }),
       });
     });
   });

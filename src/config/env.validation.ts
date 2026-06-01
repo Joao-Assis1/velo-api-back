@@ -70,11 +70,13 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsUrl({ require_tld: false, require_protocol: true })
-  STRIPE_CONNECT_REFRESH_URL?: string = 'http://localhost:3001/api/v1/payments-stripe/connect/refresh';
+  STRIPE_CONNECT_REFRESH_URL?: string =
+    'http://localhost:3001/api/v1/payments-stripe/connect/refresh';
 
   @IsOptional()
   @IsUrl({ require_tld: false, require_protocol: true })
-  STRIPE_CONNECT_RETURN_URL?: string = 'http://localhost:3001/api/v1/payments-stripe/connect/return';
+  STRIPE_CONNECT_RETURN_URL?: string =
+    'http://localhost:3001/api/v1/payments-stripe/connect/return';
 
   @IsOptional()
   @IsString()

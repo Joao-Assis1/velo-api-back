@@ -28,7 +28,9 @@ export class EscrowRetryService {
 
     if (held.length === 0) return;
 
-    this.logger.log(`Escrow retry: found ${held.length} HELD payment(s) to retry`);
+    this.logger.log(
+      `Escrow retry: found ${held.length} HELD payment(s) to retry`,
+    );
 
     for (const payment of held) {
       if (!payment.lessonId) continue;

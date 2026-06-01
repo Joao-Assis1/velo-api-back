@@ -19,7 +19,11 @@ describe('StripeWebhooks (e2e)', () => {
         webhooks: { constructEvent },
         customers: { create: jest.fn() },
         setupIntents: { create: jest.fn() },
-        paymentMethods: { attach: jest.fn(), retrieve: jest.fn(), detach: jest.fn() },
+        paymentMethods: {
+          attach: jest.fn(),
+          retrieve: jest.fn(),
+          detach: jest.fn(),
+        },
         paymentIntents: { create: jest.fn() },
         transfers: { create: jest.fn() },
         refunds: { create: jest.fn() },

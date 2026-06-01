@@ -8,13 +8,7 @@ export interface LadvOcrResult {
   status: LadvOcrStatus;
 }
 
-const KEYWORDS = [
-  'LADV',
-  'LICENÇA',
-  'LICENCA',
-  'APRENDIZAGEM',
-  'DETRAN',
-];
+const KEYWORDS = ['LADV', 'LICENÇA', 'LICENCA', 'APRENDIZAGEM', 'DETRAN'];
 
 const MIN_CONFIDENCE = 50;
 
@@ -34,7 +28,10 @@ function parseDate(value: string): Date | null {
 function findFirstDateAfter(text: string, anchorRegex: RegExp): Date | null {
   const match = anchorRegex.exec(text);
   if (!match) return null;
-  const tail = text.slice(match.index + match[0].length, match.index + match[0].length + 40);
+  const tail = text.slice(
+    match.index + match[0].length,
+    match.index + match[0].length + 40,
+  );
   return parseDate(tail);
 }
 
@@ -73,20 +70,25 @@ export function extractLadvFields(
   }
 
   // N[º°.oO0] covers OCR misreads of the ordinal indicator (Nº → No, N0, N.)
-  const ladvMatch = text.match(/LADV[\s-]*(?:N[º°.oO0]?\s*)?(\d{4,12}|[A-Z]{1,4}-[A-Z]{0,3}-?\d{4,12})/);
+  const ladvMatch = text.match(
+    /LADV[\s-]*(?:N[º°.oO0]?\s*)?(\d{4,12}|[A-Z]{1,4}-[A-Z]{0,3}-?\d{4,12})/,
+  );
   const ladvNumber = ladvMatch ? ladvMatch[1].replace(/\s+/g, '') : null;
 
   const issuedAt =
-    findFirstDateAfter(text, /EMITID[AO]\s+EM|EMISS[ÃA]O[:\s]|EXPEDI[ÇC][ÃA]O[:\s]|EXPEDIDA\s+EM/) ??
-    findFirstDateAfter(text, /DATA[\s]+(?:EMISS|EXPEDI)/);
+    findFirstDateAfter(
+      text,
+      /EMITID[AO]\s+EM|EMISS[ÃA]O[:\s]|EXPEDI[ÇC][ÃA]O[:\s]|EXPEDIDA\s+EM/,
+    ) ?? findFirstDateAfter(text, /DATA[\s]+(?:EMISS|EXPEDI)/);
   const validUntil =
-    findFirstDateAfter(text, /V[ÁA]LID[AO]\s+AT[ÉE]|VALIDADE[:\s]|VENCIMENTO[:\s]|VENCE\s+EM/) ??
-    findFirstDateAfter(text, /DATA[\s]+VALIDADE/);
+    findFirstDateAfter(
+      text,
+      /V[ÁA]LID[AO]\s+AT[ÉE]|VALIDADE[:\s]|VENCIMENTO[:\s]|VENCE\s+EM/,
+    ) ?? findFirstDateAfter(text, /DATA[\s]+VALIDADE/);
 
   const now = new Date();
   const datesOk = !!issuedAt && !!validUntil && validUntil > now;
-  const status: LadvOcrStatus =
-    ladvNumber && datesOk ? 'PASS' : 'NEEDS_REVIEW';
+  const status: LadvOcrStatus = ladvNumber && datesOk ? 'PASS' : 'NEEDS_REVIEW';
 
   return {
     ladvNumber,

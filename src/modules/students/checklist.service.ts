@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -34,7 +38,12 @@ export class ChecklistService {
   async updateStep(studentId: string, step: string, completed: boolean) {
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },
-      select: { id: true, ladvNumber: true, ladvOcrStatus: true, ladvValidUntil: true },
+      select: {
+        id: true,
+        ladvNumber: true,
+        ladvOcrStatus: true,
+        ladvValidUntil: true,
+      },
     });
 
     if (!student) {

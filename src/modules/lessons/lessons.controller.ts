@@ -9,7 +9,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 import { LessonsService } from './lessons.service';
@@ -58,7 +63,10 @@ export class LessonsController {
   }
 
   @Patch(':id/accept')
-  @ApiOperation({ summary: 'Instrutor aceita a aula — processa pagamento e move para upcoming' })
+  @ApiOperation({
+    summary:
+      'Instrutor aceita a aula — processa pagamento e move para upcoming',
+  })
   acceptLesson(@Param('id') id: string, @Req() req: RequestWithUser) {
     return this.lessonsService.accept(id, req.user.userId);
   }
@@ -75,7 +83,11 @@ export class LessonsController {
     @Req() req: RequestWithUser,
     @Body('feedback') feedback: string,
   ) {
-    return this.lessonsService.giveInstructorFeedback(id, req.user.userId, feedback);
+    return this.lessonsService.giveInstructorFeedback(
+      id,
+      req.user.userId,
+      feedback,
+    );
   }
 
   @Patch(':id/feedback-student')
@@ -85,7 +97,12 @@ export class LessonsController {
     @Body('rating') rating: number,
     @Body('text') text: string,
   ) {
-    return this.lessonsService.giveStudentFeedback(id, req.user.userId, rating, text);
+    return this.lessonsService.giveStudentFeedback(
+      id,
+      req.user.userId,
+      rating,
+      text,
+    );
   }
 
   @Post(':id/biometry')

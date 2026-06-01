@@ -23,7 +23,9 @@ describe('RenachProcessService', () => {
         update: jest.fn(),
       },
     };
-    journey = { refresh: jest.fn().mockResolvedValue({ stage: 'AWAITING_LADV_UPLOAD' }) };
+    journey = {
+      refresh: jest.fn().mockResolvedValue({ stage: 'AWAITING_LADV_UPLOAD' }),
+    };
     const mod: TestingModule = await Test.createTestingModule({
       providers: [
         RenachProcessService,
@@ -67,9 +69,7 @@ describe('RenachProcessService', () => {
       expect(g.uf).toBe('SP');
       expect(g.steps.length).toBeGreaterThan(0);
       // generic guide must NOT contain the MS-specific portal hint
-      expect(
-        g.steps.every((s) => !/detran-ms\.gov\.br/i.test(s)),
-      ).toBe(true);
+      expect(g.steps.every((s) => !/detran-ms\.gov\.br/i.test(s))).toBe(true);
     });
   });
 

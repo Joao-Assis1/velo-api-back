@@ -74,11 +74,15 @@ export class PaymentsStripeService {
 
     return {
       clientSecret: setupIntent.client_secret as string,
-      customerId: customerId as string,
+      customerId: customerId,
     };
   }
 
-  async provisionCustomer(studentId: string, email: string, name: string): Promise<void> {
+  async provisionCustomer(
+    studentId: string,
+    email: string,
+    name: string,
+  ): Promise<void> {
     const customer = await this.stripe.customers.create(
       { email, name, metadata: { studentId } },
       { idempotencyKey: idempotencyKey(studentId, 'connect-account') },
@@ -106,10 +110,17 @@ export class PaymentsStripeService {
     await this.stripe.paymentMethods.attach(
       dto.stripePaymentMethodId,
       { customer: student.stripeCustomerId },
-      { idempotencyKey: idempotencyKey(dto.stripePaymentMethodId, 'attach-payment-method') },
+      {
+        idempotencyKey: idempotencyKey(
+          dto.stripePaymentMethodId,
+          'attach-payment-method',
+        ),
+      },
     );
 
-    const pm = await this.stripe.paymentMethods.retrieve(dto.stripePaymentMethodId);
+    const pm = await this.stripe.paymentMethods.retrieve(
+      dto.stripePaymentMethodId,
+    );
     if (!pm.card) {
       throw new BadRequestException('Only card payment methods are supported');
     }
@@ -132,7 +143,8 @@ export class PaymentsStripeService {
           isDefault,
           brand: pm.card.brand,
           last4: pm.card.last4,
-          cardholderName: pm.billing_details?.name ?? softDeleted.cardholderName,
+          cardholderName:
+            pm.billing_details?.name ?? softDeleted.cardholderName,
           expiryMonth: String(pm.card.exp_month).padStart(2, '0'),
           expiryYear: String(pm.card.exp_year),
         },
@@ -163,12 +175,30 @@ export class PaymentsStripeService {
     await this.stripe.paymentMethods.detach(
       pm.stripePaymentMethodId,
       {},
-      { idempotencyKey: idempotencyKey(pm.stripePaymentMethodId, 'detach-payment-method') },
+      {
+        idempotencyKey: idempotencyKey(
+          pm.stripePaymentMethodId,
+          'detach-payment-method',
+        ),
+      },
     );
     await this.prisma.paymentMethod.update({
       where: { id: rowId },
       data: { isDeleted: true, isDefault: false },
     });
+
+    if (pm.isDefault) {
+      const next = await this.prisma.paymentMethod.findFirst({
+        where: { studentId, isDeleted: false },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (next) {
+        await this.prisma.paymentMethod.update({
+          where: { id: next.id },
+          data: { isDefault: true },
+        });
+      }
+    }
   }
 
   async charge(
@@ -240,7 +270,7 @@ export class PaymentsStripeService {
     const chargeId =
       typeof pi.latest_charge === 'string'
         ? pi.latest_charge
-        : (pi.latest_charge as { id?: string } | null)?.id ?? null;
+        : ((pi.latest_charge as { id?: string } | null)?.id ?? null);
 
     const payment = await this.prisma.payment.create({
       data: {
@@ -272,7 +302,8 @@ export class PaymentsStripeService {
     const payment = await this.prisma.payment.findFirst({
       where: { lessonId },
     });
-    if (!payment) throw new NotFoundException(`No payment for lesson ${lessonId}`);
+    if (!payment)
+      throw new NotFoundException(`No payment for lesson ${lessonId}`);
     if (payment.status === 'RELEASED') {
       this.logger.log(`Payment ${payment.id} already RELEASED — skipping`);
       return;
@@ -283,7 +314,9 @@ export class PaymentsStripeService {
       );
     }
 
-    const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
     if (!lesson) throw new NotFoundException('Lesson not found');
     if (!this.isValidForCompliance(lesson)) {
       throw new BadRequestException(
@@ -331,7 +364,8 @@ export class PaymentsStripeService {
     const payment = await this.prisma.payment.findFirst({
       where: { lessonId },
     });
-    if (!payment) throw new NotFoundException(`No payment for lesson ${lessonId}`);
+    if (!payment)
+      throw new NotFoundException(`No payment for lesson ${lessonId}`);
 
     if (dto.action === 'release') {
       if (payment.status === 'RELEASED') return;
@@ -444,9 +478,15 @@ export class PaymentsStripeService {
     if (dto.action === 'retry') {
       await this.prisma.payment.update({
         where: { id: paymentId },
-        data: { status: 'HELD', releaseAttempts: 0, lastReleaseAttemptAt: null },
+        data: {
+          status: 'HELD',
+          releaseAttempts: 0,
+          lastReleaseAttemptAt: null,
+        },
       });
-      return { message: 'Payment reset to HELD — will be retried on next cron cycle' };
+      return {
+        message: 'Payment reset to HELD — will be retried on next cron cycle',
+      };
     }
 
     if (!payment.stripePaymentIntentId) {
@@ -491,7 +531,10 @@ export class PaymentsStripeService {
     });
   }
 
-  async handlePaymentIntentFailed(pi: { id: string; last_payment_error?: { message?: string } | null }) {
+  async handlePaymentIntentFailed(pi: {
+    id: string;
+    last_payment_error?: { message?: string } | null;
+  }) {
     await this.prisma.payment.updateMany({
       where: { stripePaymentIntentId: pi.id },
       data: {
@@ -512,6 +555,8 @@ export class PaymentsStripeService {
       where: { stripeTransferId: transfer.id },
       data: { status: 'HELD' },
     });
-    this.logger.error(`Transfer ${transfer.id} failed — Payment reverted to HELD`);
+    this.logger.error(
+      `Transfer ${transfer.id} failed — Payment reverted to HELD`,
+    );
   }
 }

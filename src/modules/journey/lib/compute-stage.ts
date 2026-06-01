@@ -33,7 +33,9 @@ function isLadvValid(student: JourneyDataSnapshot['student']): boolean {
   return true;
 }
 
-export function computeStageFromData(data: JourneyDataSnapshot): JourneyStateResult {
+export function computeStageFromData(
+  data: JourneyDataSnapshot,
+): JourneyStateResult {
   const blockers: string[] = [];
   let stage: JourneyStage = JourneyStage.REGISTERED;
   let nextStep = 'START_THEORY_COURSE';
@@ -46,7 +48,11 @@ export function computeStageFromData(data: JourneyDataSnapshot): JourneyStateRes
   const renachDone =
     data.renach?.status === 'DONE' && !!data.renach?.renachNumber;
 
-  if (stage === JourneyStage.THEORY_COURSE_IN_PROGRESS && data.renach && !renachDone) {
+  if (
+    stage === JourneyStage.THEORY_COURSE_IN_PROGRESS &&
+    data.renach &&
+    !renachDone
+  ) {
     stage = JourneyStage.RENACH_PENDING;
     nextStep = 'COMPLETE_RENACH';
   }
@@ -86,7 +92,8 @@ export function computeStageFromData(data: JourneyDataSnapshot): JourneyStateRes
     (s) => JOURNEY_STAGE_ORDER.indexOf(s) < JOURNEY_STAGE_ORDER.indexOf(stage),
   );
   const progressPct = Math.round(
-    (JOURNEY_STAGE_ORDER.indexOf(stage) / (JOURNEY_STAGE_ORDER.length - 1)) * 100,
+    (JOURNEY_STAGE_ORDER.indexOf(stage) / (JOURNEY_STAGE_ORDER.length - 1)) *
+      100,
   );
 
   return { stage, completedSteps, nextStep, blockers, progressPct };

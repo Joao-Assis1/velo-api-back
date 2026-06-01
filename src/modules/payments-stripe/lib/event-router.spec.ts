@@ -15,10 +15,15 @@ describe('routeStripeEvent', () => {
 
   it('routes payment_intent.succeeded', async () => {
     await routeStripeEvent(
-      { type: 'payment_intent.succeeded', data: { object: { id: 'pi_1' } } } as any,
+      {
+        type: 'payment_intent.succeeded',
+        data: { object: { id: 'pi_1' } },
+      } as any,
       handlers,
     );
-    expect(handlers.onPaymentIntentSucceeded).toHaveBeenCalledWith({ id: 'pi_1' });
+    expect(handlers.onPaymentIntentSucceeded).toHaveBeenCalledWith({
+      id: 'pi_1',
+    });
   });
 
   it('routes payment_intent.payment_failed', async () => {

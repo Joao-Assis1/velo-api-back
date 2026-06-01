@@ -81,11 +81,18 @@ export class AdminController {
     let customerId = student.stripeCustomerId;
     if (!customerId) {
       const customer = await this.stripe.customers.create(
-        { email: student.email, name: student.name, metadata: { studentId: id } },
+        {
+          email: student.email,
+          name: student.name,
+          metadata: { studentId: id },
+        },
         { idempotencyKey: idempotencyKey(id, 'connect-account') },
       );
       customerId = customer.id;
-      await this.prisma.student.update({ where: { id }, data: { stripeCustomerId: customerId } });
+      await this.prisma.student.update({
+        where: { id },
+        data: { stripeCustomerId: customerId },
+      });
     }
 
     const pm = await this.stripe.paymentMethods.attach(

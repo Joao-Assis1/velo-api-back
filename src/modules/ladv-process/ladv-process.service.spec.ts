@@ -38,17 +38,15 @@ describe('LadvProcessService', () => {
     it('returns MS-specific instructions for the official CNH do Brasil app', () => {
       const g = service.getGuide('MS');
       expect(g.uf).toBe('MS');
-      expect(
-        g.steps.some((s) => /cnh do brasil|detran-ms/i.test(s)),
-      ).toBe(true);
+      expect(g.steps.some((s) => /cnh do brasil|detran-ms/i.test(s))).toBe(
+        true,
+      );
     });
 
     it('returns generic fallback for any UF that is not MS', () => {
       const g = service.getGuide('SP');
       expect(g.uf).toBe('SP');
-      expect(
-        g.steps.every((s) => !/detran-ms\.gov\.br/i.test(s)),
-      ).toBe(true);
+      expect(g.steps.every((s) => !/detran-ms\.gov\.br/i.test(s))).toBe(true);
     });
   });
 
@@ -87,8 +85,7 @@ describe('LadvProcessService', () => {
     it('saves all five new fields and refreshes journey on PASS', async () => {
       (Tesseract.recognize as jest.Mock).mockResolvedValue({
         data: {
-          text:
-            'LADV nº LADV-MS-12345678\nLICENÇA DE APRENDIZAGEM DETRAN-MS\nEmitida em 10/05/2026 Válida até 10/11/2030',
+          text: 'LADV nº LADV-MS-12345678\nLICENÇA DE APRENDIZAGEM DETRAN-MS\nEmitida em 10/05/2026 Válida até 10/11/2030',
           confidence: 85,
         },
       });
@@ -103,7 +100,10 @@ describe('LadvProcessService', () => {
         journeyStage: 'LADV_UPLOADED_VALID',
       });
 
-      const r = await service.uploadFromFile('stu-1', '/uploads/ladv/stu-1/file.jpg');
+      const r = await service.uploadFromFile(
+        'stu-1',
+        '/uploads/ladv/stu-1/file.jpg',
+      );
 
       expect(prisma.student.update).toHaveBeenCalledWith({
         where: { id: 'stu-1' },
@@ -122,8 +122,7 @@ describe('LadvProcessService', () => {
     it('persists NEEDS_REVIEW when number cannot be parsed but keywords match', async () => {
       (Tesseract.recognize as jest.Mock).mockResolvedValue({
         data: {
-          text:
-            'LICENÇA DE APRENDIZAGEM DETRAN-MS Emitida em 10/05/2026 Válida até 10/11/2030',
+          text: 'LICENÇA DE APRENDIZAGEM DETRAN-MS Emitida em 10/05/2026 Válida até 10/11/2030',
           confidence: 80,
         },
       });
@@ -137,7 +136,10 @@ describe('LadvProcessService', () => {
         ladv_document_url: '/uploads/ladv/stu-1/file2.jpg',
         journeyStage: 'AWAITING_LADV_UPLOAD',
       });
-      const r = await service.uploadFromFile('stu-1', '/uploads/ladv/stu-1/file2.jpg');
+      const r = await service.uploadFromFile(
+        'stu-1',
+        '/uploads/ladv/stu-1/file2.jpg',
+      );
       expect(r.ladvOcrStatus).toBe('NEEDS_REVIEW');
     });
 

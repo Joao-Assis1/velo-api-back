@@ -65,7 +65,9 @@ describe('InstructorsService.seedTest', () => {
 
   it('should throw NotFoundException when instructor not found', async () => {
     mockPrisma.instructor.findUnique.mockResolvedValue(null);
-    await expect(service.seedTest('non-existent-id')).rejects.toThrow(NotFoundException);
+    await expect(service.seedTest('non-existent-id')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('should create stripe account when stripeAccountId is absent', async () => {
@@ -86,12 +88,20 @@ describe('InstructorsService.seedTest', () => {
     const result = await service.seedTest('inst-1');
 
     expect(mockStripe.accounts.create).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'express', country: 'BR', email: 'inst@test.com' }),
+      expect.objectContaining({
+        type: 'express',
+        country: 'BR',
+        email: 'inst@test.com',
+      }),
       expect.objectContaining({ idempotencyKey: expect.any(String) }),
     );
     expect(mockPrisma.instructor.update).toHaveBeenCalledWith({
       where: { id: 'inst-1' },
-      data: { stripeAccountId: 'acct_test_123', stripeAccountStatus: 'ACTIVE', stripePayoutsEnabled: true },
+      data: {
+        stripeAccountId: 'acct_test_123',
+        stripeAccountStatus: 'ACTIVE',
+        stripePayoutsEnabled: true,
+      },
       select: {
         id: true,
         stripeAccountId: true,
@@ -121,7 +131,11 @@ describe('InstructorsService.seedTest', () => {
     expect(mockStripe.accounts.create).not.toHaveBeenCalled();
     expect(mockPrisma.instructor.update).toHaveBeenCalledWith({
       where: { id: 'inst-1' },
-      data: { stripeAccountId: 'acct_existing', stripeAccountStatus: 'ACTIVE', stripePayoutsEnabled: true },
+      data: {
+        stripeAccountId: 'acct_existing',
+        stripeAccountStatus: 'ACTIVE',
+        stripePayoutsEnabled: true,
+      },
       select: {
         id: true,
         stripeAccountId: true,

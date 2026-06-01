@@ -1,7 +1,15 @@
 export interface StripeEventHandlers {
   onPaymentIntentSucceeded(pi: { id: string }): Promise<void>;
-  onPaymentIntentFailed(pi: { id: string; last_payment_error?: { message?: string } | null }): Promise<void>;
-  onAccountUpdated(account: { id: string; payouts_enabled: boolean; charges_enabled: boolean; requirements?: any }): Promise<void>;
+  onPaymentIntentFailed(pi: {
+    id: string;
+    last_payment_error?: { message?: string } | null;
+  }): Promise<void>;
+  onAccountUpdated(account: {
+    id: string;
+    payouts_enabled: boolean;
+    charges_enabled: boolean;
+    requirements?: any;
+  }): Promise<void>;
   onTransferCreated(transfer: { id: string }): Promise<void>;
   onTransferFailed(transfer: { id: string }): Promise<void>;
 }

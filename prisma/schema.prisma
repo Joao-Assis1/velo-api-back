@@ -100,6 +100,10 @@ model Instructor {
   cnhExpiry       String?
   cnhEar          Boolean        @default(false)
   certidaoNegativa String?
+  hasDoubleCommand Boolean?
+  noGravissima     Boolean?
+  hasInstructorCourse Boolean?
+  noCassacao       Boolean?
   birthDate       String?
   educationLevel  String?
   renachNumber    String?

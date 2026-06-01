@@ -93,7 +93,9 @@ export class InstructorsService {
     }) as unknown as Promise<Omit<Instructor, 'password'>>;
   }
 
-  async removePhoto(instructorId: string): Promise<Omit<Instructor, 'password'>> {
+  async removePhoto(
+    instructorId: string,
+  ): Promise<Omit<Instructor, 'password'>> {
     return this.prisma.instructor.update({
       where: { id: instructorId },
       data: { profilePicture: null },
@@ -163,7 +165,8 @@ export class InstructorsService {
       where: { id: instructorId },
       select: { id: true, email: true, name: true, stripeAccountId: true },
     });
-    if (!instructor) throw new NotFoundException(`Instructor ${instructorId} not found`);
+    if (!instructor)
+      throw new NotFoundException(`Instructor ${instructorId} not found`);
 
     let accountId = instructor.stripeAccountId;
     if (!accountId) {
@@ -174,7 +177,9 @@ export class InstructorsService {
           email: instructor.email,
           capabilities: { transfers: { requested: true } },
         },
-        { idempotencyKey: idempotencyKey(instructorId, 'seed-connect-account') },
+        {
+          idempotencyKey: idempotencyKey(instructorId, 'seed-connect-account'),
+        },
       );
       accountId = account.id;
     }

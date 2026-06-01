@@ -36,7 +36,12 @@ async function bootstrap() {
   app.enableCors({
     origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key', 'x-test-mode'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-admin-key',
+      'x-test-mode',
+    ],
     credentials: true,
   });
   app.setGlobalPrefix('api/v1');

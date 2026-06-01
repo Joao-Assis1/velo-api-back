@@ -4,15 +4,14 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/modules/prisma/prisma.service';
 
-const login = async (
-  app: INestApplication,
-  email: string,
-): Promise<string> => {
+const login = async (app: INestApplication, email: string): Promise<string> => {
   const res = await request(app.getHttpServer())
     .post('/api/v1/auth/login/student')
     .send({ email, password: '123456' });
   if (res.status !== 201) {
-    throw new Error(`Login failed for ${email}: ${res.status} ${JSON.stringify(res.body)}`);
+    throw new Error(
+      `Login failed for ${email}: ${res.status} ${JSON.stringify(res.body)}`,
+    );
   }
   return res.body.data ? res.body.data.access_token : res.body.access_token;
 };

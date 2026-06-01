@@ -33,7 +33,7 @@ export class LadvProcessService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly journey: JourneyService,
-  ) { }
+  ) {}
 
   getGuide(uf: string): { uf: string; steps: string[] } {
     const normalized = (uf ?? '').toUpperCase();
@@ -121,7 +121,9 @@ export class LadvProcessService {
     studentId: string,
     filePath: string,
   ): Promise<LadvStatusDto> {
-    this.logger.log(`Starting extraction for student ${studentId} LADV: ${filePath}`);
+    this.logger.log(
+      `Starting extraction for student ${studentId} LADV: ${filePath}`,
+    );
     let recognition: { text: string; confidence: number };
     try {
       recognition = await this.extractTextFromFile(filePath);
@@ -147,7 +149,13 @@ export class LadvProcessService {
     validUntil.setFullYear(validUntil.getFullYear() + 1);
     return this.persist(
       studentId,
-      { ladvNumber: 'TEST-LADV-0000', issuedAt, validUntil, confidence: 100, status: 'PASS' },
+      {
+        ladvNumber: 'TEST-LADV-0000',
+        issuedAt,
+        validUntil,
+        confidence: 100,
+        status: 'PASS',
+      },
       null,
     );
   }

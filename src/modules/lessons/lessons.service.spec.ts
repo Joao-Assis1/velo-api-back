@@ -47,7 +47,9 @@ describe('LessonsService.create — validation chain', () => {
         }),
       ),
     };
-    journey = { assertCanScheduleLesson: jest.fn().mockResolvedValue(undefined) };
+    journey = {
+      assertCanScheduleLesson: jest.fn().mockResolvedValue(undefined),
+    };
     validation = {
       validateCnh: jest
         .fn()
@@ -60,7 +62,10 @@ describe('LessonsService.create — validation chain', () => {
         LessonsService,
         { provide: PrismaService, useValue: prisma },
         { provide: ShieldService, useValue: {} },
-        { provide: PaymentsStripeService, useValue: { releaseEscrow: jest.fn(), resolveDispute: jest.fn() } },
+        {
+          provide: PaymentsStripeService,
+          useValue: { releaseEscrow: jest.fn(), resolveDispute: jest.fn() },
+        },
         { provide: JourneyService, useValue: journey },
         { provide: ValidationService, useValue: validation },
         {

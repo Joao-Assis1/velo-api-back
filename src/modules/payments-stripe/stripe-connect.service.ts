@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import Stripe from 'stripe';
 
 type StripeInstance = InstanceType<typeof Stripe>;
@@ -55,7 +50,9 @@ export class StripeConnectService {
     });
   }
 
-  async startOnboarding(instructorId: string): Promise<ConnectOnboardResponseDto> {
+  async startOnboarding(
+    instructorId: string,
+  ): Promise<ConnectOnboardResponseDto> {
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: instructorId },
       select: { id: true, email: true, stripeAccountId: true },
@@ -134,7 +131,8 @@ export class StripeConnectService {
     const disabled = snapshot.requirements?.disabled_reason ?? null;
     let status: 'ACTIVE' | 'ONBOARDING' | 'RESTRICTED';
     if (disabled) status = 'RESTRICTED';
-    else if (snapshot.payouts_enabled && snapshot.charges_enabled) status = 'ACTIVE';
+    else if (snapshot.payouts_enabled && snapshot.charges_enabled)
+      status = 'ACTIVE';
     else status = 'ONBOARDING';
 
     await this.prisma.instructor.update({
