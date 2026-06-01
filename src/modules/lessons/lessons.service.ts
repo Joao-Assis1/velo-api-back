@@ -6,7 +6,6 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-  Inject,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,10 +17,7 @@ import { RegisterBiometryDto } from './dto/register-biometry.dto';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
 import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
 import { JourneyService } from '../journey/journey.service';
-import { ValidationService } from '../validation/validation.service';
-import { ConfigService } from '@nestjs/config';
-import type { DocumentValidationProvider } from '../validation/providers/document-validation.provider';
-import { DOCUMENT_VALIDATION_PROVIDER } from '../validation/providers/document-validation.provider';
+import { validateCnh } from '../validation/lib/cnh.validator';
 
 @Injectable()
 export class LessonsService {
@@ -32,10 +28,6 @@ export class LessonsService {
     private shield: ShieldService,
     private paymentsStripe: PaymentsStripeService,
     private journey: JourneyService,
-    private validation: ValidationService,
-    private config: ConfigService,
-    @Inject(DOCUMENT_VALIDATION_PROVIDER)
-    private documentValidation: DocumentValidationProvider,
   ) {}
 
   async create(createLessonDto: CreateLessonDto): Promise<Lesson> {
@@ -63,33 +55,12 @@ export class LessonsService {
       );
     }
 
-    // === STAGE 3: Instructor CNH local check + expiry ===
-    const cnhResult = await this.validation.validateCnh(
-      instructor.cnhNumber ?? '',
-      instructor.cpf ?? '',
-    );
-    if (cnhResult.status === 'LOCAL_INVALID') {
-      throw new BadRequestException(
-        'Instructor CNH number failed local validation',
-      );
+    // === STAGE 3: Instructor CNH checksum + expiry ===
+    if (!validateCnh(instructor.cnhNumber ?? '').valid) {
+      throw new BadRequestException('Instructor CNH number is invalid');
     }
     if (!instructor.cnhExpiry || new Date(instructor.cnhExpiry) <= new Date()) {
       throw new BadRequestException('Instructor CNH is expired');
-    }
-
-    // === STAGE 4: SERPRO-style external check (only when provider=serpro) ===
-    const externalProvider =
-      this.config.get<string>('DOCUMENT_VALIDATION_PROVIDER') ?? 'mock';
-    if (externalProvider === 'serpro') {
-      const external = await this.documentValidation.validateCnh(
-        instructor.cnhNumber ?? '',
-        instructor.cpf ?? '',
-      );
-      if (!external.valid) {
-        throw new BadRequestException(
-          `Instructor CNH rejected by external provider (status=${external.status})`,
-        );
-      }
     }
 
     // === STAGE 5: Vehicle belongs to instructor ===
