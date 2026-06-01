@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateVehicleDto {
   @IsString()
@@ -24,4 +24,30 @@ export class CreateVehicleDto {
   @IsString()
   @IsNotEmpty()
   instructorId: string;
+}
+
+export class UpdateVehicleDto {
+  @IsString()
+  @IsOptional()
+  plate?: string;
+
+  @IsString()
+  @IsOptional()
+  model?: string;
+
+  @IsString()
+  @IsOptional()
+  year?: string;
+
+  @IsString()
+  @IsOptional()
+  transmission?: string;
+
+  @IsString()
+  @IsOptional()
+  vehiclePhoto?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  hasDoubleCommand?: boolean;
 }

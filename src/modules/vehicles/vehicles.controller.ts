@@ -17,7 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
-import { CreateVehicleDto } from './dto/create-vehicle.dto';
+import { CreateVehicleDto, UpdateVehicleDto } from './dto/create-vehicle.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   buildUploadStorage,
@@ -42,7 +42,7 @@ export class VehiclesController {
   @Patch('instructor/:instructorId')
   upsertByInstructor(
     @Param('instructorId') instructorId: string,
-    @Body() vehicleData: Partial<CreateVehicleDto>,
+    @Body() vehicleData: UpdateVehicleDto,
   ) {
     return this.vehiclesService.upsertByInstructor(instructorId, vehicleData);
   }
