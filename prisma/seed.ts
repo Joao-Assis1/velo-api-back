@@ -449,69 +449,78 @@ async function main() {
   upcomingDate.setDate(upcomingDate.getDate() + 3);
   upcomingDate.setHours(0, 0, 0, 0);
 
-  await prisma.lesson.upsert({
-    where: { unique_booking_slot: { instructorId: instructor.id, date: upcomingDate, startTime: '10:00' } },
-    create: {
-      studentId: aluno4.id,
-      instructorId: instructor.id,
-      vehicleId: vehicle.id,
-      date: upcomingDate,
-      startTime: '10:00',
-      endTime: '11:00',
-      status: 'pending_acceptance',
-      price: 120.0,
-    },
-    update: {},
+  let lessonPending = await prisma.lesson.findFirst({
+    where: { instructorId: instructor.id, date: upcomingDate, startTime: '10:00' }
   });
+  if (!lessonPending) {
+    lessonPending = await prisma.lesson.create({
+      data: {
+        studentId: aluno4.id,
+        instructorId: instructor.id,
+        vehicleId: vehicle.id,
+        date: upcomingDate,
+        startTime: '10:00',
+        endTime: '11:00',
+        status: 'pending_acceptance',
+        price: 120.0,
+      }
+    });
+  }
 
   const acceptedDate = new Date();
   acceptedDate.setDate(acceptedDate.getDate() + 5);
   acceptedDate.setHours(0, 0, 0, 0);
 
-  await prisma.lesson.upsert({
-    where: { unique_booking_slot: { instructorId: instructor.id, date: acceptedDate, startTime: '14:00' } },
-    create: {
-      studentId: aluno4.id,
-      instructorId: instructor.id,
-      vehicleId: vehicle.id,
-      date: acceptedDate,
-      startTime: '14:00',
-      endTime: '15:00',
-      status: 'accepted',
-      price: 120.0,
-    },
-    update: {},
+  let lessonAccepted = await prisma.lesson.findFirst({
+    where: { instructorId: instructor.id, date: acceptedDate, startTime: '14:00' }
   });
+  if (!lessonAccepted) {
+    lessonAccepted = await prisma.lesson.create({
+      data: {
+        studentId: aluno4.id,
+        instructorId: instructor.id,
+        vehicleId: vehicle.id,
+        date: acceptedDate,
+        startTime: '14:00',
+        endTime: '15:00',
+        status: 'accepted',
+        price: 120.0,
+      }
+    });
+  }
 
   const completedDate1 = new Date('2026-05-01');
-  const completedLesson4 = await prisma.lesson.upsert({
-    where: { unique_booking_slot: { instructorId: instructor.id, date: completedDate1, startTime: '09:00' } },
-    create: {
-      studentId: aluno4.id,
-      instructorId: instructor.id,
-      vehicleId: vehicle.id,
-      date: completedDate1,
-      startTime: '09:00',
-      endTime: '10:00',
-      status: 'completed',
-      durationMinutes: 60,
-      checkInTime: new Date('2026-05-01T09:00:00Z'),
-      checkOutTime: new Date('2026-05-01T10:00:00Z'),
-      biometryStartStatus: 'SUCCESS',
-      biometryStartAt: new Date('2026-05-01T09:00:00Z'),
-      biometryMidStatus: 'SUCCESS',
-      biometryMidAt: new Date('2026-05-01T09:30:00Z'),
-      biometryEndStatus: 'SUCCESS',
-      biometryEndAt: new Date('2026-05-01T10:00:00Z'),
-      price: 120.0,
-      instructorFeedback: 'Bom desempenho, mantenha a atenção nos espelhos.',
-      studentFeedbackRating: 5,
-      studentFeedbackText: 'Instrutor excelente, muito paciente.',
-      integrityHash: 'a'.repeat(64),
-      paymentReleased: false,
-    },
-    update: {},
+  let completedLesson4 = await prisma.lesson.findFirst({
+    where: { instructorId: instructor.id, date: completedDate1, startTime: '09:00' }
   });
+  if (!completedLesson4) {
+    completedLesson4 = await prisma.lesson.create({
+      data: {
+        studentId: aluno4.id,
+        instructorId: instructor.id,
+        vehicleId: vehicle.id,
+        date: completedDate1,
+        startTime: '09:00',
+        endTime: '10:00',
+        status: 'completed',
+        durationMinutes: 60,
+        checkInTime: new Date('2026-05-01T09:00:00Z'),
+        checkOutTime: new Date('2026-05-01T10:00:00Z'),
+        biometryStartStatus: 'SUCCESS',
+        biometryStartAt: new Date('2026-05-01T09:00:00Z'),
+        biometryMidStatus: 'SUCCESS',
+        biometryMidAt: new Date('2026-05-01T09:30:00Z'),
+        biometryEndStatus: 'SUCCESS',
+        biometryEndAt: new Date('2026-05-01T10:00:00Z'),
+        price: 120.0,
+        instructorFeedback: 'Bom desempenho, mantenha a atenção nos espelhos.',
+        studentFeedbackRating: 5,
+        studentFeedbackText: 'Instrutor excelente, muito paciente.',
+        integrityHash: 'a'.repeat(64),
+        paymentReleased: false,
+      }
+    });
+  }
 
   const pm4 = await prisma.paymentMethod.findFirst({ where: { studentId: aluno4.id } });
   await prisma.payment.upsert({
@@ -587,34 +596,37 @@ async function main() {
 
   for (let i = 0; i < lessonDates5.length; i++) {
     const d = lessonDates5[i];
-    const lesson = await prisma.lesson.upsert({
-      where: { unique_booking_slot: { instructorId: instructor.id, date: d, startTime: '09:00' } },
-      create: {
-        studentId: aluno5.id,
-        instructorId: instructor.id,
-        vehicleId: vehicle.id,
-        date: d,
-        startTime: '09:00',
-        endTime: '10:00',
-        status: 'completed',
-        durationMinutes: 60,
-        checkInTime: new Date(d.getTime()),
-        checkOutTime: new Date(d.getTime() + 60 * 60 * 1000),
-        biometryStartStatus: 'SUCCESS',
-        biometryStartAt: new Date(d.getTime()),
-        biometryMidStatus: 'SUCCESS',
-        biometryMidAt: new Date(d.getTime() + 30 * 60 * 1000),
-        biometryEndStatus: 'SUCCESS',
-        biometryEndAt: new Date(d.getTime() + 60 * 60 * 1000),
-        price: 120.0,
-        instructorFeedback: 'Ótima evolução na aula.',
-        studentFeedbackRating: 5,
-        studentFeedbackText: 'Adorei a aula.',
-        integrityHash: `${'b'.repeat(62)}${String(i).padStart(2, '0')}`,
-        paymentReleased: true,
-      },
-      update: {},
+    let lesson = await prisma.lesson.findFirst({
+      where: { instructorId: instructor.id, date: d, startTime: '09:00' }
     });
+    if (!lesson) {
+      lesson = await prisma.lesson.create({
+        data: {
+          studentId: aluno5.id,
+          instructorId: instructor.id,
+          vehicleId: vehicle.id,
+          date: d,
+          startTime: '09:00',
+          endTime: '10:00',
+          status: 'completed',
+          durationMinutes: 60,
+          checkInTime: new Date(d.getTime()),
+          checkOutTime: new Date(d.getTime() + 60 * 60 * 1000),
+          biometryStartStatus: 'SUCCESS',
+          biometryStartAt: new Date(d.getTime()),
+          biometryMidStatus: 'SUCCESS',
+          biometryMidAt: new Date(d.getTime() + 30 * 60 * 1000),
+          biometryEndStatus: 'SUCCESS',
+          biometryEndAt: new Date(d.getTime() + 60 * 60 * 1000),
+          price: 120.0,
+          instructorFeedback: 'Ótima evolução na aula.',
+          studentFeedbackRating: 5,
+          studentFeedbackText: 'Adorei a aula.',
+          integrityHash: `${'b'.repeat(62)}${String(i).padStart(2, '0')}`,
+          paymentReleased: true,
+        }
+      });
+    }
 
     const pm5 = await prisma.paymentMethod.findFirst({ where: { studentId: aluno5.id } });
     await prisma.payment.upsert({
