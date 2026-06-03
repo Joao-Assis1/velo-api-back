@@ -210,7 +210,7 @@ model Lesson {
   telemetry             LessonTelemetry[] // Relacionamento com Telemetria
   events                LessonEvent[]     // Eventos de orientação (Navegador)
 
-  @@unique([instructorId, date, startTime], name: "unique_booking_slot")
+  @@index([instructorId, date, startTime], name: "idx_booking_slot")
   @@index([studentId])
   @@index([studentId, status])
 }
