@@ -45,7 +45,8 @@ export class StripeConnectService {
       where: { id: instructorId },
       data: {
         stripeAccountId: account.id,
-        stripeAccountStatus: 'ONBOARDING',
+        stripeAccountStatus: 'ACTIVE', // Auto-ativo para fase de testes
+        stripePayoutsEnabled: true,    // Auto-habilitado para testes
       },
     });
   }
