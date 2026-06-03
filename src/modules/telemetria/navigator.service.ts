@@ -45,20 +45,21 @@ export class NavigatorService {
    * Analyzes a batch of telemetry points and auto-detects events.
    */
   async analyzeTelemetry(lessonId: string, points: any[]) {
-    for (const point of points) {
-      // 1. Check for speeding
-      if (point.velocity > this.SPEED_THRESHOLD) {
-        await this.registerEvent({
-          lessonId,
-          type: LessonEventType.SPEED_LIMIT,
-          message: `Velocidade de ${point.velocity}km/h excede o limite de ${this.SPEED_THRESHOLD}km/h.`,
-          lat: point.lat,
-          lng: point.lng,
-        });
-      }
+    const speedEvents = points
+      .filter((p) => p.velocity > this.SPEED_THRESHOLD)
+      .map((p) => ({
+        lessonId,
+        type: LessonEventType.SPEED_LIMIT,
+        message: `Velocidade de ${p.velocity}km/h excede o limite de ${this.SPEED_THRESHOLD}km/h.`,
+        lat: p.lat,
+        lng: p.lng,
+      }));
 
-      // Note: Harsh braking detection would require comparing velocity between consecutive points.
-      // For this MVP, we focus on Speed Limit alerts.
+    if (speedEvents.length > 0) {
+      this.logger.log(
+        `Registering ${speedEvents.length} speed limit event(s) for lesson ${lessonId}`,
+      );
+      await this.prisma.lessonEvent.createMany({ data: speedEvents });
     }
   }
 
@@ -69,6 +70,7 @@ export class NavigatorService {
     return this.prisma.lessonEvent.findMany({
       where: { lessonId },
       orderBy: { timestamp: 'asc' },
+      take: 500,
     });
   }
 }

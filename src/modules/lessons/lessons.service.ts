@@ -124,7 +124,7 @@ export class LessonsService {
     });
   }
 
-  async findAll(studentId?: string, instructorId?: string): Promise<Lesson[]> {
+  async findAll(studentId?: string, instructorId?: string) {
     const where: Prisma.LessonWhereInput = {};
     if (studentId) where.studentId = studentId;
     if (instructorId) where.instructorId = instructorId;
@@ -132,9 +132,18 @@ export class LessonsService {
     return this.prisma.lesson.findMany({
       where,
       include: {
-        student: true,
-        instructor: true,
-        vehicle: true,
+        student: { select: { id: true, name: true, profilePicture: true } },
+        instructor: {
+          select: { id: true, name: true, rating: true, profilePicture: true },
+        },
+        vehicle: {
+          select: {
+            id: true,
+            model: true,
+            plate: true,
+            transmission: true,
+          },
+        },
         payment: { select: { status: true } },
       },
     });

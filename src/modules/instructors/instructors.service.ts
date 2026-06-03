@@ -34,6 +34,7 @@ export class InstructorsService {
       },
       omit: this.omitPassword,
       include: { vehicles: true, availabilities: true },
+      take: 100,
     }) as unknown as Promise<
       Array<
         Omit<Instructor, 'password'> & {

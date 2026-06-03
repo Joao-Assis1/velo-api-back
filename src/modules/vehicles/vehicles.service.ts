@@ -94,6 +94,6 @@ export class VehiclesService {
         where: { instructorId },
       });
     }
-    return this.prisma.vehicle.findMany();
+    return this.prisma.vehicle.findMany({ take: 100 });
   }
 }

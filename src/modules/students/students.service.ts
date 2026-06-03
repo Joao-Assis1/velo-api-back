@@ -26,6 +26,7 @@ export class StudentsService {
   async findAll(): Promise<Omit<Student, 'password'>[]> {
     return this.prisma.student.findMany({
       omit: this.omitPassword,
+      take: 100,
     }) as unknown as Promise<Omit<Student, 'password'>[]>;
   }
 

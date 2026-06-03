@@ -59,6 +59,6 @@ export class AvailabilityService {
         where: { instructorId },
       });
     }
-    return this.prisma.availability.findMany();
+    return this.prisma.availability.findMany({ take: 500 });
   }
 }

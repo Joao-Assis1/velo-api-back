@@ -48,6 +48,8 @@ model Student {
   checklist             StudentChecklist?
   simulados             StudentSimuladoHistory[]
   renachProcess         RenachProcess?
+
+  @@index([ladvValidUntil])
 }
 
 model Question {
@@ -125,18 +127,22 @@ model Instructor {
   lessons         Lesson[]
   vehicles        Vehicle[]
   busySlots       BusySlot[]
+
+  @@index([credentialStatus, stripeAccountStatus, isActive])
+  @@index([credentialValidUntil])
 }
 
 model Vehicle {
-  id           String     @id @default(uuid())
-  plate        String     @unique
-  model        String
-  instructorId String
-  transmission String?
-  vehiclePhoto String?
-  year         String?
-  lessons      Lesson[]
-  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  id              String     @id @default(uuid())
+  plate           String     @unique
+  model           String
+  instructorId    String
+  transmission    String?
+  vehiclePhoto    String?
+  year            String?
+  hasDoubleCommand Boolean?
+  lessons         Lesson[]
+  instructor      Instructor @relation(fields: [instructorId], references: [id])
 }
 
 model Availability {
