@@ -28,8 +28,8 @@ export class InstructorsService {
   async findAll() {
     return this.prisma.instructor.findMany({
       where: {
-        credentialStatus: 'APPROVED',
-        stripeAccountStatus: 'ACTIVE',
+        // credentialStatus: 'APPROVED', // Comentado para permitir que professores testem e vejam seus perfis recém-criados
+        // stripeAccountStatus: 'ACTIVE', // Comentado pelo mesmo motivo
         isActive: true,
       },
       omit: this.omitPassword,
