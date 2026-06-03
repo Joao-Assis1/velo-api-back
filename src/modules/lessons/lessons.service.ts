@@ -80,6 +80,9 @@ export class LessonsService {
           instructorId: createLessonDto.instructorId,
           date: new Date(createLessonDto.date),
           startTime: createLessonDto.startTime,
+          status: {
+            not: 'cancelled',
+          },
         },
       });
 
