@@ -177,6 +177,10 @@ export class AuthService {
             birthDate: registerDto.birthDate,
             educationLevel: registerDto.educationLevel,
             renachNumber: registerDto.renachNumber,
+            detranCredentialNumber: registerDto.detranCredentialNumber,
+            noGravissima: registerDto.noGravissima,
+            hasInstructorCourse: registerDto.hasInstructorCourse,
+            noCassacao: registerDto.noCassacao,
             vehicles:
               registerDto.vehiclePlate && registerDto.vehicleModel
                 ? {
@@ -185,6 +189,7 @@ export class AuthService {
                       model: registerDto.vehicleModel,
                       year: registerDto.vehicleYear,
                       transmission: registerDto.transmission,
+                      hasDoubleCommand: registerDto.hasDoubleCommand ?? false,
                     },
                   }
                 : undefined,

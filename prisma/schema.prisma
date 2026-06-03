@@ -133,15 +133,16 @@ model Instructor {
 }
 
 model Vehicle {
-  id           String     @id @default(uuid())
-  plate        String     @unique
-  model        String
-  instructorId String
-  transmission String?
-  vehiclePhoto String?
-  year         String?
-  lessons      Lesson[]
-  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  id              String     @id @default(uuid())
+  plate           String     @unique
+  model           String
+  instructorId    String
+  transmission    String?
+  vehiclePhoto    String?
+  year            String?
+  hasDoubleCommand Boolean?
+  lessons         Lesson[]
+  instructor      Instructor @relation(fields: [instructorId], references: [id])
 }
 
 model Availability {

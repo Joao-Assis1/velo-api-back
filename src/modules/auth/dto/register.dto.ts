@@ -119,4 +119,24 @@ export class RegisterDto {
   @IsString()
   @IsOptional()
   transmission?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  hasDoubleCommand?: boolean;
+
+  @IsString()
+  @IsOptional()
+  detranCredentialNumber?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  noGravissima?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  hasInstructorCourse?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  noCassacao?: boolean;
 }
