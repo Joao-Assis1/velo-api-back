@@ -178,6 +178,7 @@ export class AuthService {
             educationLevel: registerDto.educationLevel,
             renachNumber: registerDto.renachNumber,
             detranCredentialNumber: registerDto.detranCredentialNumber,
+            credentialStatus: 'APPROVED', // Auto-aprovação para fase de testes
             noGravissima: registerDto.noGravissima,
             hasInstructorCourse: registerDto.hasInstructorCourse,
             noCassacao: registerDto.noCassacao,
