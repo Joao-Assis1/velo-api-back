@@ -51,6 +51,25 @@ const basePayment = {
   asaasPaymentId: ASAAS_PAYMENT_ID,
 };
 
+const heldPayment = {
+  ...basePayment,
+  status: 'HELD',
+};
+
+const complianceLesson = {
+  id: LESSON_ID,
+  studentId: STUDENT_ID,
+  instructorId: INSTRUCTOR_ID,
+  price: 150,
+  status: 'completed',
+  durationMinutes: 50,
+  biometryStartStatus: 'SUCCESS',
+  biometryMidStatus: 'SUCCESS',
+  biometryEndStatus: 'SUCCESS',
+  integrityHash: 'abc123',
+  disputeOpened: false,
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -63,7 +82,7 @@ describe('PaymentsService', () => {
   beforeEach(async () => {
     prisma = {
       lesson: { findUnique: jest.fn() },
-      payment: { findFirst: jest.fn(), create: jest.fn() },
+      payment: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       paymentMethod: { findFirst: jest.fn() },
       student: { findUnique: jest.fn() },
       instructor: { findUnique: jest.fn() },
@@ -71,6 +90,7 @@ describe('PaymentsService', () => {
 
     asaas = {
       charge: jest.fn(),
+      transferPix: jest.fn(),
     };
 
     const mod: TestingModule = await Test.createTestingModule({
@@ -308,6 +328,105 @@ describe('PaymentsService', () => {
       ).resolves.toBeUndefined();
 
       expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // releaseEscrow
+  // ---------------------------------------------------------------------------
+
+  describe('releaseEscrow', () => {
+    const TRANSFER_ID = 'transfer_asaas_1';
+
+    const setupHappyPath = () => {
+      prisma.payment.findFirst.mockResolvedValue(heldPayment);
+      prisma.lesson.findUnique.mockResolvedValue(complianceLesson);
+      prisma.instructor.findUnique.mockResolvedValue(baseInstructor);
+      asaas.transferPix.mockResolvedValue({ id: TRANSFER_ID, status: 'PENDING' });
+      prisma.payment.update.mockResolvedValue({ ...heldPayment, status: 'RELEASED' });
+    };
+
+    it('happy path: calls transferPix and updates payment to RELEASED', async () => {
+      setupHappyPath();
+
+      await service.releaseEscrow(LESSON_ID);
+
+      expect(asaas.transferPix).toHaveBeenCalledWith(
+        {
+          value: expect.any(Number),
+          pixAddressKey: baseInstructor.pixKey,
+          pixAddressKeyType: baseInstructor.pixKeyType,
+          description: expect.any(String),
+        },
+        `transfer-${heldPayment.id}`,
+      );
+
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: heldPayment.id },
+        data: expect.objectContaining({
+          status: 'RELEASED',
+          asaasTransferId: TRANSFER_ID,
+          platformFeeAmount: expect.any(Number),
+          instructorAmount: expect.any(Number),
+        }),
+      });
+    });
+
+    it('idempotent: already RELEASED → no-op, no transferPix call', async () => {
+      prisma.payment.findFirst.mockResolvedValue({ ...heldPayment, status: 'RELEASED' });
+
+      await service.releaseEscrow(LESSON_ID);
+
+      expect(asaas.transferPix).not.toHaveBeenCalled();
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when payment does not exist for lesson', async () => {
+      prisma.payment.findFirst.mockResolvedValue(null);
+
+      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws BadRequestException when payment is not HELD (PENDING)', async () => {
+      prisma.payment.findFirst.mockResolvedValue({ ...heldPayment, status: 'PENDING' });
+
+      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when lesson does not pass compliance', async () => {
+      prisma.payment.findFirst.mockResolvedValue(heldPayment);
+      prisma.lesson.findUnique.mockResolvedValue({
+        ...complianceLesson,
+        durationMinutes: 30, // too short
+      });
+      prisma.instructor.findUnique.mockResolvedValue(baseInstructor);
+
+      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when instructor has no pixKey', async () => {
+      prisma.payment.findFirst.mockResolvedValue(heldPayment);
+      prisma.lesson.findUnique.mockResolvedValue(complianceLesson);
+      prisma.instructor.findUnique.mockResolvedValue({
+        ...baseInstructor,
+        pixKey: null,
+        pixKeyType: null,
+      });
+
+      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(BadRequestException);
+    });
+
+    it('split: platform gets 20%, instructor gets 80% of payment amount', async () => {
+      setupHappyPath();
+
+      await service.releaseEscrow(LESSON_ID);
+
+      const updateCall = prisma.payment.update.mock.calls[0][0];
+      const { platformFeeAmount, instructorAmount } = updateCall.data;
+
+      expect(platformFeeAmount).toBeCloseTo(150 * 0.2);
+      expect(instructorAmount).toBeCloseTo(150 * 0.8);
+      expect(platformFeeAmount + instructorAmount).toBeCloseTo(150);
     });
   });
 });
