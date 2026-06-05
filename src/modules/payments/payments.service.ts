@@ -118,6 +118,8 @@ export class PaymentsService {
   }
 
   async releaseEscrow(lessonId: string): Promise<void> {
+    const VALID_PIX_KEY_TYPES = ['CPF', 'CNPJ', 'EMAIL', 'PHONE', 'EVP'] as const;
+
     // 1. Find Payment by lessonId
     const payment = await this.prisma.payment.findFirst({ where: { lessonId } });
     if (!payment) {
@@ -148,8 +150,8 @@ export class PaymentsService {
       where: { id: lesson.instructorId },
       select: { pixKey: true, pixKeyType: true },
     });
-    if (!instructor?.pixKey || !instructor?.pixKeyType) {
-      throw new BadRequestException('Instrutor não possui chave PIX cadastrada');
+    if (!instructor?.pixKey || !VALID_PIX_KEY_TYPES.includes(instructor?.pixKeyType as any)) {
+      throw new BadRequestException('Instrutor não possui chave PIX válida cadastrada');
     }
 
     // 6. Compute split
