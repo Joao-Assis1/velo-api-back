@@ -13,7 +13,6 @@ import Stripe from 'stripe';
 import type { Request } from 'express';
 import { STRIPE_CLIENT } from './stripe.client';
 import { PaymentsStripeService } from './payments-stripe.service';
-import { StripeConnectService } from './stripe-connect.service';
 import { routeStripeEvent } from './lib/event-router';
 
 interface RequestWithRaw extends Request {
@@ -26,7 +25,6 @@ export class StripeWebhooksController {
   constructor(
     @Inject(STRIPE_CLIENT) private readonly stripe: InstanceType<typeof Stripe>,
     private readonly payments: PaymentsStripeService,
-    private readonly connect: StripeConnectService,
     private readonly config: ConfigService,
   ) {}
 
@@ -67,14 +65,6 @@ export class StripeWebhooksController {
         this.payments.handlePaymentIntentSucceeded(pi),
       onPaymentIntentFailed: (pi) =>
         this.payments.handlePaymentIntentFailed(pi),
-      onAccountUpdated: (account) =>
-        this.connect.updateAccountStatus(account.id, {
-          payouts_enabled: account.payouts_enabled,
-          charges_enabled: account.charges_enabled,
-          requirements: account.requirements
-            ? { disabled_reason: account.requirements.disabled_reason ?? null }
-            : { disabled_reason: null },
-        }),
       onTransferCreated: (transfer) =>
         this.payments.handleTransferCreated(transfer),
       onTransferFailed: (transfer) =>

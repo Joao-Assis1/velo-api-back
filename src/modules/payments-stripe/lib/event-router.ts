@@ -4,12 +4,6 @@ export interface StripeEventHandlers {
     id: string;
     last_payment_error?: { message?: string } | null;
   }): Promise<void>;
-  onAccountUpdated(account: {
-    id: string;
-    payouts_enabled: boolean;
-    charges_enabled: boolean;
-    requirements?: any;
-  }): Promise<void>;
   onTransferCreated(transfer: { id: string }): Promise<void>;
   onTransferFailed(transfer: { id: string }): Promise<void>;
 }
@@ -29,9 +23,6 @@ export async function routeStripeEvent(
       return true;
     case 'payment_intent.payment_failed':
       await handlers.onPaymentIntentFailed(event.data.object);
-      return true;
-    case 'account.updated':
-      await handlers.onAccountUpdated(event.data.object);
       return true;
     case 'transfer.created':
       await handlers.onTransferCreated(event.data.object);

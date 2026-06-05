@@ -10,17 +10,12 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PaymentsStripeService } from './payments-stripe.service';
-import { StripeConnectService } from './stripe-connect.service';
 import { ChargeDto } from './dto/charge.dto';
 import {
   AttachPaymentMethodDto,
   PaymentMethodResponseDto,
 } from './dto/payment-method.dto';
 import { SetupIntentResponseDto } from './dto/setup-intent-response.dto';
-import {
-  ConnectOnboardResponseDto,
-  ConnectStatusDto,
-} from './dto/connect-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
@@ -29,10 +24,7 @@ import type { RequestWithUser } from '../../common/interfaces/request-with-user.
 @Controller('payments-stripe')
 @UseGuards(JwtAuthGuard)
 export class PaymentsStripeController {
-  constructor(
-    private readonly service: PaymentsStripeService,
-    private readonly connect: StripeConnectService,
-  ) {}
+  constructor(private readonly service: PaymentsStripeService) {}
 
   @Post('setup-intent')
   @ApiOkResponse({ type: SetupIntentResponseDto })
@@ -59,17 +51,5 @@ export class PaymentsStripeController {
   @Get('me')
   getMyPayments(@Req() req: RequestWithUser) {
     return this.service.listMyPayments(req.user.userId);
-  }
-
-  @Post('connect/onboard')
-  @ApiOkResponse({ type: ConnectOnboardResponseDto })
-  onboard(@Req() req: RequestWithUser) {
-    return this.connect.startOnboarding(req.user.userId);
-  }
-
-  @Get('connect/status')
-  @ApiOkResponse({ type: ConnectStatusDto })
-  connectStatus(@Req() req: RequestWithUser) {
-    return this.connect.getStatus(req.user.userId);
   }
 }

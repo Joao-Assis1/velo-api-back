@@ -4,7 +4,6 @@ describe('routeStripeEvent', () => {
   const handlers = {
     onPaymentIntentSucceeded: jest.fn(),
     onPaymentIntentFailed: jest.fn(),
-    onAccountUpdated: jest.fn(),
     onTransferCreated: jest.fn(),
     onTransferFailed: jest.fn(),
   };
@@ -37,14 +36,6 @@ describe('routeStripeEvent', () => {
       handlers,
     );
     expect(handlers.onPaymentIntentFailed).toHaveBeenCalled();
-  });
-
-  it('routes account.updated', async () => {
-    await routeStripeEvent(
-      { type: 'account.updated', data: { object: { id: 'acct_1' } } } as any,
-      handlers,
-    );
-    expect(handlers.onAccountUpdated).toHaveBeenCalled();
   });
 
   it('routes transfer.created and transfer.failed', async () => {

@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { StripeWebhooksController } from './stripe-webhooks.controller';
 import { PaymentsStripeService } from './payments-stripe.service';
-import { StripeConnectService } from './stripe-connect.service';
 import { STRIPE_CLIENT } from './stripe.client';
 import { ConfigService } from '@nestjs/config';
 
@@ -10,7 +9,6 @@ describe('StripeWebhooksController', () => {
   let controller: StripeWebhooksController;
   let stripe: any;
   let payments: any;
-  let connect: any;
 
   beforeEach(async () => {
     stripe = { webhooks: { constructEvent: jest.fn() } };
@@ -20,13 +18,11 @@ describe('StripeWebhooksController', () => {
       handleTransferCreated: jest.fn(),
       handleTransferFailed: jest.fn(),
     };
-    connect = { updateAccountStatus: jest.fn() };
 
     const mod: TestingModule = await Test.createTestingModule({
       controllers: [StripeWebhooksController],
       providers: [
         { provide: PaymentsStripeService, useValue: payments },
-        { provide: StripeConnectService, useValue: connect },
         { provide: STRIPE_CLIENT, useValue: stripe },
         {
           provide: ConfigService,
@@ -66,27 +62,6 @@ describe('StripeWebhooksController', () => {
       id: 'pi_1',
     });
     expect(res).toEqual({ received: true });
-  });
-
-  it('routes account.updated to connect service', async () => {
-    stripe.webhooks.constructEvent.mockReturnValue({
-      type: 'account.updated',
-      data: {
-        object: {
-          id: 'acct_1',
-          payouts_enabled: true,
-          charges_enabled: true,
-          requirements: { disabled_reason: null },
-        },
-      },
-    });
-    connect.updateAccountStatus.mockResolvedValue(undefined);
-    await controller.handle({ rawBody: Buffer.from('{}') } as any, 'sig');
-    expect(connect.updateAccountStatus).toHaveBeenCalledWith('acct_1', {
-      payouts_enabled: true,
-      charges_enabled: true,
-      requirements: { disabled_reason: null },
-    });
   });
 
   it('returns received=true for unhandled event types', async () => {

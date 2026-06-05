@@ -15,7 +15,6 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Student, Instructor } from '@prisma/client';
 import { JourneyService } from '../journey/journey.service';
 import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
-import { StripeConnectService } from '../payments-stripe/stripe-connect.service';
 import { MailService } from '../mail/mail.service';
 
 @Injectable()
@@ -27,7 +26,6 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly journeyService: JourneyService,
     private readonly paymentsStripeService: PaymentsStripeService,
-    private readonly stripeConnectService: StripeConnectService,
     private readonly mailService: MailService,
   ) {}
 
@@ -197,13 +195,6 @@ export class AuthService {
           },
           include: { availabilities: true, busySlots: true, vehicles: true },
         });
-        this.stripeConnectService
-          .provisionAccount(user.id, user.email)
-          .catch((err) =>
-            this.logger.error(
-              `Failed to provision Stripe account for instructor ${user.id}: ${err}`,
-            ),
-          );
       }
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
