@@ -220,7 +220,7 @@ export class LessonsService {
     });
 
     try {
-      await this.paymentsStripe.releaseEscrow(id);
+      await this.paymentsService.releaseEscrow(id);
     } catch (e) {
       this.logger.warn(
         `Escrow release skipped for lesson ${id}: ${(e as Error).message}`,
