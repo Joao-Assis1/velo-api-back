@@ -13,7 +13,6 @@ import {
   isEmail,
   isUUID,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 
 const PIX_PATTERNS: Record<string, RegExp> = {
   CPF: /^\d{11}$/,
