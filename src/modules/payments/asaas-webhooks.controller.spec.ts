@@ -6,12 +6,13 @@ import { ASAAS_CLIENT } from './asaas.client';
 
 describe('AsaasWebhooksController', () => {
   let controller: AsaasWebhooksController;
-  let paymentsService: jest.Mocked<Pick<PaymentsService, 'handlePaymentWebhook'>>;
+  let paymentsService: jest.Mocked<Pick<PaymentsService, 'handlePaymentWebhook' | 'handleTransferWebhook'>>;
   let asaasClient: { verifyWebhookToken: jest.Mock };
 
   beforeEach(async () => {
     paymentsService = {
       handlePaymentWebhook: jest.fn().mockResolvedValue(undefined),
+      handleTransferWebhook: jest.fn().mockResolvedValue(undefined),
     };
 
     asaasClient = {
@@ -90,6 +91,38 @@ describe('AsaasWebhooksController', () => {
         'REFUND_CREATED',
         'pay_asaas_789',
       );
+      expect(result).toEqual({ received: true });
+    });
+
+    it('TRANSFER_DONE body: routes to handleTransferWebhook', async () => {
+      asaasClient.verifyWebhookToken.mockReturnValue(true);
+
+      const result = await controller.handleAsaasWebhook('valid-token', {
+        event: 'TRANSFER_DONE',
+        transfer: { id: 'transfer_asaas_001', status: 'DONE' },
+      });
+
+      expect(paymentsService.handleTransferWebhook).toHaveBeenCalledWith(
+        'TRANSFER_DONE',
+        'transfer_asaas_001',
+      );
+      expect(paymentsService.handlePaymentWebhook).not.toHaveBeenCalled();
+      expect(result).toEqual({ received: true });
+    });
+
+    it('TRANSFER_FAILED body: routes to handleTransferWebhook', async () => {
+      asaasClient.verifyWebhookToken.mockReturnValue(true);
+
+      const result = await controller.handleAsaasWebhook('valid-token', {
+        event: 'TRANSFER_FAILED',
+        transfer: { id: 'transfer_asaas_002', status: 'FAILED' },
+      });
+
+      expect(paymentsService.handleTransferWebhook).toHaveBeenCalledWith(
+        'TRANSFER_FAILED',
+        'transfer_asaas_002',
+      );
+      expect(paymentsService.handlePaymentWebhook).not.toHaveBeenCalled();
       expect(result).toEqual({ received: true });
     });
   });

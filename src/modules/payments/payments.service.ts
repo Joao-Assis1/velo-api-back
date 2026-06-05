@@ -234,6 +234,22 @@ export class PaymentsService {
     }
   }
 
+  async handleTransferWebhook(event: string, asaasTransferId: string): Promise<void> {
+    if (!['TRANSFER_DONE', 'TRANSFER_FAILED'].includes(event)) return;
+
+    const payment = await this.prisma.payment.findUnique({ where: { asaasTransferId } });
+    if (!payment) return;
+
+    if (event === 'TRANSFER_DONE') {
+      if (payment.status === 'RELEASED') return; // idempotent
+      await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'RELEASED' } });
+    } else {
+      // TRANSFER_FAILED
+      if (payment.status === 'HELD') return; // already reverted — idempotent
+      await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'HELD' } });
+    }
+  }
+
   async handlePaymentWebhook(event: string, asaasPaymentId: string): Promise<void> {
     const SUCCESS_EVENTS = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'];
     const FAILURE_EVENTS = ['PAYMENT_OVERDUE', 'PAYMENT_DELETED'];

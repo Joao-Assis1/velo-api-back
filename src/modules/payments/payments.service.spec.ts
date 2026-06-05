@@ -332,6 +332,89 @@ describe('PaymentsService', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // handleTransferWebhook
+  // ---------------------------------------------------------------------------
+
+  describe('handleTransferWebhook', () => {
+    const asaasTransferId = 'transfer_asaas_001';
+
+    const heldPaymentWithTransfer = {
+      id: 'pay-uuid-2',
+      lessonId: LESSON_ID,
+      studentId: STUDENT_ID,
+      amount: 150,
+      status: 'HELD',
+      asaasTransferId,
+    };
+
+    beforeEach(() => {
+      prisma.payment.findUnique = jest.fn();
+      prisma.payment.update = jest.fn();
+    });
+
+    it('TRANSFER_DONE: sets status to RELEASED', async () => {
+      prisma.payment.findUnique.mockResolvedValue(heldPaymentWithTransfer);
+
+      await service.handleTransferWebhook('TRANSFER_DONE', asaasTransferId);
+
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: heldPaymentWithTransfer.id },
+        data: { status: 'RELEASED' },
+      });
+    });
+
+    it('TRANSFER_DONE: is idempotent when already RELEASED', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        ...heldPaymentWithTransfer,
+        status: 'RELEASED',
+      });
+
+      await service.handleTransferWebhook('TRANSFER_DONE', asaasTransferId);
+
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+
+    it('TRANSFER_FAILED: reverts status to HELD', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        ...heldPaymentWithTransfer,
+        status: 'RELEASED',
+      });
+
+      await service.handleTransferWebhook('TRANSFER_FAILED', asaasTransferId);
+
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: heldPaymentWithTransfer.id },
+        data: { status: 'HELD' },
+      });
+    });
+
+    it('TRANSFER_FAILED: is idempotent when already HELD', async () => {
+      prisma.payment.findUnique.mockResolvedValue(heldPaymentWithTransfer);
+
+      await service.handleTransferWebhook('TRANSFER_FAILED', asaasTransferId);
+
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+
+    it('unknown event: no-op, no DB calls', async () => {
+      await service.handleTransferWebhook('TRANSFER_UNKNOWN', asaasTransferId);
+
+      expect(prisma.payment.findUnique).not.toHaveBeenCalled();
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+
+    it('unknown asaasTransferId: no-op, no update call', async () => {
+      prisma.payment.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.handleTransferWebhook('TRANSFER_DONE', 'nonexistent-transfer'),
+      ).resolves.toBeUndefined();
+
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // resolveDispute
   // ---------------------------------------------------------------------------
 

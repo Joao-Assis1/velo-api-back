@@ -10,12 +10,16 @@ import {
 import { AsaasClient, ASAAS_CLIENT } from './asaas.client';
 import { PaymentsService } from './payments.service';
 
-interface AsaasWebhookPayload {
+interface AsaasPaymentWebhookPayload {
   event: string;
-  payment: {
+  payment?: {
     id: string;
     status: string;
     value: number;
+  };
+  transfer?: {
+    id: string;
+    status: string;
   };
 }
 
@@ -30,13 +34,17 @@ export class AsaasWebhooksController {
   @HttpCode(200)
   async handleAsaasWebhook(
     @Headers('asaas-access-token') token: string,
-    @Body() body: AsaasWebhookPayload,
+    @Body() body: AsaasPaymentWebhookPayload,
   ): Promise<{ received: boolean }> {
     if (!this.asaas.verifyWebhookToken(token)) {
       throw new UnauthorizedException('Token de webhook inválido');
     }
 
-    await this.paymentsService.handlePaymentWebhook(body.event, body.payment?.id);
+    if (body.transfer?.id) {
+      await this.paymentsService.handleTransferWebhook(body.event, body.transfer.id);
+    } else if (body.payment?.id) {
+      await this.paymentsService.handlePaymentWebhook(body.event, body.payment.id);
+    }
 
     return { received: true };
   }
