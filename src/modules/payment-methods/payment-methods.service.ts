@@ -25,7 +25,7 @@ export class PaymentMethodsService {
       where: { id: studentId },
       select: { id: true, email: true, name: true, stripeCustomerId: true },
     });
-    if (!student) throw new NotFoundException(`Student ${studentId} not found`);
+    if (!student) throw new NotFoundException(`Aluno ${studentId} não encontrado`);
 
     let customerId = student.stripeCustomerId;
     if (!customerId) {
@@ -55,7 +55,7 @@ export class PaymentMethodsService {
       });
     } catch (err: any) {
       throw new BadRequestException(
-        err?.message ?? 'Invalid card details',
+        err?.message ?? 'Dados do cartão inválidos',
       );
     }
 
@@ -103,7 +103,7 @@ export class PaymentMethodsService {
       where: { id: studentId },
       select: { id: true, email: true, name: true, stripeCustomerId: true },
     });
-    if (!student) throw new NotFoundException(`Student ${studentId} not found`);
+    if (!student) throw new NotFoundException(`Aluno ${studentId} não encontrado`);
 
     let customerId = student.stripeCustomerId;
     if (!customerId) {
@@ -174,7 +174,7 @@ export class PaymentMethodsService {
     const pm = await this.prisma.paymentMethod.findFirst({
       where: { id, studentId, isDeleted: false },
     });
-    if (!pm) throw new NotFoundException('Payment method not found');
+    if (!pm) throw new NotFoundException('Método de pagamento não encontrado');
 
     await this.prisma.paymentMethod.update({
       where: { id },
@@ -201,7 +201,7 @@ export class PaymentMethodsService {
     const pm = await this.prisma.paymentMethod.findFirst({
       where: { id, studentId, isDeleted: false },
     });
-    if (!pm) throw new NotFoundException('Payment method not found');
+    if (!pm) throw new NotFoundException('Método de pagamento não encontrado');
     await this.prisma.$transaction([
       this.prisma.paymentMethod.updateMany({
         where: { studentId, isDefault: true },

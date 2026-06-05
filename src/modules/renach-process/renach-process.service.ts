@@ -48,7 +48,7 @@ export class RenachProcessService {
     const r = await this.prisma.renachProcess.findUnique({
       where: { studentId },
     });
-    if (!r) throw new NotFoundException('RENACH process not found');
+    if (!r) throw new NotFoundException('Processo RENACH não encontrado');
     return r as RenachProcessDto;
   }
 
@@ -106,7 +106,7 @@ export class RenachProcessService {
     });
     if (!existing) {
       throw new BadRequestException(
-        'No RENACH process to complete — call /renach/me/schedule first',
+        'Nenhum processo RENACH para concluir — agende o RENACH primeiro',
       );
     }
     const r = await this.prisma.renachProcess.update({

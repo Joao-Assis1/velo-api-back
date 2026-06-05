@@ -9,6 +9,7 @@ import { join } from 'path';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { MulterExceptionFilter } from './common/filters/multer-exception.filter';
+import { ptBrValidationExceptionFactory } from './common/validation/pt-br-validation';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -53,6 +54,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: ptBrValidationExceptionFactory,
     }),
   );
 

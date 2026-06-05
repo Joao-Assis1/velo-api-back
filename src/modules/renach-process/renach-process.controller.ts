@@ -44,7 +44,7 @@ export class RenachProcessController {
   @ApiOkResponse()
   guide(@Query('uf') uf: string) {
     if (!uf) {
-      throw new BadRequestException('Query param "uf" is required');
+      throw new BadRequestException('O parâmetro "uf" é obrigatório');
     }
     return this.service.getGuide(uf);
   }

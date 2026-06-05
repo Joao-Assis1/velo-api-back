@@ -58,7 +58,7 @@ export class StripeConnectService {
       where: { id: instructorId },
       select: { id: true, email: true, stripeAccountId: true },
     });
-    if (!instructor) throw new NotFoundException('Instructor not found');
+    if (!instructor) throw new NotFoundException('Instrutor não encontrado');
 
     let accountId = instructor.stripeAccountId;
     if (!accountId) {
@@ -107,7 +107,7 @@ export class StripeConnectService {
         stripePayoutsEnabled: true,
       },
     });
-    if (!instructor) throw new NotFoundException('Instructor not found');
+    if (!instructor) throw new NotFoundException('Instrutor não encontrado');
     return {
       stripeAccountId: instructor.stripeAccountId,
       stripeAccountStatus: instructor.stripeAccountStatus,

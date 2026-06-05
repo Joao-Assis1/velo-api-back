@@ -20,7 +20,7 @@ export class ComplianceService {
       },
     });
 
-    if (!student) throw new NotFoundException('Student not found');
+    if (!student) throw new NotFoundException('Aluno não encontrado');
 
     const [checklist, bestSimulado, completedLessons] = await Promise.all([
       this.prisma.studentChecklist.upsert({
@@ -113,7 +113,7 @@ export class ComplianceService {
         ladvValidUntil: true,
       },
     });
-    if (!student) throw new NotFoundException('Student not found');
+    if (!student) throw new NotFoundException('Aluno não encontrado');
 
     const lessons = await this.prisma.lesson.findMany({
       where: { studentId, status: 'completed' },
