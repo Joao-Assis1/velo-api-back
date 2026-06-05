@@ -78,6 +78,16 @@ class EnvironmentVariables {
   STRIPE_CONNECT_RETURN_URL?: string =
     'http://localhost:3001/api/v1/payments-stripe/connect/return';
 
+  @IsString()
+  ASAAS_API_KEY!: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false, require_protocol: true })
+  ASAAS_BASE_URL?: string = 'https://sandbox.asaas.com/api';
+
+  @IsString()
+  ASAAS_WEBHOOK_TOKEN!: string;
+
   @IsOptional()
   @IsString()
   RESEND_API_KEY?: string;
