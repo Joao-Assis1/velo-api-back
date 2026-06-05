@@ -41,9 +41,9 @@ export class PaymentsService {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: dto.lessonId },
     });
-    if (!lesson) throw new NotFoundException('Lesson not found');
+    if (!lesson) throw new NotFoundException('Aula não encontrada');
     if (lesson.studentId !== studentId) {
-      throw new BadRequestException('Lesson does not belong to this student');
+      throw new BadRequestException('Aula não pertence a este estudante');
     }
 
     // 2. Idempotency — return existing Payment if one already exists for this lesson
@@ -63,7 +63,7 @@ export class PaymentsService {
     });
     if (!pm) {
       throw new BadRequestException(
-        'Student has no default payment method — add a card first',
+        'Estudante não possui método de pagamento padrão — adicione um cartão primeiro',
       );
     }
 
@@ -74,7 +74,7 @@ export class PaymentsService {
     });
     if (!student?.asaasCustomerId) {
       throw new BadRequestException(
-        'Student has no Asaas customer ID — complete registration first',
+        'Estudante não possui cadastro de pagamento — complete o registro primeiro',
       );
     }
 
@@ -85,7 +85,7 @@ export class PaymentsService {
     });
     if (!instructor?.pixKey) {
       throw new BadRequestException(
-        'Instructor has no PIX key configured — cannot process payment',
+        'Instrutor não possui chave PIX cadastrada — pagamento não pode ser processado',
       );
     }
 
