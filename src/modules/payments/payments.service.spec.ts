@@ -196,4 +196,118 @@ describe('PaymentsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // handlePaymentWebhook
+  // ---------------------------------------------------------------------------
+
+  describe('handlePaymentWebhook', () => {
+    const asaasPaymentId = 'pay_asaas_001';
+
+    beforeEach(() => {
+      prisma.payment.findUnique = jest.fn();
+      prisma.payment.update = jest.fn();
+    });
+
+    it('sets status to HELD on PAYMENT_CONFIRMED', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        id: 'local-uuid-1',
+        asaasPaymentId,
+        status: 'PENDING',
+      });
+
+      await service.handlePaymentWebhook('PAYMENT_CONFIRMED', asaasPaymentId);
+
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'local-uuid-1' },
+        data: { status: 'HELD' },
+      });
+    });
+
+    it('sets status to HELD on PAYMENT_RECEIVED', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        id: 'local-uuid-2',
+        asaasPaymentId,
+        status: 'PENDING',
+      });
+
+      await service.handlePaymentWebhook('PAYMENT_RECEIVED', asaasPaymentId);
+
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'local-uuid-2' },
+        data: { status: 'HELD' },
+      });
+    });
+
+    it('sets status to FAILED on PAYMENT_OVERDUE', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        id: 'local-uuid-3',
+        asaasPaymentId,
+        status: 'PENDING',
+      });
+
+      await service.handlePaymentWebhook('PAYMENT_OVERDUE', asaasPaymentId);
+
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'local-uuid-3' },
+        data: { status: 'FAILED' },
+      });
+    });
+
+    it('sets status to FAILED on PAYMENT_DELETED', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        id: 'local-uuid-4',
+        asaasPaymentId,
+        status: 'PENDING',
+      });
+
+      await service.handlePaymentWebhook('PAYMENT_DELETED', asaasPaymentId);
+
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'local-uuid-4' },
+        data: { status: 'FAILED' },
+      });
+    });
+
+    it('is idempotent: does not update when already HELD', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        id: 'local-uuid-5',
+        asaasPaymentId,
+        status: 'HELD',
+      });
+
+      await service.handlePaymentWebhook('PAYMENT_CONFIRMED', asaasPaymentId);
+
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+
+    it('is idempotent: does not update when already FAILED', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        id: 'local-uuid-6',
+        asaasPaymentId,
+        status: 'FAILED',
+      });
+
+      await service.handlePaymentWebhook('PAYMENT_OVERDUE', asaasPaymentId);
+
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+
+    it('ignores unknown events (no-op, no DB calls)', async () => {
+      await service.handlePaymentWebhook('REFUND_CREATED', asaasPaymentId);
+
+      expect(prisma.payment.findUnique).not.toHaveBeenCalled();
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+
+    it('ignores gracefully when payment is not found', async () => {
+      prisma.payment.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.handlePaymentWebhook('PAYMENT_CONFIRMED', 'pay_unknown'),
+      ).resolves.toBeUndefined();
+
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+  });
 });

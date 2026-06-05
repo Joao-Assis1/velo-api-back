@@ -116,4 +116,19 @@ export class PaymentsService {
 
     return payment;
   }
+
+  async handlePaymentWebhook(event: string, asaasPaymentId: string): Promise<void> {
+    const SUCCESS_EVENTS = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'];
+    const FAILURE_EVENTS = ['PAYMENT_OVERDUE', 'PAYMENT_DELETED'];
+
+    if (!SUCCESS_EVENTS.includes(event) && !FAILURE_EVENTS.includes(event)) return;
+
+    const payment = await this.prisma.payment.findUnique({ where: { asaasPaymentId } });
+    if (!payment) return;
+
+    const targetStatus = SUCCESS_EVENTS.includes(event) ? 'HELD' : 'FAILED';
+    if (payment.status === targetStatus) return;
+
+    await this.prisma.payment.update({ where: { id: payment.id }, data: { status: targetStatus } });
+  }
 }
