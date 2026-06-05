@@ -16,6 +16,7 @@ import { ShieldService } from '../telemetria/shield.service';
 import { RegisterBiometryDto } from './dto/register-biometry.dto';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
 import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
+import { PaymentsService } from '../payments/payments.service';
 import { JourneyService } from '../journey/journey.service';
 import { validateCnh } from '../validation/lib/cnh.validator';
 
@@ -27,6 +28,7 @@ export class LessonsService {
     private prisma: PrismaService,
     private shield: ShieldService,
     private paymentsStripe: PaymentsStripeService,
+    private paymentsService: PaymentsService,
     private journey: JourneyService,
   ) {}
 
@@ -357,22 +359,8 @@ export class LessonsService {
       );
     }
 
-    // Find default payment method for the student
-    const pm = await this.prisma.paymentMethod.findFirst({
-      where: { studentId: lesson.studentId, isDefault: true, isDeleted: false },
-    });
-    if (!pm) {
-      throw new HttpException(
-        'Student has no default payment method',
-        HttpStatus.PAYMENT_REQUIRED,
-      );
-    }
-
     try {
-      await this.paymentsStripe.charge(lesson.studentId, {
-        lessonId: id,
-        paymentMethodId: pm.id,
-      });
+      await this.paymentsService.charge(lesson.studentId, { lessonId: id });
     } catch (err: any) {
       this.logger.warn(
         `Payment failed on accept for lesson ${id}: ${err.message}`,

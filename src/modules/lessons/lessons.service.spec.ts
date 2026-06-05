@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { LessonsService } from './lessons.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShieldService } from '../telemetria/shield.service';
 import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
+import { PaymentsService } from '../payments/payments.service';
 import { JourneyService } from '../journey/journey.service';
 import { ValidationService } from '../validation/validation.service';
 import { ConfigService } from '@nestjs/config';
@@ -66,6 +67,7 @@ describe('LessonsService.create — validation chain', () => {
           provide: PaymentsStripeService,
           useValue: { releaseEscrow: jest.fn(), resolveDispute: jest.fn() },
         },
+        { provide: PaymentsService, useValue: { charge: jest.fn() } },
         { provide: JourneyService, useValue: journey },
         { provide: ValidationService, useValue: validation },
         {
@@ -159,5 +161,60 @@ describe('LessonsService.create — validation chain', () => {
     await expect(
       service.create({ ...validDto, vehicleId: 'veh-1' }),
     ).rejects.toThrow(/Vehicle does not belong/);
+  });
+});
+
+describe('LessonsService.accept — payment integration', () => {
+  let service: LessonsService;
+  let prisma: any;
+  let paymentsService: { charge: jest.Mock };
+
+  const pendingLesson = {
+    id: 'lsn-1',
+    studentId: 'stu-1',
+    instructorId: 'inst-1',
+    status: 'pending_acceptance',
+  };
+
+  beforeEach(async () => {
+    prisma = {
+      lesson: {
+        findUnique: jest.fn().mockResolvedValue(pendingLesson),
+        update: jest.fn().mockResolvedValue({ ...pendingLesson, status: 'upcoming' }),
+      },
+    };
+    paymentsService = { charge: jest.fn().mockResolvedValue({ id: 'pay-1' }) };
+
+    const mod: TestingModule = await Test.createTestingModule({
+      providers: [
+        LessonsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: ShieldService, useValue: {} },
+        {
+          provide: PaymentsStripeService,
+          useValue: { releaseEscrow: jest.fn(), resolveDispute: jest.fn() },
+        },
+        { provide: PaymentsService, useValue: paymentsService },
+        { provide: JourneyService, useValue: { assertCanScheduleLesson: jest.fn() } },
+        { provide: ValidationService, useValue: { validateCnh: jest.fn() } },
+        { provide: ConfigService, useValue: { get: () => 'mock' } },
+        { provide: DOCUMENT_VALIDATION_PROVIDER, useValue: { validateCnh: jest.fn() } },
+      ],
+    }).compile();
+    service = mod.get(LessonsService);
+  });
+
+  it('calls paymentsService.charge (not Stripe) and returns upcoming lesson', async () => {
+    const result = await service.accept('lsn-1', 'inst-1');
+    expect(paymentsService.charge).toHaveBeenCalledWith('stu-1', { lessonId: 'lsn-1' });
+    expect(result.status).toBe('upcoming');
+  });
+
+  it('wraps payment failure as HttpException 402', async () => {
+    paymentsService.charge.mockRejectedValue(new Error('Asaas charge failed'));
+    await expect(service.accept('lsn-1', 'inst-1')).rejects.toMatchObject({
+      status: HttpStatus.PAYMENT_REQUIRED,
+      message: 'Asaas charge failed',
+    });
   });
 });
