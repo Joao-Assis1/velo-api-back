@@ -332,6 +332,78 @@ describe('PaymentsService', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // resolveDispute
+  // ---------------------------------------------------------------------------
+
+  describe('resolveDispute', () => {
+    const refundedPaymentId = 'refund_asaas_1';
+
+    beforeEach(() => {
+      // Add refund mock to asaas
+      asaas.refund = jest.fn();
+    });
+
+    describe('action: refund', () => {
+      it('calls asaas.refund, sets REFUNDED, stores asaasRefundId', async () => {
+        prisma.payment.findFirst.mockResolvedValue(heldPayment);
+        asaas.refund.mockResolvedValue({ id: refundedPaymentId, status: 'REFUNDED' });
+        prisma.payment.update.mockResolvedValue({ ...heldPayment, status: 'REFUNDED' });
+
+        await service.resolveDispute(LESSON_ID, { action: 'refund' });
+
+        expect(asaas.refund).toHaveBeenCalledWith(
+          ASAAS_PAYMENT_ID,
+          `refund-${heldPayment.id}`,
+        );
+        expect(prisma.payment.update).toHaveBeenCalledWith({
+          where: { id: heldPayment.id },
+          data: { status: 'REFUNDED', asaasRefundId: refundedPaymentId },
+        });
+      });
+
+      it('is idempotent: already REFUNDED → no-op', async () => {
+        prisma.payment.findFirst.mockResolvedValue({ ...heldPayment, status: 'REFUNDED' });
+
+        await service.resolveDispute(LESSON_ID, { action: 'refund' });
+
+        expect(asaas.refund).not.toHaveBeenCalled();
+        expect(prisma.payment.update).not.toHaveBeenCalled();
+      });
+
+      it('throws BadRequestException when payment has no asaasPaymentId', async () => {
+        prisma.payment.findFirst.mockResolvedValue({ ...heldPayment, asaasPaymentId: null });
+
+        await expect(
+          service.resolveDispute(LESSON_ID, { action: 'refund' }),
+        ).rejects.toThrow(BadRequestException);
+
+        expect(asaas.refund).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('action: release', () => {
+      it('delegates to releaseEscrow', async () => {
+        prisma.payment.findFirst.mockResolvedValue(heldPayment);
+        const releaseSpy = jest.spyOn(service, 'releaseEscrow').mockResolvedValue(undefined);
+
+        await service.resolveDispute(LESSON_ID, { action: 'release' });
+
+        expect(releaseSpy).toHaveBeenCalledWith(LESSON_ID);
+      });
+    });
+
+    describe('payment not found', () => {
+      it('throws NotFoundException when no payment exists for the lesson', async () => {
+        prisma.payment.findFirst.mockResolvedValue(null);
+
+        await expect(
+          service.resolveDispute(LESSON_ID, { action: 'refund' }),
+        ).rejects.toThrow(NotFoundException);
+      });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // releaseEscrow
   // ---------------------------------------------------------------------------
 

@@ -209,6 +209,31 @@ export class PaymentsService {
     return { platformFeeAmount, instructorAmount };
   }
 
+  async resolveDispute(
+    lessonId: string,
+    dto: { action: 'release' | 'refund'; reason?: string },
+  ): Promise<void> {
+    const payment = await this.prisma.payment.findFirst({ where: { lessonId } });
+    if (!payment) throw new NotFoundException('Pagamento não encontrado para esta aula');
+
+    if (dto.action === 'refund') {
+      if (payment.status === 'REFUNDED') return; // idempotent
+      if (!payment.asaasPaymentId) {
+        throw new BadRequestException('Pagamento sem ID Asaas — reembolso impossível');
+      }
+      const result = await this.asaas.refund(
+        payment.asaasPaymentId,
+        `refund-${payment.id}`,
+      );
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'REFUNDED', asaasRefundId: result.id },
+      });
+    } else if (dto.action === 'release') {
+      await this.releaseEscrow(lessonId);
+    }
+  }
+
   async handlePaymentWebhook(event: string, asaasPaymentId: string): Promise<void> {
     const SUCCESS_EVENTS = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'];
     const FAILURE_EVENTS = ['PAYMENT_OVERDUE', 'PAYMENT_DELETED'];
