@@ -4,62 +4,82 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
-import { STRIPE_CLIENT } from '../payments-stripe/stripe.client';
-import { idempotencyKey } from '../payments-stripe/lib/idempotency';
+import { ASAAS_CLIENT, AsaasClient } from '../payments/asaas.client';
 import { CreatePaymentMethodDto } from './dtos';
 
-type StripeInstance = InstanceType<typeof Stripe>;
-const SEED_PM = 'pm_card_visa';
+const SEED_CARD_NUMBER = '4111111111111111';
 
 @Injectable()
 export class PaymentMethodsService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(STRIPE_CLIENT) private readonly stripe: StripeInstance,
+    @Inject(ASAAS_CLIENT) private readonly asaas: AsaasClient,
   ) {}
 
-  async addCard(studentId: string, dto: CreatePaymentMethodDto) {
+  // -------------------------------------------------------------------------
+  // Internal: ensure Asaas customer exists for the student
+  // -------------------------------------------------------------------------
+
+  private async ensureAsaasCustomer(studentId: string): Promise<{
+    customerId: string;
+    student: { id: string; email: string; name: string; cpf: string; phone: string | null };
+  }> {
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },
-      select: { id: true, email: true, name: true, stripeCustomerId: true },
+      select: { id: true, email: true, name: true, cpf: true, phone: true, asaasCustomerId: true },
     });
     if (!student) throw new NotFoundException(`Student ${studentId} not found`);
 
-    let customerId = student.stripeCustomerId;
+    let customerId = student.asaasCustomerId;
     if (!customerId) {
-      const customer = await this.stripe.customers.create(
-        { email: student.email, name: student.name, metadata: { studentId } },
-        { idempotencyKey: idempotencyKey(studentId, 'connect-account') },
-      );
+      const customer = await this.asaas.createCustomer({
+        name: student.name,
+        email: student.email,
+        cpfCnpj: student.cpf,
+      });
       customerId = customer.id;
       await this.prisma.student.update({
         where: { id: studentId },
-        data: { stripeCustomerId: customerId },
+        data: { asaasCustomerId: customerId },
       });
     }
 
-    type PM = Awaited<ReturnType<StripeInstance['paymentMethods']['create']>>;
-    let pm: PM;
+    return { customerId, student };
+  }
+
+  // -------------------------------------------------------------------------
+  // addCard
+  // -------------------------------------------------------------------------
+
+  async addCard(studentId: string, dto: CreatePaymentMethodDto) {
+    const { customerId, student } = await this.ensureAsaasCustomer(studentId);
+
+    let tokenResult: { creditCardToken: string; creditCardBrand: string; creditCardNumber: string };
     try {
-      pm = await this.stripe.paymentMethods.create({
-        type: 'card',
-        card: {
+      tokenResult = await this.asaas.tokenizeCard({
+        customer: customerId,
+        creditCard: {
+          holderName: dto.cardholderName,
           number: dto.cardNumber.replace(/\s/g, ''),
-          exp_month: parseInt(dto.expiryMonth, 10),
-          exp_year: parseInt(dto.expiryYear, 10),
-          cvc: dto.cvv,
+          expiryMonth: dto.expiryMonth,
+          expiryYear: dto.expiryYear,
+          ccv: dto.cvv,
         },
-        billing_details: { name: dto.cardholderName },
+        creditCardHolderInfo: {
+          name: dto.cardholderName,
+          email: student.email,
+          cpfCnpj: student.cpf,
+          postalCode: dto.postalCode ?? '00000-000',
+          addressNumber: dto.addressNumber ?? '0',
+          phone: student.phone ?? '',
+        },
       });
     } catch (err: any) {
       throw new BadRequestException(
-        err?.message ?? 'Invalid card details',
+        err?.message ?? 'Dados do cartão inválidos',
       );
     }
-
-    await this.stripe.paymentMethods.attach(pm.id, { customer: customerId });
 
     const activeCount = await this.prisma.paymentMethod.count({
       where: { studentId, isDeleted: false },
@@ -68,9 +88,9 @@ export class PaymentMethodsService {
     const row = await this.prisma.paymentMethod.create({
       data: {
         studentId,
-        stripePaymentMethodId: pm.id,
-        brand: pm.card!.brand,
-        last4: pm.card!.last4,
+        asaasCreditCardToken: tokenResult.creditCardToken,
+        brand: tokenResult.creditCardBrand,
+        last4: tokenResult.creditCardNumber,
         cardholderName: dto.cardholderName,
         expiryMonth: dto.expiryMonth.padStart(2, '0'),
         expiryYear: dto.expiryYear,
@@ -81,13 +101,17 @@ export class PaymentMethodsService {
     return { paymentMethod: row };
   }
 
+  // -------------------------------------------------------------------------
+  // findAll
+  // -------------------------------------------------------------------------
+
   async findAll(studentId: string) {
     return this.prisma.paymentMethod.findMany({
       where: { studentId, isDeleted: false },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
       select: {
         id: true,
-        stripePaymentMethodId: true,
+        asaasCreditCardToken: true,
         brand: true,
         last4: true,
         cardholderName: true,
@@ -98,46 +122,42 @@ export class PaymentMethodsService {
     });
   }
 
+  // -------------------------------------------------------------------------
+  // seedTest
+  // -------------------------------------------------------------------------
+
   async seedTest(studentId: string) {
-    const student = await this.prisma.student.findUnique({
-      where: { id: studentId },
-      select: { id: true, email: true, name: true, stripeCustomerId: true },
-    });
-    if (!student) throw new NotFoundException(`Student ${studentId} not found`);
+    const { customerId, student } = await this.ensureAsaasCustomer(studentId);
 
-    let customerId = student.stripeCustomerId;
-    if (!customerId) {
-      const customer = await this.stripe.customers.create(
-        { email: student.email, name: student.name, metadata: { studentId } },
-        { idempotencyKey: idempotencyKey(studentId, 'connect-account') },
-      );
-      customerId = customer.id;
-      await this.prisma.student.update({
-        where: { id: studentId },
-        data: { stripeCustomerId: customerId },
-      });
-    }
-
-    type PM = Awaited<ReturnType<StripeInstance['paymentMethods']['retrieve']>>;
-    let pm: PM;
+    let tokenResult: { creditCardToken: string; creditCardBrand: string; creditCardNumber: string };
     try {
-      pm = await this.stripe.paymentMethods.attach(
-        SEED_PM,
-        { customer: customerId },
-        { idempotencyKey: idempotencyKey(studentId, 'seed-payment-method') },
-      );
+      tokenResult = await this.asaas.tokenizeCard({
+        customer: customerId,
+        creditCard: {
+          holderName: student.name,
+          number: SEED_CARD_NUMBER,
+          expiryMonth: '12',
+          expiryYear: '2030',
+          ccv: '123',
+        },
+        creditCardHolderInfo: {
+          name: student.name,
+          email: student.email,
+          cpfCnpj: student.cpf,
+          postalCode: '00000-000',
+          addressNumber: '0',
+          phone: student.phone ?? '',
+        },
+      });
     } catch (err: any) {
-      // pm_card_visa already attached to this customer — retrieve it instead
-      if (err?.code === 'payment_method_already_attached') {
-        pm = await this.stripe.paymentMethods.retrieve(SEED_PM);
-      } else {
-        throw err;
-      }
+      throw new BadRequestException(
+        err?.message ?? 'Erro ao tokenizar cartão de teste',
+      );
     }
 
-    // Return existing record if already seeded (avoids unique constraint violation)
+    // Return existing record if token was already seeded
     const existingRecord = await this.prisma.paymentMethod.findFirst({
-      where: { studentId, stripePaymentMethodId: pm.id },
+      where: { studentId, asaasCreditCardToken: tokenResult.creditCardToken },
     });
     if (existingRecord) {
       if (existingRecord.isDeleted) {
@@ -157,18 +177,22 @@ export class PaymentMethodsService {
     const row = await this.prisma.paymentMethod.create({
       data: {
         studentId,
-        stripePaymentMethodId: pm.id,
-        brand: pm.card!.brand,
-        last4: pm.card!.last4,
-        cardholderName: pm.billing_details?.name ?? student.name,
-        expiryMonth: String(pm.card!.exp_month).padStart(2, '0'),
-        expiryYear: String(pm.card!.exp_year),
+        asaasCreditCardToken: tokenResult.creditCardToken,
+        brand: tokenResult.creditCardBrand,
+        last4: tokenResult.creditCardNumber,
+        cardholderName: student.name,
+        expiryMonth: '12',
+        expiryYear: '2030',
         isDefault: activeCount === 0,
       },
     });
 
     return { paymentMethod: row };
   }
+
+  // -------------------------------------------------------------------------
+  // remove
+  // -------------------------------------------------------------------------
 
   async remove(studentId: string, id: string) {
     const pm = await this.prisma.paymentMethod.findFirst({
@@ -196,6 +220,10 @@ export class PaymentMethodsService {
 
     return { ok: true };
   }
+
+  // -------------------------------------------------------------------------
+  // setDefault
+  // -------------------------------------------------------------------------
 
   async setDefault(studentId: string, id: string) {
     const pm = await this.prisma.paymentMethod.findFirst({

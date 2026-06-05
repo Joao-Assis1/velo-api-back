@@ -33,6 +33,14 @@ export class CreatePaymentMethodDto {
   @IsBoolean()
   @IsOptional()
   isDefault?: boolean;
+
+  @IsString()
+  @IsOptional()
+  postalCode?: string;
+
+  @IsString()
+  @IsOptional()
+  addressNumber?: string;
 }
 
 export class ProcessPaymentDto {
