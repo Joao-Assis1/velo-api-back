@@ -16,7 +16,7 @@ Todas as rotas são prefixadas com `/api/v1`. A documentação interativa está 
 | ORM | Prisma 7 |
 | Banco de dados | PostgreSQL via Neon DB |
 | Autenticação | JWT (access token) + Refresh Tokens rotativos |
-| Pagamentos | Stripe Connect Express (Destination Charges) |
+| Pagamentos | Asaas (Destination Charges) |
 | OCR | Tesseract.js |
 | Agendamento | `@nestjs/schedule` (cron jobs) |
 | Validação de entrada | `class-validator` + `class-transformer` via `ValidationPipe` global |
@@ -41,7 +41,7 @@ AvailabilityModule   — slots semanais (replace-all em transação)
 BusySlotsModule      — bloqueios avulsos de disponibilidade
 LessonsModule        — agendamento, biometria, checkout + hash de integridade
 TelemetriaModule     — GPS em tempo real (velocidade, frenagem brusca)
-PaymentsStripeModule — setup-intent, charge, escrow, release, dispute, webhooks
+PaymentsModule — setup-intent, charge, escrow, release, dispute, webhooks
 PaymentMethodsModule — cartões salvos do aluno
 JourneyModule        — máquina de estados CONTRAN 1.020/2025
 ComplianceModule     — checklist de 4 etapas + resumo prático
@@ -100,7 +100,7 @@ O pagamento não vai diretamente ao instrutor. O fluxo é:
 
 ### Idempotência
 - `releaseEscrow` e `charge` são idempotentes por `lessonId`.
-- Webhooks usam o charge/transferId do Stripe para localizar o `Payment` no banco sem duplicar registros.
+- Webhooks usam o charge/transferId do Asaas para localizar o `Payment` no banco sem duplicar registros.
 
 ### Hash de Integridade
 Após o checkout da aula, o `ShieldService` gera um SHA-256 a partir dos dados da aula e armazena em `integrityHash`. Uma vez que `disputeOpened=true`, o hash torna-se imutável — qualquer tentativa de atualização é bloqueada no service.
@@ -156,7 +156,7 @@ src/
     ├── ladv-process/
     ├── lessons/
     ├── payment-methods/
-    ├── payments-stripe/
+    ├── payments/
     ├── prisma/              # PrismaService singleton
     ├── renach-process/
     ├── students/

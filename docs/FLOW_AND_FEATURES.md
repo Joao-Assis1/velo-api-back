@@ -108,7 +108,7 @@ Fluxo idêntico ao médico com clínicas do tipo `PSICOLOGICO`. Ambos os laudos 
    - `durationMinutes` calculado.
    - `integrityHash` gerado (SHA-256).
    - Se aula ≥ 50 min + 3 biometrias OK + sem disputa → `releaseEscrow()` chamado automaticamente.
-   - Fundos transferidos para conta Stripe Connect do instrutor.
+   - Fundos transferidos para conta Asaas Transfers do instrutor.
 
 **Feedbacks:**
 - Instrutor avalia aluno: `PATCH /lessons/:id/feedback-instructor`.
@@ -116,8 +116,8 @@ Fluxo idêntico ao médico com clínicas do tipo `PSICOLOGICO`. Ambos os laudos 
 
 ### 2.9 Cartões de Pagamento
 
-1. `POST /payments-stripe/setup-intent` → obtém `clientSecret` para tokenizar cartão no front-end.
-2. Após tokenização pelo Stripe.js: `POST /payments-stripe/payment-methods` com `stripePaymentMethodId`.
+1. `POST /payments/setup-intent` → obtém `clientSecret` para tokenizar cartão no front-end.
+2. Após tokenização pelo Asaas.js: `POST /payments/payment-methods` com `asaasCreditCardToken`.
 3. Primeiro cartão adicionado vira o padrão automaticamente.
 4. `GET /payment-methods` — listar cartões; `PATCH /payment-methods/:id/default` — trocar padrão.
 
@@ -146,13 +146,13 @@ Fluxo idêntico ao médico com clínicas do tipo `PSICOLOGICO`. Ambos os laudos 
    - Admin aprova via `PATCH /admin/instructors/:id/credential` → `credentialStatus = APPROVED`.
    - Sem aprovação: nenhuma aula pode ser agendada com o instrutor.
 
-### 3.2 Onboarding Stripe Connect
+### 3.2 Onboarding Asaas Transfers
 
 Para receber pagamentos:
-1. `POST /payments-stripe/connect/onboard` → retorna URL do onboarding Express.
-2. Instrutor completa o cadastro no Stripe.
-3. Webhook `account.updated` atualiza `stripeAccountStatus = ACTIVE`.
-4. `GET /payments-stripe/connect/status` — verificar status da conta.
+1. `POST /payments/connect/onboard` → retorna URL do onboarding Express.
+2. Instrutor completa o cadastro no Asaas.
+3. Webhook `account.updated` atualiza `asaasCustomerStatus = ACTIVE`.
+4. `GET /payments/connect/status` — verificar status da conta.
 
 ### 3.3 Configuração de Disponibilidade
 
@@ -176,7 +176,7 @@ Para receber pagamentos:
 ### 3.6 Cancelamento
 
 - Aluno ou instrutor podem cancelar: `PATCH /lessons/:id/cancel`.
-- Se pagamento em `PENDING` ou `HELD` → reembolso automático via Stripe.
+- Se pagamento em `PENDING` ou `HELD` → reembolso automático via Asaas.
 
 ---
 
@@ -203,15 +203,15 @@ Para receber pagamentos:
 
 ---
 
-## 6. Webhooks Stripe
+## 6. Webhooks Asaas
 
-O endpoint `POST /payments-stripe/webhook` recebe e processa:
+O endpoint `POST /payments/webhook` recebe e processa:
 
-| Evento Stripe | Ação |
+| Evento Asaas | Ação |
 |--------------|------|
 | `payment_intent.succeeded` | Payment: `PENDING` → `HELD` |
 | `payment_intent.payment_failed` | Payment: → `FAILED`, armazena `failureReason` |
-| `account.updated` | Atualiza `stripeAccountStatus` do instrutor |
+| `account.updated` | Atualiza `asaasCustomerStatus` do instrutor |
 | `transfer.created` | Log (pagamento já persistido) |
 | `transfer.failed` | Payment: `RELEASED` → `HELD` (reverso) |
 
@@ -239,7 +239,7 @@ Aluno                          Sistema                        Instrutor
   │                               │                               │
   │                               │◄─ PATCH /lessons/:id/checkout ┤
   │                               │ hash SHA-256, releaseEscrow() │
-  │                               │ transfer → conta Stripe inst. │
+  │                               │ transfer → conta Asaas inst. │
   │                               │                               │
   ├─ PATCH /feedback-student ────►│ rating → instrutor.rating     │
   │                               │◄─── PATCH /feedback-instructor┤

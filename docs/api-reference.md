@@ -245,31 +245,31 @@ Todas as rotas são prefixadas com `/api/v1`. Documentação interativa disponí
 
 ---
 
-## Payments Stripe (`/payments-stripe`)
+## Payments Asaas (`/payments`)
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
-| POST | `/payments-stripe/setup-intent` | JWT (aluno) | Criar SetupIntent para salvar cartão |
-| POST | `/payments-stripe/payment-methods` | JWT (aluno) | Associar cartão ao aluno |
-| DELETE | `/payments-stripe/payment-methods/:id` | JWT (aluno) | Remover cartão |
-| POST | `/payments-stripe/charge` | JWT (aluno) | Cobrar aula (normalmente via accept) |
-| GET | `/payments-stripe/me` | JWT (aluno) | Histórico de pagamentos |
-| POST | `/payments-stripe/connect/onboard` | JWT (instrutor) | Iniciar onboarding Stripe Connect |
-| GET | `/payments-stripe/connect/status` | JWT (instrutor) | Status da conta Connect |
-| POST | `/payments-stripe/webhook` | — | Receber eventos do Stripe |
+| POST | `/payments/setup-intent` | JWT (aluno) | Criar SetupIntent para salvar cartão |
+| POST | `/payments/payment-methods` | JWT (aluno) | Associar cartão ao aluno |
+| DELETE | `/payments/payment-methods/:id` | JWT (aluno) | Remover cartão |
+| POST | `/payments/charge` | JWT (aluno) | Cobrar aula (normalmente via accept) |
+| GET | `/payments/me` | JWT (aluno) | Histórico de pagamentos |
+| POST | `/payments/connect/onboard` | JWT (instrutor) | Iniciar onboarding Asaas Transfers |
+| GET | `/payments/connect/status` | JWT (instrutor) | Status da conta Connect |
+| POST | `/payments/webhook` | — | Receber eventos do Asaas |
 
-### POST `/payments-stripe/setup-intent` — Response
+### POST `/payments/setup-intent` — Response
 ```json
 { "clientSecret": "seti_..._secret_...", "customerId": "cus_..." }
 ```
 
-### POST `/payments-stripe/payment-methods`
+### POST `/payments/payment-methods`
 ```json
 // Request
-{ "stripePaymentMethodId": "pm_..." }
+{ "asaasCreditCardToken": "pm_..." }
 ```
 
-### POST `/payments-stripe/charge`
+### POST `/payments/charge`
 ```json
 // Request
 { "lessonId": "uuid", "paymentMethodId": "uuid" }

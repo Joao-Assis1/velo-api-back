@@ -152,13 +152,13 @@ O `ComplianceService` sincroniza automaticamente os itens derivados ao gerar o r
 
 ---
 
-## Pagamentos e Escrow (PaymentsStripeModule)
+## Pagamentos e Escrow (PaymentsModule)
 
 ### Fluxo
 
 ```
 Aluno agenda aula (pending_acceptance)
-  └─► Instrutor aceita → charge() → fundos HELD na plataforma Stripe
+  └─► Instrutor aceita → charge() → fundos HELD na plataforma Asaas
         └─► Aula concluída + válida → releaseEscrow() → transfer para conta Connect do instrutor
               └─► Em caso de disputa → admin decide: release ou refund
 ```
@@ -185,7 +185,7 @@ Aluno agenda aula (pending_acceptance)
 4. Todos os 3 biometria = `SUCCESS`
 5. `lesson.integrityHash ≠ null`
 6. `lesson.disputeOpened = false`
-7. Instrutor com `stripeAccountStatus = ACTIVE`
+7. Instrutor com `asaasCustomerStatus = ACTIVE`
 
 ### Hash de Integridade
 Após o checkout, o `ShieldService` gera um SHA-256 dos dados da aula (telemetria inclusa) e armazena em `integrityHash`. Uma vez que `disputeOpened = true`, o hash torna-se imutável.

@@ -5,7 +5,7 @@
 [![Neon Database](https://img.shields.io/badge/Neon-00E599?style=for-the-badge&logo=neon&logoColor=black)](https://neon.tech/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)](https://jestjs.io/)
-[![Stripe](https://img.shields.io/badge/Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com/)
+[![Asaas](https://img.shields.io/badge/Asaas-635BFF?style=for-the-badge&logo=asaas&logoColor=white)](https://asaas.com/)
 
 O **Velo API** é a espinha dorsal de um ecossistema digital moderno projetado para transformar o processo de aprendizagem prática e teórica em autoescolas. A plataforma permite conectar **Alunos** (estudantes em processo de habilitação) e **Instrutores** (credenciados ou autônomos), garantindo automação operacional, agendamento inteligente, segurança jurídica e conformidade técnica rígida com as diretrizes do DETRAN.
 
@@ -61,7 +61,7 @@ src/
     ├── journey/              # Máquina de estados regulatória da CNH
     ├── ladv-process/         # Motor de inteligência artificial OCR da LADV
     ├── academy/              # Velo Academy (Simulados da prova do DETRAN)
-    ├── payments-stripe/      # Faturamento, carteiras e transações via Stripe
+    ├── payments/      # Faturamento, carteiras e transações via Asaas
     └── compliance/           # Workers e rotinas de conformidade legislativa
 ```
 
@@ -85,8 +85,8 @@ Crie um arquivo `.env` na raiz do projeto (use o `.env.example` como modelo):
 DATABASE_URL="postgresql://usuario:senha@host:porta/banco?schema=public"
 JWT_SECRET="sua_chave_secreta_jwt_aqui"
 ADMIN_API_KEY="chave_admin_minimo_16_chars"
-STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
+ASAAS_API_KEY="sk_test_..."
+ASAAS_WEBHOOK_TOKEN="whsec_..."
 # Opcionais
 PORT=3001
 ENABLE_TEST_MODE=false

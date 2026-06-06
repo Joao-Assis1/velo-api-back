@@ -33,7 +33,7 @@ Representa o aluno em processo de habilitação.
 | `ladvValidUntil` | DateTime? | |
 | `ladvOcrConfidence` | Float? | Confiança do OCR (0–100) |
 | `ladvOcrStatus` | String? | `PASS`, `NEEDS_REVIEW`, `FAIL` |
-| `stripeCustomerId` | String? (unique) | Customer ID no Stripe |
+| `asaasCustomerId` | String? (unique) | Customer ID no Asaas |
 | `passwordResetToken` | String? | |
 | `passwordResetExpires` | DateTime? | |
 | `createdAt` | DateTime | |
@@ -79,9 +79,9 @@ Representa o instrutor de direção.
 | `bankCode` | String? | |
 | `bankAgency` | String? | |
 | `bankAccount` | String? | |
-| `stripeAccountId` | String? (unique) | Conta Connect Express |
-| `stripeAccountStatus` | String | `PENDING`, `ACTIVE`, `RESTRICTED` (default: `PENDING`) |
-| `stripePayoutsEnabled` | Boolean | default: false |
+| `asaasCustomerId` | String? (unique) | Conta Connect Express |
+| `asaasCustomerStatus` | String | `PENDING`, `ACTIVE`, `RESTRICTED` (default: `PENDING`) |
+| `asaasPayoutsEnabled` | Boolean | default: false |
 | `passwordResetToken` | String? | |
 | `passwordResetExpires` | DateTime? | |
 | `termsAcceptedAt` | DateTime? | |
@@ -216,7 +216,7 @@ Eventos detectados durante a aula (velocidade, frenagem, etc.).
 
 ## Payment
 
-Rastreamento de transações Stripe.
+Rastreamento de transações Asaas.
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
@@ -226,10 +226,10 @@ Rastreamento de transações Stripe.
 | `paymentMethodId` | UUID? | FK → PaymentMethod |
 | `amount` | Float | Valor total em reais |
 | `status` | String | `PENDING`, `HELD`, `RELEASED`, `FAILED`, `RELEASE_FAILED`, `REFUNDED` |
-| `stripePaymentIntentId` | String? (unique) | |
-| `stripeChargeId` | String? (unique) | |
-| `stripeTransferId` | String? (unique) | |
-| `stripeRefundId` | String? | |
+| `asaasPaymentId` | String? (unique) | |
+| `asaasChargeId` | String? (unique) | |
+| `asaasTransferId` | String? (unique) | |
+| `asaasRefundId` | String? | |
 | `failureReason` | String? | |
 | `platformFeeAmount` | Float? | Valor da taxa de plataforma |
 | `instructorAmount` | Float? | Valor repassado ao instrutor |
@@ -248,7 +248,7 @@ Cartões salvos do aluno.
 |-------|------|-----------|
 | `id` | UUID | PK |
 | `studentId` | UUID | FK → Student |
-| `stripePaymentMethodId` | String (unique) | ID no Stripe |
+| `asaasCreditCardToken` | String (unique) | ID no Asaas |
 | `brand` | String | ex: `visa`, `mastercard` |
 | `last4` | String | Últimos 4 dígitos |
 | `cardholderName` | String? | |
