@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import express, { raw } from 'express';
+import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
@@ -17,15 +17,6 @@ async function createApp(): Promise<void> {
   if (isInitialized) return;
 
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
-
-  app.use(
-    '/api/v1/webhooks/stripe',
-    raw({ type: 'application/json' }),
-    (req: any, _res: any, next: any) => {
-      req.rawBody = req.body;
-      next();
-    },
-  );
 
   app.use(compression());
   app.use(helmet());

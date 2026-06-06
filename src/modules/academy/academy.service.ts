@@ -15,7 +15,7 @@ export class AcademyService {
   ) {}
 
   async getSimulado() {
-    let pool = await this.cache.get<any[]>(SIMULADO_CACHE_KEY);
+    let pool = await this.cache.get<object[]>(SIMULADO_CACHE_KEY);
 
     if (!pool) {
       pool = await this.prisma.question.findMany();

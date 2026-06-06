@@ -15,7 +15,7 @@ import { Lesson, Prisma } from '@prisma/client';
 import { ShieldService } from '../telemetria/shield.service';
 import { RegisterBiometryDto } from './dto/register-biometry.dto';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
-import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
+import { PaymentsService } from '../payments/payments.service';
 import { JourneyService } from '../journey/journey.service';
 import { validateCnh } from '../validation/lib/cnh.validator';
 
@@ -26,7 +26,7 @@ export class LessonsService {
   constructor(
     private prisma: PrismaService,
     private shield: ShieldService,
-    private paymentsStripe: PaymentsStripeService,
+    private paymentsService: PaymentsService,
     private journey: JourneyService,
   ) {}
 
@@ -218,7 +218,7 @@ export class LessonsService {
     });
 
     try {
-      await this.paymentsStripe.releaseEscrow(id);
+      await this.paymentsService.releaseEscrow(id);
     } catch (e) {
       this.logger.warn(
         `Escrow release skipped for lesson ${id}: ${(e as Error).message}`,
@@ -257,7 +257,7 @@ export class LessonsService {
 
       if (payment && ['PENDING', 'HELD'].includes(payment.status)) {
         try {
-          await this.paymentsStripe.resolveDispute(id, {
+          await this.paymentsService.resolveDispute(id, {
             action: 'refund',
             reason: 'lesson_cancelled',
           });
@@ -357,30 +357,15 @@ export class LessonsService {
       );
     }
 
-    // Find default payment method for the student
-    const pm = await this.prisma.paymentMethod.findFirst({
-      where: { studentId: lesson.studentId, isDefault: true, isDeleted: false },
-    });
-    if (!pm) {
-      throw new HttpException(
-        'O aluno não possui um método de pagamento padrão',
-        HttpStatus.PAYMENT_REQUIRED,
-      );
-    }
-
     try {
-      await this.paymentsStripe.charge(lesson.studentId, {
-        lessonId: id,
-        paymentMethodId: pm.id,
-      });
-    } catch (err: any) {
-      this.logger.warn(
-        `Payment failed on accept for lesson ${id}: ${err.message}`,
-      );
-      throw new HttpException(
-        err.message ?? 'Pagamento recusado — a aula permanece pendente',
-        HttpStatus.PAYMENT_REQUIRED,
-      );
+      await this.paymentsService.charge(lesson.studentId, { lessonId: id });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Payment failed — lesson remains pending';
+      this.logger.warn(`Payment failed on accept for lesson ${id}: ${msg}`);
+      throw new HttpException(msg, HttpStatus.PAYMENT_REQUIRED);
     }
 
     return this.prisma.lesson.update({
@@ -466,7 +451,14 @@ export class LessonsService {
       `[BIOMETRY] Lesson ${lessonId}, Step ${dto.step}, Status: ${dto.status}, GPS: ${dto.lat},${dto.lng}`,
     );
 
-    const updateData: any = {};
+    const updateData: Partial<{
+      biometryStartStatus: string;
+      biometryStartAt: Date;
+      biometryMidStatus: string;
+      biometryMidAt: Date;
+      biometryEndStatus: string;
+      biometryEndAt: Date;
+    }> = {};
     const now = new Date();
 
     if (dto.step === 'start') {

@@ -11,7 +11,6 @@ async function main() {
   const result = await prisma.instructor.updateMany({
     data: {
       credentialStatus: "APPROVED",
-      stripeAccountStatus: "ACTIVE",
       isActive: true,
     },
   });

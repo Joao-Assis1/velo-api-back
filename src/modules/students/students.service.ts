@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JourneyService } from '../journey/journey.service';
 import { CreateStudentDto } from './dto/create-student.dto';

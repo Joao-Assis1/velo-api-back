@@ -14,8 +14,6 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Student, Instructor } from '@prisma/client';
 import { JourneyService } from '../journey/journey.service';
-import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
-import { StripeConnectService } from '../payments-stripe/stripe-connect.service';
 import { MailService } from '../mail/mail.service';
 
 @Injectable()
@@ -26,8 +24,6 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly journeyService: JourneyService,
-    private readonly paymentsStripeService: PaymentsStripeService,
-    private readonly stripeConnectService: StripeConnectService,
     private readonly mailService: MailService,
   ) {}
 
@@ -110,7 +106,7 @@ export class AuthService {
     const refresh_token = await this.issueRefreshToken(user.id, role);
 
     // Remove password before returning
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const { password: _, ...userWithoutPassword } = user;
 
     return {
@@ -149,13 +145,6 @@ export class AuthService {
             `Failed to initialize journey for student ${user.id}: ${err}`,
           );
         }
-        this.paymentsStripeService
-          .provisionCustomer(user.id, user.email, user.name)
-          .catch((err) =>
-            this.logger.error(
-              `Failed to provision Stripe customer for student ${user.id}: ${err}`,
-            ),
-          );
       } else {
         user = await this.prisma.instructor.create({
           data: {
@@ -197,17 +186,11 @@ export class AuthService {
           },
           include: { availabilities: true, busySlots: true, vehicles: true },
         });
-        this.stripeConnectService
-          .provisionAccount(user.id, user.email)
-          .catch((err) =>
-            this.logger.error(
-              `Failed to provision Stripe account for instructor ${user.id}: ${err}`,
-            ),
-          );
       }
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
-        const target = (e as any)?.meta?.target;
+        const target = (e as { meta?: { target?: string | string[] } })?.meta
+          ?.target;
         const targetStr = Array.isArray(target)
           ? target.join(',')
           : String(target ?? '');
@@ -217,8 +200,9 @@ export class AuthService {
           throw new BadRequestException('Placa já cadastrada.');
         throw new BadRequestException('E-mail já está em uso.');
       }
+      const err = e as { code?: string; name?: string; message?: string };
       this.logger.error(
-        `Register error [${role}]: code=${(e as any)?.code} name=${(e as any)?.name} msg=${(e as any)?.message}`,
+        `Register error [${role}]: code=${err?.code} name=${err?.name} msg=${err?.message}`,
       );
       throw e;
     }
@@ -226,7 +210,6 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role };
     const access_token = await this.jwtService.signAsync(payload);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
 
     return {

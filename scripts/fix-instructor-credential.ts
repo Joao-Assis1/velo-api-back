@@ -16,7 +16,6 @@ async function main() {
       detranCredentialNumber: "100001",
       detranCredentialUf: "MS",
       isActive: true,
-      stripeAccountStatus: "ACTIVE",
       cnhNumber: "12345678900",
       cnhCategory: "B",
       cnhExpiry: "2028-01-01",

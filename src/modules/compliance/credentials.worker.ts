@@ -51,7 +51,6 @@ export class CredentialsWorker {
         where: { id: { in: expiredCredential.map((i) => i.id) } },
         data: {
           credentialStatus: 'EXPIRED',
-          stripeAccountStatus: 'RESTRICTED',
         },
       });
     }
