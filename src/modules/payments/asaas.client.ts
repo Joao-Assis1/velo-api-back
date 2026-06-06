@@ -111,12 +111,12 @@ export class AsaasClient {
     }
 
     const response = await fetch(url, options);
-    const data = await response.json();
+    const data = (await response.json()) as {
+      errors?: { code: string; description: string }[];
+    };
 
     if (!response.ok) {
-      const errors = (
-        data as { errors?: { code: string; description: string }[] }
-      ).errors;
+      const errors = data.errors;
       if (errors && errors.length > 0) {
         throw new BadRequestException(errors[0].description);
       }

@@ -24,12 +24,14 @@ function IsValidPixKey(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isValidPixKey',
-      target: (object as any).constructor,
+      target: (
+        object as { constructor: abstract new (...args: unknown[]) => object }
+      ).constructor,
       propertyName,
       options: validationOptions,
       validator: {
         validate(value: any, args: ValidationArguments) {
-          const dto = args.object as any;
+          const dto = args.object as { pixKeyType?: string };
           const type: string | undefined = dto.pixKeyType;
           if (!type) return true; // sem tipo → sem validação de formato
           if (typeof value !== 'string' || value.length === 0) return false;
@@ -39,7 +41,7 @@ function IsValidPixKey(validationOptions?: ValidationOptions) {
           return pattern ? pattern.test(value) : false;
         },
         defaultMessage(args: ValidationArguments) {
-          const dto = args.object as any;
+          const dto = args.object as { pixKeyType?: string };
           const type: string | undefined = dto.pixKeyType;
           const msgs: Record<string, string> = {
             CPF: 'pixKey CPF deve ter 11 dígitos numéricos',
@@ -162,7 +164,7 @@ export class UpdateInstructorDto {
   // Using multiple @ValidateIf decorators ANDs all conditions — if any is false
   // (e.g. o.pixKey != null) every validator is skipped. Format-specific checks
   // (IsString, IsValidPixKey) are embedded inside the condition logic instead.
-  @ValidateIf((o) => o.pixKeyType != null)
+  @ValidateIf((o: { pixKeyType?: string }) => o.pixKeyType != null)
   @IsNotEmpty({ message: 'pixKey é obrigatória quando pixKeyType é informado' })
   @IsString({ message: 'pixKey deve ser uma string' })
   @IsValidPixKey()

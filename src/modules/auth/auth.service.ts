@@ -106,7 +106,7 @@ export class AuthService {
     const refresh_token = await this.issueRefreshToken(user.id, role);
 
     // Remove password before returning
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const { password: _, ...userWithoutPassword } = user;
 
     return {
@@ -189,7 +189,8 @@ export class AuthService {
       }
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
-        const target = (e as any)?.meta?.target;
+        const target = (e as { meta?: { target?: string | string[] } })?.meta
+          ?.target;
         const targetStr = Array.isArray(target)
           ? target.join(',')
           : String(target ?? '');
@@ -199,8 +200,9 @@ export class AuthService {
           throw new BadRequestException('Placa já cadastrada.');
         throw new BadRequestException('E-mail já está em uso.');
       }
+      const err = e as { code?: string; name?: string; message?: string };
       this.logger.error(
-        `Register error [${role}]: code=${(e as any)?.code} name=${(e as any)?.name} msg=${(e as any)?.message}`,
+        `Register error [${role}]: code=${err?.code} name=${err?.name} msg=${err?.message}`,
       );
       throw e;
     }
@@ -208,7 +210,6 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role };
     const access_token = await this.jwtService.signAsync(payload);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
 
     return {

@@ -92,9 +92,9 @@ export class PaymentMethodsService {
           phone: student.phone ?? '',
         },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw new BadRequestException(
-        err?.message ?? 'Dados do cartão inválidos',
+        err instanceof Error ? err.message : 'Dados do cartão inválidos',
       );
     }
 
@@ -170,9 +170,11 @@ export class PaymentMethodsService {
           phone: student.phone ?? '',
         },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw new BadRequestException(
-        err?.message ?? 'Erro ao tokenizar cartão de teste',
+        err instanceof Error
+          ? err.message
+          : 'Erro ao tokenizar cartão de teste',
       );
     }
 

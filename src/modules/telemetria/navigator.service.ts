@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+interface TelemetryPoint {
+  velocity: number;
+  lat: number;
+  lng: number;
+}
+
 export enum LessonEventType {
   SPEED_LIMIT = 'SPEED_LIMIT',
   HARSH_BRAKING = 'HARSH_BRAKING',
@@ -44,7 +50,7 @@ export class NavigatorService {
   /**
    * Analyzes a batch of telemetry points and auto-detects events.
    */
-  async analyzeTelemetry(lessonId: string, points: any[]) {
+  async analyzeTelemetry(lessonId: string, points: TelemetryPoint[]) {
     const speedEvents = points
       .filter((p) => p.velocity > this.SPEED_THRESHOLD)
       .map((p) => ({

@@ -8,15 +8,17 @@ import {
 
 @Injectable()
 export class SerproValidationProvider implements DocumentValidationProvider {
-  async validateCnh(): Promise<CnhExternalCheck> {
-    throw new NotImplementedException(
-      'SERPRO provider is not implemented in the MVP — set DOCUMENT_VALIDATION_PROVIDER=mock',
+  validateCnh(): Promise<CnhExternalCheck> {
+    return Promise.reject(
+      new NotImplementedException(
+        'SERPRO provider is not implemented in the MVP — set DOCUMENT_VALIDATION_PROVIDER=mock',
+      ),
     );
   }
-  async validateRenach(): Promise<RenachExternalCheck> {
-    throw new NotImplementedException();
+  validateRenach(): Promise<RenachExternalCheck> {
+    return Promise.reject(new NotImplementedException());
   }
-  async matchFaceWithCnh(): Promise<FaceMatchResult> {
-    throw new NotImplementedException();
+  matchFaceWithCnh(): Promise<FaceMatchResult> {
+    return Promise.reject(new NotImplementedException());
   }
 }

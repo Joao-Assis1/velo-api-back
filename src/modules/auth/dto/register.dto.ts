@@ -111,7 +111,9 @@ export class RegisterDto {
   @IsOptional()
   vehiclePlate?: string;
 
-  @Transform(({ value }) => (value != null ? String(value) : value))
+  @Transform(({ value }: { value: string | null | undefined }) =>
+    value != null ? String(value) : value,
+  )
   @IsString()
   @IsOptional()
   vehicleYear?: string;

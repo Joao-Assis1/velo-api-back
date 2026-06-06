@@ -67,16 +67,23 @@ export class ValidationService {
       if (!res.ok) {
         throw new BadRequestException(`ViaCEP returned ${res.status}`);
       }
-      const body = (await res.json()) as Record<string, unknown>;
-      if ((body as { erro?: boolean }).erro) {
+      const body = (await res.json()) as {
+        cep?: string;
+        logradouro?: string;
+        bairro?: string;
+        localidade?: string;
+        uf?: string;
+        erro?: boolean;
+      };
+      if (body.erro) {
         throw new NotFoundException(`CEP ${digits} not found`);
       }
       return {
-        cep: String(body.cep ?? ''),
-        logradouro: String(body.logradouro ?? ''),
-        bairro: String(body.bairro ?? ''),
-        cidade: String(body.localidade ?? ''),
-        uf: String(body.uf ?? ''),
+        cep: body.cep ?? '',
+        logradouro: body.logradouro ?? '',
+        bairro: body.bairro ?? '',
+        cidade: body.localidade ?? '',
+        uf: body.uf ?? '',
       };
     } catch (e) {
       if (e instanceof NotFoundException || e instanceof BadRequestException) {
@@ -109,11 +116,15 @@ export class ValidationService {
           `BrasilAPI returned status ${res.status}`,
         );
       }
-      const body = (await res.json()) as Record<string, unknown>;
+      const body = (await res.json()) as {
+        marca?: string;
+        modelo?: string;
+        ano?: number;
+      };
       return {
-        marca: String(body.marca ?? ''),
-        modelo: String(body.modelo ?? ''),
-        ano: Number(body.ano ?? 0),
+        marca: body.marca ?? '',
+        modelo: body.modelo ?? '',
+        ano: body.ano ?? 0,
       };
     } catch (e) {
       if (e instanceof NotFoundException || e instanceof BadRequestException) {

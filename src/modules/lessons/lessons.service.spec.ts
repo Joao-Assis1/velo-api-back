@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { LessonsService } from './lessons.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShieldService } from '../telemetria/shield.service';

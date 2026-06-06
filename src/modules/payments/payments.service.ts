@@ -163,7 +163,9 @@ export class PaymentsService {
     });
     if (
       !instructor?.pixKey ||
-      !VALID_PIX_KEY_TYPES.includes(instructor?.pixKeyType as any)
+      !VALID_PIX_KEY_TYPES.includes(
+        instructor?.pixKeyType as (typeof VALID_PIX_KEY_TYPES)[number],
+      )
     ) {
       throw new BadRequestException(
         'Instrutor não possui chave PIX válida cadastrada',
@@ -180,12 +182,8 @@ export class PaymentsService {
       {
         value: instructorAmount,
         pixAddressKey: instructor.pixKey,
-        pixAddressKeyType: instructor.pixKeyType as
-          | 'CPF'
-          | 'CNPJ'
-          | 'EMAIL'
-          | 'PHONE'
-          | 'EVP',
+        pixAddressKeyType:
+          instructor.pixKeyType as (typeof VALID_PIX_KEY_TYPES)[number],
         description: `Repasse aula ${lessonId}`,
       },
       `transfer-${payment.id}`,
@@ -203,7 +201,17 @@ export class PaymentsService {
     });
   }
 
-  private isValidForCompliance(lesson: any): boolean {
+  private isValidForCompliance(
+    lesson: {
+      status: string;
+      durationMinutes: number | null;
+      biometryStartStatus: string | null;
+      biometryMidStatus: string | null;
+      biometryEndStatus: string | null;
+      integrityHash: string | null;
+      disputeOpened: boolean;
+    } | null,
+  ): boolean {
     return (
       lesson !== null &&
       lesson !== undefined &&
@@ -361,6 +369,19 @@ export class PaymentsService {
       message: 'Pagamento reembolsado com sucesso',
       refundId: result.id,
     };
+  }
+
+  async findByStudent(studentId: string) {
+    return this.prisma.payment.findMany({
+      where: { studentId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findById(id: string, _requesterId: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { id } });
+    if (!payment) throw new NotFoundException('Payment not found');
+    return payment;
   }
 
   async handlePaymentWebhook(

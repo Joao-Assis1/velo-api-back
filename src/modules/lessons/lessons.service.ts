@@ -359,14 +359,13 @@ export class LessonsService {
 
     try {
       await this.paymentsService.charge(lesson.studentId, { lessonId: id });
-    } catch (err: any) {
-      this.logger.warn(
-        `Payment failed on accept for lesson ${id}: ${err.message}`,
-      );
-      throw new HttpException(
-        err.message ?? 'Payment failed — lesson remains pending',
-        HttpStatus.PAYMENT_REQUIRED,
-      );
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Payment failed — lesson remains pending';
+      this.logger.warn(`Payment failed on accept for lesson ${id}: ${msg}`);
+      throw new HttpException(msg, HttpStatus.PAYMENT_REQUIRED);
     }
 
     return this.prisma.lesson.update({
@@ -452,7 +451,14 @@ export class LessonsService {
       `[BIOMETRY] Lesson ${lessonId}, Step ${dto.step}, Status: ${dto.status}, GPS: ${dto.lat},${dto.lng}`,
     );
 
-    const updateData: any = {};
+    const updateData: Partial<{
+      biometryStartStatus: string;
+      biometryStartAt: Date;
+      biometryMidStatus: string;
+      biometryMidAt: Date;
+      biometryEndStatus: string;
+      biometryEndAt: Date;
+    }> = {};
     const now = new Date();
 
     if (dto.step === 'start') {
