@@ -1,0 +1,1 @@
+Valida magic numbers de PDF e Imagem antes do Tesseract e PDF-Parse para evitar o crash fatal da worker thread do Node no OCR.

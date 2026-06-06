@@ -3,7 +3,6 @@ import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { LessonsService } from './lessons.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShieldService } from '../telemetria/shield.service';
-import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
 import { PaymentsService } from '../payments/payments.service';
 import { JourneyService } from '../journey/journey.service';
 import { ValidationService } from '../validation/validation.service';
@@ -63,11 +62,7 @@ describe('LessonsService.create — validation chain', () => {
         LessonsService,
         { provide: PrismaService, useValue: prisma },
         { provide: ShieldService, useValue: {} },
-        {
-          provide: PaymentsStripeService,
-          useValue: { releaseEscrow: jest.fn(), resolveDispute: jest.fn() },
-        },
-        { provide: PaymentsService, useValue: { charge: jest.fn() } },
+        { provide: PaymentsService, useValue: { charge: jest.fn(), resolveDispute: jest.fn() } },
         { provide: JourneyService, useValue: journey },
         { provide: ValidationService, useValue: validation },
         {
@@ -190,10 +185,6 @@ describe('LessonsService.accept — payment integration', () => {
         LessonsService,
         { provide: PrismaService, useValue: prisma },
         { provide: ShieldService, useValue: {} },
-        {
-          provide: PaymentsStripeService,
-          useValue: { releaseEscrow: jest.fn(), resolveDispute: jest.fn() },
-        },
         { provide: PaymentsService, useValue: paymentsService },
         { provide: JourneyService, useValue: { assertCanScheduleLesson: jest.fn() } },
         { provide: ValidationService, useValue: { validateCnh: jest.fn() } },

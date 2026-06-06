@@ -15,7 +15,6 @@ import { Lesson, Prisma } from '@prisma/client';
 import { ShieldService } from '../telemetria/shield.service';
 import { RegisterBiometryDto } from './dto/register-biometry.dto';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
-import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
 import { PaymentsService } from '../payments/payments.service';
 import { JourneyService } from '../journey/journey.service';
 import { validateCnh } from '../validation/lib/cnh.validator';
@@ -27,7 +26,6 @@ export class LessonsService {
   constructor(
     private prisma: PrismaService,
     private shield: ShieldService,
-    private paymentsStripe: PaymentsStripeService,
     private paymentsService: PaymentsService,
     private journey: JourneyService,
   ) {}
@@ -259,7 +257,7 @@ export class LessonsService {
 
       if (payment && ['PENDING', 'HELD'].includes(payment.status)) {
         try {
-          await this.paymentsStripe.resolveDispute(id, {
+          await this.paymentsService.resolveDispute(id, {
             action: 'refund',
             reason: 'lesson_cancelled',
           });

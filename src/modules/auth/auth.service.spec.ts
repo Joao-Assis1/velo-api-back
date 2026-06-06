@@ -4,7 +4,6 @@ import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { JourneyService } from '../journey/journey.service';
-import { PaymentsStripeService } from '../payments-stripe/payments-stripe.service';
 import { MailService } from '../mail/mail.service';
 
 const mockPrisma = {
@@ -32,9 +31,6 @@ const FAMILY_ID = 'family-uuid-1';
 
 const mockJwt = { signAsync: jest.fn().mockResolvedValue('mock-token') };
 const mockJourney = { initForStudent: jest.fn().mockResolvedValue(undefined) };
-const mockPaymentsStripe = {
-  provisionCustomer: jest.fn().mockResolvedValue(undefined),
-};
 const mockMail = { sendPasswordReset: jest.fn().mockResolvedValue(undefined) };
 
 describe('AuthService', () => {
@@ -48,7 +44,6 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
         { provide: JourneyService, useValue: mockJourney },
-        { provide: PaymentsStripeService, useValue: mockPaymentsStripe },
         { provide: MailService, useValue: mockMail },
       ],
     }).compile();

@@ -250,6 +250,67 @@ export class PaymentsService {
     }
   }
 
+  async listReleaseFailed() {
+    return this.prisma.payment.findMany({
+      where: { status: 'RELEASE_FAILED' },
+      orderBy: { lastReleaseAttemptAt: 'desc' },
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        releaseAttempts: true,
+        lastReleaseAttemptAt: true,
+        createdAt: true,
+        lessonId: true,
+        studentId: true,
+        lesson: {
+          select: {
+            date: true,
+            status: true,
+            durationMinutes: true,
+            biometryStartStatus: true,
+            biometryMidStatus: true,
+            biometryEndStatus: true,
+            instructor: { select: { id: true, name: true, email: true } },
+          },
+        },
+        student: { select: { id: true, name: true, email: true } },
+      },
+    });
+  }
+
+  async resolveReleaseFailed(
+    paymentId: string,
+    dto: { action: 'retry' | 'refund'; reason?: string },
+  ) {
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new NotFoundException(`Pagamento ${paymentId} não encontrado`);
+    if (payment.status !== 'RELEASE_FAILED') {
+      throw new BadRequestException(
+        `Status do pagamento é ${payment.status} — esperado RELEASE_FAILED`,
+      );
+    }
+
+    if (dto.action === 'retry') {
+      await this.prisma.payment.update({
+        where: { id: paymentId },
+        data: { status: 'HELD', releaseAttempts: 0, lastReleaseAttemptAt: null },
+      });
+      return { message: 'Pagamento resetado para HELD — será reprocessado no próximo ciclo do cron' };
+    }
+
+    // action === 'refund'
+    if (!payment.asaasPaymentId) {
+      throw new BadRequestException('Pagamento sem ID Asaas — reembolso impossível');
+    }
+    const result = await this.asaas.refund(payment.asaasPaymentId, `refund-release-failed-${paymentId}`);
+    await this.prisma.payment.update({
+      where: { id: paymentId },
+      data: { status: 'REFUNDED', asaasRefundId: result.id },
+    });
+    return { message: 'Pagamento reembolsado com sucesso', refundId: result.id };
+  }
+
   async handlePaymentWebhook(event: string, asaasPaymentId: string): Promise<void> {
     const SUCCESS_EVENTS = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'];
     const FAILURE_EVENTS = ['PAYMENT_OVERDUE', 'PAYMENT_DELETED'];
