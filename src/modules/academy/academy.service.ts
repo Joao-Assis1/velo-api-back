@@ -36,7 +36,7 @@ export class AcademyService {
     const durationMs = endTime.getTime() - startTime.getTime();
     if (durationMs < 15 * 60 * 1000) {
       throw new BadRequestException(
-        'Simulado submitted too fast. Minimum time is 15 minutes.',
+        'Simulado enviado rápido demais. O tempo mínimo é de 15 minutos.',
       );
     }
 

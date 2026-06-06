@@ -57,7 +57,7 @@ export class InstructorsController {
     @Body() updateData: UpdateInstructorDto,
   ) {
     if (req.user.userId !== id) {
-      throw new ForbiddenException('You can only update your own profile');
+      throw new ForbiddenException('Você só pode atualizar o seu próprio perfil');
     }
     return this.instructorsService.update(id, updateData);
   }
@@ -80,7 +80,7 @@ export class InstructorsController {
     @Query('year') year?: string,
   ) {
     if (req.user.userId !== id) {
-      throw new ForbiddenException('You can only view your own earnings');
+      throw new ForbiddenException('Você só pode visualizar os seus próprios ganhos');
     }
     return this.instructorsService.getEarnings(id, month, year);
   }

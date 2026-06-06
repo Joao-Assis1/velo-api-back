@@ -165,7 +165,7 @@ export class InstructorsService {
       select: { id: true },
     });
     if (!instructor)
-      throw new NotFoundException(`Instructor ${instructorId} not found`);
+      throw new NotFoundException(`Instrutor ${instructorId} não encontrado`);
 
     const updated = await this.prisma.instructor.update({
       where: { id: instructorId },

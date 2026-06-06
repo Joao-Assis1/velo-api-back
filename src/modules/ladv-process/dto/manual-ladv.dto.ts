@@ -5,7 +5,7 @@ import { IsDate, Matches } from 'class-validator';
 export class ManualLadvDto {
   @ApiProperty({ example: '1234567' })
   @Matches(/^\d{7}$/, {
-    message: 'ladvNumber must be exactly 7 digits',
+    message: 'O número da LADV deve ter exatamente 7 dígitos',
   })
   ladvNumber!: string;
 

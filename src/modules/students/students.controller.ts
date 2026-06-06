@@ -54,7 +54,7 @@ export class StudentsController {
     @Body() updateData: UpdateStudentDto,
   ): Promise<Omit<Student, 'password'>> {
     if (req.user.userId !== id) {
-      throw new ForbiddenException('You can only update your own profile');
+      throw new ForbiddenException('Você só pode atualizar o seu próprio perfil');
     }
     return this.studentsService.update(id, updateData);
   }

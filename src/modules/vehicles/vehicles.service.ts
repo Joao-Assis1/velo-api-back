@@ -63,10 +63,10 @@ export class VehiclesService {
     const vehicle = await this.prisma.vehicle.findUnique({
       where: { id: vehicleId },
     });
-    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    if (!vehicle) throw new NotFoundException('Veículo não encontrado');
     if (vehicle.instructorId !== instructorId)
       throw new ForbiddenException(
-        'Vehicle does not belong to this instructor',
+        'O veículo não pertence a este instrutor',
       );
 
     return this.prisma.vehicle.update({
@@ -79,10 +79,10 @@ export class VehiclesService {
     const vehicle = await this.prisma.vehicle.findUnique({
       where: { id: vehicleId },
     });
-    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    if (!vehicle) throw new NotFoundException('Veículo não encontrado');
     if (vehicle.instructorId !== instructorId)
       throw new ForbiddenException(
-        'Vehicle does not belong to this instructor',
+        'O veículo não pertence a este instrutor',
       );
 
     return this.prisma.vehicle.update({

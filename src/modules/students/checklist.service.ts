@@ -47,7 +47,7 @@ export class ChecklistService {
     });
 
     if (!student) {
-      throw new NotFoundException('Student not found');
+      throw new NotFoundException('Aluno não encontrado');
     }
 
     // C-011: Lógica de Precedência — LADV válida = número + status PASS + validade futura
@@ -59,13 +59,13 @@ export class ChecklistService {
 
     if (step === 'pratico' && completed && !ladvValid) {
       throw new BadRequestException(
-        'Cannot complete practical step without a validated LADV',
+        'Não é possível concluir a etapa prática sem uma LADV validada',
       );
     }
 
     const validSteps = ['medico', 'psicotecnico', 'teorico', 'pratico'];
     if (!validSteps.includes(step)) {
-      throw new BadRequestException(`Invalid step: ${step}`);
+      throw new BadRequestException(`Etapa inválida: ${step}`);
     }
 
     return this.prisma.studentChecklist.upsert({

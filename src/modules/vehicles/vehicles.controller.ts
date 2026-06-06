@@ -70,7 +70,7 @@ export class VehiclesController {
     @Req() req: RequestWithUser,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) throw new BadRequestException('File is required');
+    if (!file) throw new BadRequestException('O arquivo é obrigatório');
     const photoUrl = '/' + file.path.replace(/\\/g, '/');
     return this.vehiclesService.updatePhoto(id, req.user.userId, photoUrl);
   }

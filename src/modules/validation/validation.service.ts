@@ -58,14 +58,14 @@ export class ValidationService {
   async validateCep(cep: string): Promise<CepAddress> {
     const digits = (cep ?? '').replace(/\D/g, '');
     if (digits.length !== 8) {
-      throw new BadRequestException('CEP must have exactly 8 digits');
+      throw new BadRequestException('O CEP deve ter exatamente 8 dígitos');
     }
     const base =
       this.config.get<string>('VIA_CEP_BASE_URL') ?? 'https://viacep.com.br/ws';
     try {
       const res = await fetch(`${base}/${digits}/json/`);
       if (!res.ok) {
-        throw new BadRequestException(`ViaCEP returned ${res.status}`);
+        throw new BadRequestException(`Consulta de CEP retornou ${res.status}`);
       }
       const body = (await res.json()) as {
         cep?: string;
@@ -76,7 +76,7 @@ export class ValidationService {
         erro?: boolean;
       };
       if (body.erro) {
-        throw new NotFoundException(`CEP ${digits} not found`);
+        throw new NotFoundException(`CEP ${digits} não encontrado`);
       }
       return {
         cep: body.cep ?? '',
@@ -91,7 +91,7 @@ export class ValidationService {
       }
       this.logger.warn(`ViaCEP fetch failed: ${(e as Error).message}`);
       throw new BadRequestException(
-        `ViaCEP request failed: ${(e as Error).message}`,
+        `Falha ao consultar o CEP: ${(e as Error).message}`,
       );
     }
   }
@@ -99,7 +99,7 @@ export class ValidationService {
   async validateVehiclePlate(plate: string): Promise<PlateInfo> {
     const normalized = (plate ?? '').replace(/\W/g, '').toUpperCase();
     if (!/^[A-Z]{3}\d[A-Z\d]\d{2}$/.test(normalized)) {
-      throw new BadRequestException('Invalid plate format');
+      throw new BadRequestException('Formato de placa inválido');
     }
     const base =
       this.config.get<string>('BRASIL_API_BASE_URL') ??
@@ -109,11 +109,11 @@ export class ValidationService {
         `${base}/fipe/marcas/v1/cars?placa=${normalized}`,
       );
       if (res.status === 404) {
-        throw new NotFoundException(`Plate ${normalized} not found`);
+        throw new NotFoundException(`Placa ${normalized} não encontrada`);
       }
       if (!res.ok) {
         throw new BadRequestException(
-          `BrasilAPI returned status ${res.status}`,
+          `Consulta da placa retornou status ${res.status}`,
         );
       }
       const body = (await res.json()) as {
@@ -132,7 +132,7 @@ export class ValidationService {
       }
       this.logger.warn(`BrasilAPI fetch failed: ${(e as Error).message}`);
       throw new BadRequestException(
-        `BrasilAPI request failed: ${(e as Error).message}`,
+        `Falha ao consultar a placa: ${(e as Error).message}`,
       );
     }
   }

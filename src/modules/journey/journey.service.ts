@@ -33,7 +33,7 @@ export class JourneyService {
         readyForPracticalExamAt: true,
       },
     });
-    if (!student) throw new NotFoundException(`Student ${studentId} not found`);
+    if (!student) throw new NotFoundException(`Aluno ${studentId} não encontrado`);
 
     const [renach, lessons] = await Promise.all([
       this.prisma.renachProcess.findUnique({
@@ -106,7 +106,7 @@ export class JourneyService {
     const curIdx = JOURNEY_STAGE_ORDER.indexOf(state.stage);
     if (curIdx < minIdx) {
       throw new BadRequestException(
-        `Cannot schedule lesson — current stage is ${state.stage}, needs LADV_UPLOADED_VALID or above`,
+        `Não é possível agendar a aula — etapa atual é ${state.stage}, é necessário LADV_UPLOADED_VALID ou superior`,
       );
     }
   }
@@ -115,7 +115,7 @@ export class JourneyService {
     const data = await this.loadSnapshot(studentId);
     if (!data.practicalSummary.meetsMinimumLegal) {
       throw new BadRequestException(
-        `Minimum ${MIN_PRACTICAL_MINUTES_FOR_READY} validated minutes not met (current: ${data.practicalSummary.totalValidatedMinutes})`,
+        `Mínimo de ${MIN_PRACTICAL_MINUTES_FOR_READY} minutos validados não atingido (atual: ${data.practicalSummary.totalValidatedMinutes})`,
       );
     }
     data.student.readyForPracticalExamAt = new Date();

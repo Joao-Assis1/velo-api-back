@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { ptBrValidationExceptionFactory } from './common/validation/pt-br-validation';
 import type { Request, Response } from 'express';
 
 const server = express();
@@ -44,6 +45,7 @@ async function createApp(): Promise<void> {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: ptBrValidationExceptionFactory,
     }),
   );
 

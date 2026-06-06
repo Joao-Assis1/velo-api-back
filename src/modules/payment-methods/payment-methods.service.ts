@@ -42,7 +42,7 @@ export class PaymentMethodsService {
         asaasCustomerId: true,
       },
     });
-    if (!student) throw new NotFoundException(`Student ${studentId} not found`);
+    if (!student) throw new NotFoundException(`Aluno ${studentId} não encontrado`);
 
     let customerId = student.asaasCustomerId;
     if (!customerId) {
@@ -221,7 +221,7 @@ export class PaymentMethodsService {
     const pm = await this.prisma.paymentMethod.findFirst({
       where: { id, studentId, isDeleted: false },
     });
-    if (!pm) throw new NotFoundException('Payment method not found');
+    if (!pm) throw new NotFoundException('Método de pagamento não encontrado');
 
     await this.prisma.paymentMethod.update({
       where: { id },
@@ -252,7 +252,7 @@ export class PaymentMethodsService {
     const pm = await this.prisma.paymentMethod.findFirst({
       where: { id, studentId, isDeleted: false },
     });
-    if (!pm) throw new NotFoundException('Payment method not found');
+    if (!pm) throw new NotFoundException('Método de pagamento não encontrado');
     await this.prisma.$transaction([
       this.prisma.paymentMethod.updateMany({
         where: { studentId, isDefault: true },
