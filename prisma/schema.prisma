@@ -38,8 +38,8 @@ model Student {
   ladvOcrConfidence        Float?
   ladvOcrStatus            String?
 
-  // === Stripe (preparação) ===
-  stripeCustomerId         String?   @unique
+  // === Asaas (pagamentos) ===
+  asaasCustomerId          String?   @unique
 
   // Relations
   lessons               Lesson[]
@@ -118,17 +118,16 @@ model Instructor {
   credentialValidUntil   DateTime?
   credentialStatus       String    @default("PENDING")
 
-  // === Stripe Connect (preparação) ===
-  stripeAccountId        String?   @unique
-  stripeAccountStatus    String    @default("PENDING")
-  stripePayoutsEnabled   Boolean   @default(false)
+  // === Asaas (repasse via Pix) ===
+  pixKey     String?
+  pixKeyType String?  // CPF | CNPJ | EMAIL | PHONE | EVP
 
   availabilities  Availability[]
   lessons         Lesson[]
   vehicles        Vehicle[]
   busySlots       BusySlot[]
 
-  @@index([credentialStatus, stripeAccountStatus, isActive])
+  @@index([credentialStatus, isActive])
   @@index([credentialValidUntil])
 }
 
@@ -210,7 +209,7 @@ model Lesson {
   telemetry             LessonTelemetry[] // Relacionamento com Telemetria
   events                LessonEvent[]     // Eventos de orientação (Navegador)
 
-  @@unique([instructorId, date, startTime], name: "unique_booking_slot")
+  @@index([instructorId, date, startTime], name: "idx_booking_slot")
   @@index([studentId])
   @@index([studentId, status])
 }
@@ -245,7 +244,7 @@ model LessonEvent {
 model PaymentMethod {
   id                    String    @id @default(uuid())
   studentId             String
-  stripePaymentMethodId String    @unique
+  asaasCreditCardToken  String    @unique
   brand                 String
   last4                 String
   cardholderName        String
@@ -268,10 +267,9 @@ model Payment {
   studentId             String
   lessonId              String?        @unique
   paymentMethodId       String?
-  stripePaymentIntentId String?        @unique
-  stripeChargeId        String?        @unique
-  stripeTransferId      String?        @unique
-  stripeRefundId        String?
+  asaasPaymentId        String?        @unique
+  asaasTransferId       String?        @unique
+  asaasRefundId         String?
   failureReason         String?
   platformFeeAmount     Float?
   instructorAmount      Float?
@@ -284,7 +282,7 @@ model Payment {
   paymentMethod         PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
 
   @@index([status])
-  @@index([stripePaymentIntentId])
+  @@index([asaasPaymentId])
   @@index([studentId])
 }
 

@@ -100,8 +100,8 @@ export class LadvProcessService {
           ladv_validation_date: new Date(),
         },
       });
-    } catch (e: any) {
-      if (e?.code === 'P2025') {
+    } catch (e: unknown) {
+      if ((e as { code?: string })?.code === 'P2025') {
         throw new NotFoundException(`Student ${studentId} not found`);
       }
       this.logger.error(`persist failed: ${(e as Error).message}`);

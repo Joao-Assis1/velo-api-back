@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentsStripeService } from './payments-stripe.service';
+import { PaymentsService } from './payments.service';
 
 const MAX_ATTEMPTS = Number(process.env.ESCROW_MAX_RETRY_ATTEMPTS ?? 3);
 const CRON_EXPR = process.env.ESCROW_RETRY_CRON ?? '*/5 * * * *';
@@ -12,7 +12,7 @@ export class EscrowRetryService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly paymentsStripe: PaymentsStripeService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   @Cron(CRON_EXPR)
@@ -36,7 +36,7 @@ export class EscrowRetryService {
       if (!payment.lessonId) continue;
 
       try {
-        await this.paymentsStripe.releaseEscrow(payment.lessonId);
+        await this.paymentsService.releaseEscrow(payment.lessonId);
         this.logger.log(`Escrow retry succeeded for payment ${payment.id}`);
       } catch (err) {
         const newAttempts = payment.releaseAttempts + 1;

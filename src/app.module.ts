@@ -11,7 +11,7 @@ import { InstructorsModule } from './modules/instructors/instructors.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
-import { PaymentsStripeModule } from './modules/payments-stripe/payments-stripe.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BusySlotsModule } from './modules/busy-slots/busy-slots.module';
 import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
@@ -41,7 +41,7 @@ import { MailModule } from './modules/mail/mail.module';
     VehiclesModule,
     AvailabilityModule,
     LessonsModule,
-    PaymentsStripeModule,
+    PaymentsModule,
     AuthModule,
     BusySlotsModule,
     PaymentMethodsModule,

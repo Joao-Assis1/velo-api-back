@@ -3,75 +3,42 @@ import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
-import Stripe from 'stripe';
 import { DETRAN_QUESTIONS } from './questions';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const PASSWORD = 'demo123456';
 const HASH = bcrypt.hashSync(PASSWORD, 10);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function ensureStripeCustomer(studentId: string, email: string, name: string): Promise<string> {
-  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { stripeCustomerId: true } });
-  if (student?.stripeCustomerId) return student.stripeCustomerId;
-
-  const customer = await stripe.customers.create({ email, name, metadata: { studentId } });
-  await prisma.student.update({ where: { id: studentId }, data: { stripeCustomerId: customer.id } });
-  return customer.id;
-}
-
-async function ensureStripePaymentMethod(
+async function ensurePaymentMethod(
   studentId: string,
-  customerId: string,
-  token: string, // tok_visa, tok_mastercard, etc.
+  asaasCustomerId: string,
   brand: string,
   last4: string,
   name: string,
+  tokenSuffix: string,
 ): Promise<void> {
   const existing = await prisma.paymentMethod.findFirst({ where: { studentId, isDeleted: false } });
   if (existing) return;
 
-  const pm = await stripe.paymentMethods.create({
-    type: 'card',
-    card: { token },
-  });
-  await stripe.paymentMethods.attach(pm.id, { customer: customerId });
+  await prisma.student.update({ where: { id: studentId }, data: { asaasCustomerId } });
 
   await prisma.paymentMethod.create({
     data: {
       studentId,
-      stripePaymentMethodId: pm.id,
-      brand: pm.card?.brand ?? brand,
-      last4: pm.card?.last4 ?? last4,
+      asaasCreditCardToken: `seed_token_${tokenSuffix}`,
+      brand,
+      last4,
       cardholderName: name,
-      expiryMonth: String(pm.card?.exp_month ?? '12').padStart(2, '0'),
-      expiryYear: String(pm.card?.exp_year ?? '2028'),
+      expiryMonth: '12',
+      expiryYear: '2028',
       isDefault: true,
     },
   });
-}
-
-async function ensureStripeAccount(instructorId: string, email: string): Promise<string> {
-  const inst = await prisma.instructor.findUnique({ where: { id: instructorId }, select: { stripeAccountId: true } });
-  if (inst?.stripeAccountId) return inst.stripeAccountId;
-
-  const account = await stripe.accounts.create({
-    type: 'express',
-    country: 'BR',
-    email,
-    capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-  });
-
-  await prisma.instructor.update({
-    where: { id: instructorId },
-    data: { stripeAccountId: account.id, stripeAccountStatus: 'ACTIVE', stripePayoutsEnabled: false },
-  });
-  return account.id;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -107,12 +74,10 @@ async function main() {
       credentialValidUntil: new Date('2027-12-31'),
       birthDate: '1978-05-20',
       educationLevel: 'Superior Completo',
-      stripeAccountStatus: 'PENDING',
     },
     update: {},
   });
-  const robertoStripeId = await ensureStripeAccount(instructor.id, instructor.email);
-  console.log(`  ✔ Instrutor: ${instructor.email} (Stripe: ${robertoStripeId})`);
+  console.log(`  ✔ Instrutor: ${instructor.email}`);
 
   // Veículo
   const vehicle = await prisma.vehicle.upsert({
@@ -283,12 +248,9 @@ async function main() {
         credentialValidUntil: data.credentialValidUntil,
         birthDate: data.birthDate,
         educationLevel: data.educationLevel,
-        stripeAccountStatus: 'PENDING',
       },
       update: {},
     });
-
-    const stripeId = await ensureStripeAccount(inst.id, inst.email);
 
     await prisma.vehicle.upsert({
       where: { plate: data.plate },
@@ -309,7 +271,7 @@ async function main() {
       });
     }
 
-    console.log(`  ✔ Instrutor: ${inst.email} (${data.vehicleModel}, R$${data.pricePerClass}/aula, Stripe: ${stripeId})`);
+    console.log(`  ✔ Instrutor: ${inst.email} (${data.vehicleModel}, R$${data.pricePerClass}/aula)`);
   }
 
   // ── Aluno 1: Iniciante (REGISTERED) ────────────────────────────────────────
@@ -440,78 +402,85 @@ async function main() {
     update: {},
   });
 
-  // Stripe: customer + cartão Visa de teste para aluno4
-  const cus4 = await ensureStripeCustomer(aluno4.id, aluno4.email, aluno4.name);
-  await ensureStripePaymentMethod(aluno4.id, cus4, 'tok_visa', 'visa', '4242', aluno4.name);
+  await ensurePaymentMethod(aluno4.id, 'seed_cus_aluno4', 'visa', '4111', aluno4.name, 'aluno4_visa');
 
   // Aulas para aluno4
   const upcomingDate = new Date();
   upcomingDate.setDate(upcomingDate.getDate() + 3);
   upcomingDate.setHours(0, 0, 0, 0);
 
-  await prisma.lesson.upsert({
-    where: { unique_booking_slot: { instructorId: instructor.id, date: upcomingDate, startTime: '10:00' } },
-    create: {
-      studentId: aluno4.id,
-      instructorId: instructor.id,
-      vehicleId: vehicle.id,
-      date: upcomingDate,
-      startTime: '10:00',
-      endTime: '11:00',
-      status: 'pending_acceptance',
-      price: 120.0,
-    },
-    update: {},
+  let lessonPending = await prisma.lesson.findFirst({
+    where: { instructorId: instructor.id, date: upcomingDate, startTime: '10:00' }
   });
+  if (!lessonPending) {
+    lessonPending = await prisma.lesson.create({
+      data: {
+        studentId: aluno4.id,
+        instructorId: instructor.id,
+        vehicleId: vehicle.id,
+        date: upcomingDate,
+        startTime: '10:00',
+        endTime: '11:00',
+        status: 'pending_acceptance',
+        price: 120.0,
+      }
+    });
+  }
 
   const acceptedDate = new Date();
   acceptedDate.setDate(acceptedDate.getDate() + 5);
   acceptedDate.setHours(0, 0, 0, 0);
 
-  await prisma.lesson.upsert({
-    where: { unique_booking_slot: { instructorId: instructor.id, date: acceptedDate, startTime: '14:00' } },
-    create: {
-      studentId: aluno4.id,
-      instructorId: instructor.id,
-      vehicleId: vehicle.id,
-      date: acceptedDate,
-      startTime: '14:00',
-      endTime: '15:00',
-      status: 'accepted',
-      price: 120.0,
-    },
-    update: {},
+  let lessonAccepted = await prisma.lesson.findFirst({
+    where: { instructorId: instructor.id, date: acceptedDate, startTime: '14:00' }
   });
+  if (!lessonAccepted) {
+    lessonAccepted = await prisma.lesson.create({
+      data: {
+        studentId: aluno4.id,
+        instructorId: instructor.id,
+        vehicleId: vehicle.id,
+        date: acceptedDate,
+        startTime: '14:00',
+        endTime: '15:00',
+        status: 'accepted',
+        price: 120.0,
+      }
+    });
+  }
 
   const completedDate1 = new Date('2026-05-01');
-  const completedLesson4 = await prisma.lesson.upsert({
-    where: { unique_booking_slot: { instructorId: instructor.id, date: completedDate1, startTime: '09:00' } },
-    create: {
-      studentId: aluno4.id,
-      instructorId: instructor.id,
-      vehicleId: vehicle.id,
-      date: completedDate1,
-      startTime: '09:00',
-      endTime: '10:00',
-      status: 'completed',
-      durationMinutes: 60,
-      checkInTime: new Date('2026-05-01T09:00:00Z'),
-      checkOutTime: new Date('2026-05-01T10:00:00Z'),
-      biometryStartStatus: 'SUCCESS',
-      biometryStartAt: new Date('2026-05-01T09:00:00Z'),
-      biometryMidStatus: 'SUCCESS',
-      biometryMidAt: new Date('2026-05-01T09:30:00Z'),
-      biometryEndStatus: 'SUCCESS',
-      biometryEndAt: new Date('2026-05-01T10:00:00Z'),
-      price: 120.0,
-      instructorFeedback: 'Bom desempenho, mantenha a atenção nos espelhos.',
-      studentFeedbackRating: 5,
-      studentFeedbackText: 'Instrutor excelente, muito paciente.',
-      integrityHash: 'a'.repeat(64),
-      paymentReleased: false,
-    },
-    update: {},
+  let completedLesson4 = await prisma.lesson.findFirst({
+    where: { instructorId: instructor.id, date: completedDate1, startTime: '09:00' }
   });
+  if (!completedLesson4) {
+    completedLesson4 = await prisma.lesson.create({
+      data: {
+        studentId: aluno4.id,
+        instructorId: instructor.id,
+        vehicleId: vehicle.id,
+        date: completedDate1,
+        startTime: '09:00',
+        endTime: '10:00',
+        status: 'completed',
+        durationMinutes: 60,
+        checkInTime: new Date('2026-05-01T09:00:00Z'),
+        checkOutTime: new Date('2026-05-01T10:00:00Z'),
+        biometryStartStatus: 'SUCCESS',
+        biometryStartAt: new Date('2026-05-01T09:00:00Z'),
+        biometryMidStatus: 'SUCCESS',
+        biometryMidAt: new Date('2026-05-01T09:30:00Z'),
+        biometryEndStatus: 'SUCCESS',
+        biometryEndAt: new Date('2026-05-01T10:00:00Z'),
+        price: 120.0,
+        instructorFeedback: 'Bom desempenho, mantenha a atenção nos espelhos.',
+        studentFeedbackRating: 5,
+        studentFeedbackText: 'Instrutor excelente, muito paciente.',
+        integrityHash: 'a'.repeat(64),
+        paymentReleased: false,
+      }
+    });
+  }
 
   const pm4 = await prisma.paymentMethod.findFirst({ where: { studentId: aluno4.id } });
   await prisma.payment.upsert({
@@ -527,7 +496,7 @@ async function main() {
     },
     update: {},
   });
-  console.log(`  ✔ Aluno prático: ${aluno4.email} (PRACTICAL_IN_PROGRESS, Stripe customer: ${cus4})`);
+  console.log(`  ✔ Aluno prático: ${aluno4.email} (PRACTICAL_IN_PROGRESS)`);
 
   // ── Aluno 5: Completo (READY_FOR_PRACTICAL_EXAM) ────────────────────────────
   const aluno5 = await prisma.student.upsert({
@@ -579,42 +548,43 @@ async function main() {
     });
   }
 
-  // Stripe: customer + cartão Mastercard de teste para aluno5
-  const cus5 = await ensureStripeCustomer(aluno5.id, aluno5.email, aluno5.name);
-  await ensureStripePaymentMethod(aluno5.id, cus5, 'tok_mastercard', 'mastercard', '4444', aluno5.name);
+  await ensurePaymentMethod(aluno5.id, 'seed_cus_aluno5', 'mastercard', '5555', aluno5.name, 'aluno5_mc');
 
   const lessonDates5 = [new Date('2026-03-05'), new Date('2026-03-12'), new Date('2026-03-19')];
 
   for (let i = 0; i < lessonDates5.length; i++) {
     const d = lessonDates5[i];
-    const lesson = await prisma.lesson.upsert({
-      where: { unique_booking_slot: { instructorId: instructor.id, date: d, startTime: '09:00' } },
-      create: {
-        studentId: aluno5.id,
-        instructorId: instructor.id,
-        vehicleId: vehicle.id,
-        date: d,
-        startTime: '09:00',
-        endTime: '10:00',
-        status: 'completed',
-        durationMinutes: 60,
-        checkInTime: new Date(d.getTime()),
-        checkOutTime: new Date(d.getTime() + 60 * 60 * 1000),
-        biometryStartStatus: 'SUCCESS',
-        biometryStartAt: new Date(d.getTime()),
-        biometryMidStatus: 'SUCCESS',
-        biometryMidAt: new Date(d.getTime() + 30 * 60 * 1000),
-        biometryEndStatus: 'SUCCESS',
-        biometryEndAt: new Date(d.getTime() + 60 * 60 * 1000),
-        price: 120.0,
-        instructorFeedback: 'Ótima evolução na aula.',
-        studentFeedbackRating: 5,
-        studentFeedbackText: 'Adorei a aula.',
-        integrityHash: `${'b'.repeat(62)}${String(i).padStart(2, '0')}`,
-        paymentReleased: true,
-      },
-      update: {},
+    let lesson = await prisma.lesson.findFirst({
+      where: { instructorId: instructor.id, date: d, startTime: '09:00' }
     });
+    if (!lesson) {
+      lesson = await prisma.lesson.create({
+        data: {
+          studentId: aluno5.id,
+          instructorId: instructor.id,
+          vehicleId: vehicle.id,
+          date: d,
+          startTime: '09:00',
+          endTime: '10:00',
+          status: 'completed',
+          durationMinutes: 60,
+          checkInTime: new Date(d.getTime()),
+          checkOutTime: new Date(d.getTime() + 60 * 60 * 1000),
+          biometryStartStatus: 'SUCCESS',
+          biometryStartAt: new Date(d.getTime()),
+          biometryMidStatus: 'SUCCESS',
+          biometryMidAt: new Date(d.getTime() + 30 * 60 * 1000),
+          biometryEndStatus: 'SUCCESS',
+          biometryEndAt: new Date(d.getTime() + 60 * 60 * 1000),
+          price: 120.0,
+          instructorFeedback: 'Ótima evolução na aula.',
+          studentFeedbackRating: 5,
+          studentFeedbackText: 'Adorei a aula.',
+          integrityHash: `${'b'.repeat(62)}${String(i).padStart(2, '0')}`,
+          paymentReleased: true,
+        }
+      });
+    }
 
     const pm5 = await prisma.paymentMethod.findFirst({ where: { studentId: aluno5.id } });
     await prisma.payment.upsert({
@@ -637,23 +607,23 @@ async function main() {
     create: { studentId: aluno5.id, teorico: true, pratico: true },
     update: { teorico: true, pratico: true },
   });
-  console.log(`  ✔ Aluno completo: ${aluno5.email} (READY_FOR_PRACTICAL_EXAM, Stripe customer: ${cus5})`);
+  console.log(`  ✔ Aluno completo: ${aluno5.email} (READY_FOR_PRACTICAL_EXAM)`);
 
   console.log('\n🎉 Seed concluído!\n');
   console.log('=== Contas Demo ===');
   console.log('Senha de todas as contas: demo123456\n');
-  console.log('INSTRUTORES (contas Stripe Express criadas em test mode)');
+  console.log('INSTRUTORES');
   console.log('  instrutor@demo.com        →  Roberto Souza · Hyundai HB20 · R$120/aula · seg–sex 08h–18h');
   console.log('  fernanda.costa@demo.com   →  Fernanda Costa · Honda Fit · R$100/aula · seg/qua/sex 07h–17h');
   console.log('  marcos.andrade@demo.com   →  Marcos Andrade · Chevrolet Onix · R$150/aula · ter/qui/sab 08h–16h');
   console.log('  patricia.duarte@demo.com  →  Patrícia Duarte · VW Polo · R$110/aula · seg–sex 09h–18h');
   console.log('  lucas.menezes@demo.com    →  Lucas Menezes · Renault Kwid · R$90/aula · seg–sab 07h–13h\n');
   console.log('ALUNOS');
-  console.log('  aluno.inicio@demo.com   →  REGISTERED (sem Stripe)');
-  console.log('  aluno.renach@demo.com   →  RENACH_PENDING (sem Stripe)');
-  console.log('  aluno.ladv@demo.com     →  AWAITING_LADV_UPLOAD (sem Stripe)');
-  console.log('  aluno.pratico@demo.com  →  PRACTICAL_IN_PROGRESS (Stripe customer + Visa 4242)');
-  console.log('  aluno.completo@demo.com →  READY_FOR_PRACTICAL_EXAM (Stripe customer + Mastercard 5555)\n');
+  console.log('  aluno.inicio@demo.com   →  REGISTERED (sem cartão)');
+  console.log('  aluno.renach@demo.com   →  RENACH_PENDING (sem cartão)');
+  console.log('  aluno.ladv@demo.com     →  AWAITING_LADV_UPLOAD (sem cartão)');
+  console.log('  aluno.pratico@demo.com  →  PRACTICAL_IN_PROGRESS (Visa seed 4111)');
+  console.log('  aluno.completo@demo.com →  READY_FOR_PRACTICAL_EXAM (Mastercard seed 5555)\n');
 }
 
 main()

@@ -1,22 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EscrowRetryService } from './escrow-retry.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentsStripeService } from './payments-stripe.service';
+import { PaymentsService } from './payments.service';
 
 describe('EscrowRetryService', () => {
   let service: EscrowRetryService;
   let prisma: { payment: { findMany: jest.Mock; update: jest.Mock } };
-  let paymentsStripe: { releaseEscrow: jest.Mock };
+  let paymentsService: { releaseEscrow: jest.Mock };
 
   beforeEach(async () => {
     prisma = { payment: { findMany: jest.fn(), update: jest.fn() } };
-    paymentsStripe = { releaseEscrow: jest.fn() };
+    paymentsService = { releaseEscrow: jest.fn() };
 
     const mod: TestingModule = await Test.createTestingModule({
       providers: [
         EscrowRetryService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PaymentsStripeService, useValue: paymentsStripe },
+        { provide: PaymentsService, useValue: paymentsService },
       ],
     }).compile();
 
@@ -26,7 +26,7 @@ describe('EscrowRetryService', () => {
   it('does nothing when there are no HELD payments', async () => {
     prisma.payment.findMany.mockResolvedValue([]);
     await service.retryPendingReleases();
-    expect(paymentsStripe.releaseEscrow).not.toHaveBeenCalled();
+    expect(paymentsService.releaseEscrow).not.toHaveBeenCalled();
     expect(prisma.payment.update).not.toHaveBeenCalled();
   });
 
@@ -45,18 +45,18 @@ describe('EscrowRetryService', () => {
       { id: 'pay-1', lessonId: null, releaseAttempts: 0 },
     ]);
     await service.retryPendingReleases();
-    expect(paymentsStripe.releaseEscrow).not.toHaveBeenCalled();
+    expect(paymentsService.releaseEscrow).not.toHaveBeenCalled();
   });
 
   it('releases escrow and does not update on success', async () => {
     prisma.payment.findMany.mockResolvedValue([
       { id: 'pay-1', lessonId: 'lsn-1', releaseAttempts: 1 },
     ]);
-    paymentsStripe.releaseEscrow.mockResolvedValue(undefined);
+    paymentsService.releaseEscrow.mockResolvedValue(undefined);
 
     await service.retryPendingReleases();
 
-    expect(paymentsStripe.releaseEscrow).toHaveBeenCalledWith('lsn-1');
+    expect(paymentsService.releaseEscrow).toHaveBeenCalledWith('lsn-1');
     expect(prisma.payment.update).not.toHaveBeenCalled();
   });
 
@@ -64,7 +64,7 @@ describe('EscrowRetryService', () => {
     prisma.payment.findMany.mockResolvedValue([
       { id: 'pay-1', lessonId: 'lsn-1', releaseAttempts: 0 },
     ]);
-    paymentsStripe.releaseEscrow.mockRejectedValue(new Error('Stripe down'));
+    paymentsService.releaseEscrow.mockRejectedValue(new Error('Asaas down'));
 
     await service.retryPendingReleases();
 
@@ -83,7 +83,7 @@ describe('EscrowRetryService', () => {
     prisma.payment.findMany.mockResolvedValue([
       { id: 'pay-1', lessonId: 'lsn-1', releaseAttempts: 2 },
     ]);
-    paymentsStripe.releaseEscrow.mockRejectedValue(new Error('Stripe error'));
+    paymentsService.releaseEscrow.mockRejectedValue(new Error('Asaas error'));
 
     await service.retryPendingReleases();
 
@@ -102,13 +102,13 @@ describe('EscrowRetryService', () => {
       { id: 'pay-1', lessonId: 'lsn-1', releaseAttempts: 0 },
       { id: 'pay-2', lessonId: 'lsn-2', releaseAttempts: 0 },
     ]);
-    paymentsStripe.releaseEscrow
+    paymentsService.releaseEscrow
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('fail'));
 
     await service.retryPendingReleases();
 
-    expect(paymentsStripe.releaseEscrow).toHaveBeenCalledTimes(2);
+    expect(paymentsService.releaseEscrow).toHaveBeenCalledTimes(2);
     expect(prisma.payment.update).toHaveBeenCalledTimes(1);
     expect(prisma.payment.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'pay-2' } }),
