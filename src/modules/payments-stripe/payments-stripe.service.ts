@@ -47,7 +47,7 @@ export class PaymentsStripeService {
       where: { id: studentId },
       select: { id: true, email: true, name: true, stripeCustomerId: true },
     });
-    if (!student) throw new NotFoundException('Student not found');
+    if (!student) throw new NotFoundException('Aluno não encontrado');
 
     let customerId: string | null = student.stripeCustomerId;
     if (!customerId) {
@@ -103,7 +103,7 @@ export class PaymentsStripeService {
     });
     if (!student?.stripeCustomerId) {
       throw new BadRequestException(
-        'Call POST /payments-stripe/setup-intent first to create a Stripe customer',
+        'É necessário iniciar a configuração do pagamento antes de adicionar um cartão',
       );
     }
 
@@ -122,7 +122,7 @@ export class PaymentsStripeService {
       dto.stripePaymentMethodId,
     );
     if (!pm.card) {
-      throw new BadRequestException('Only card payment methods are supported');
+      throw new BadRequestException('Apenas cartões são aceitos como forma de pagamento');
     }
 
     const activeCount = await this.prisma.paymentMethod.count({
@@ -170,7 +170,7 @@ export class PaymentsStripeService {
     const pm = await this.prisma.paymentMethod.findFirst({
       where: { id: rowId, studentId, isDeleted: false },
     });
-    if (!pm) throw new NotFoundException('Payment method not found');
+    if (!pm) throw new NotFoundException('Método de pagamento não encontrado');
 
     await this.stripe.paymentMethods.detach(
       pm.stripePaymentMethodId,
@@ -208,9 +208,9 @@ export class PaymentsStripeService {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: dto.lessonId },
     });
-    if (!lesson) throw new NotFoundException('Lesson not found');
+    if (!lesson) throw new NotFoundException('Aula não encontrada');
     if (lesson.studentId !== studentId) {
-      throw new BadRequestException('Lesson does not belong to this student');
+      throw new BadRequestException('A aula não pertence a este aluno');
     }
 
     const existing = await this.prisma.payment.findFirst({
@@ -226,7 +226,7 @@ export class PaymentsStripeService {
     const pm = await this.prisma.paymentMethod.findFirst({
       where: { id: dto.paymentMethodId, studentId, isDeleted: false },
     });
-    if (!pm) throw new NotFoundException('Payment method not found');
+    if (!pm) throw new NotFoundException('Método de pagamento não encontrado');
 
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },
@@ -234,17 +234,17 @@ export class PaymentsStripeService {
     });
     if (!student?.stripeCustomerId) {
       throw new BadRequestException(
-        'Student has no Stripe customer — call /setup-intent first',
+        'Aluno sem cadastro de pagamento — configure um método de pagamento primeiro',
       );
     }
 
     const instructor = await this.prisma.instructor.findUnique({
       where: { id: lesson.instructorId },
     });
-    if (!instructor) throw new BadRequestException('Instructor not found');
+    if (!instructor) throw new BadRequestException('Instrutor não encontrado');
     if (instructor.stripeAccountStatus !== 'ACTIVE') {
       throw new BadRequestException(
-        `Instructor Stripe Connect status is ${instructor.stripeAccountStatus} — charges only allowed for ACTIVE`,
+        `O cadastro de recebimento do instrutor está ${instructor.stripeAccountStatus} — cobranças só são permitidas quando ACTIVE`,
       );
     }
 
@@ -303,24 +303,24 @@ export class PaymentsStripeService {
       where: { lessonId },
     });
     if (!payment)
-      throw new NotFoundException(`No payment for lesson ${lessonId}`);
+      throw new NotFoundException(`Nenhum pagamento encontrado para a aula ${lessonId}`);
     if (payment.status === 'RELEASED') {
       this.logger.log(`Payment ${payment.id} already RELEASED — skipping`);
       return;
     }
     if (payment.status !== 'HELD') {
       throw new BadRequestException(
-        `Payment is in status ${payment.status} — only HELD can be released`,
+        `O pagamento está com status ${payment.status} — somente HELD pode ser liberado`,
       );
     }
 
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: lessonId },
     });
-    if (!lesson) throw new NotFoundException('Lesson not found');
+    if (!lesson) throw new NotFoundException('Aula não encontrada');
     if (!this.isValidForCompliance(lesson)) {
       throw new BadRequestException(
-        'Lesson does not meet compliance — cannot release escrow',
+        'A aula não atende aos requisitos de conformidade — não é possível liberar o repasse',
       );
     }
 
@@ -328,7 +328,7 @@ export class PaymentsStripeService {
       where: { id: lesson.instructorId },
     });
     if (!instructor?.stripeAccountId) {
-      throw new BadRequestException('Instructor has no Stripe account');
+      throw new BadRequestException('O instrutor não possui conta Stripe');
     }
 
     const { platformFeeAmount, instructorAmount, instructorAmountCents } =
@@ -365,13 +365,13 @@ export class PaymentsStripeService {
       where: { lessonId },
     });
     if (!payment)
-      throw new NotFoundException(`No payment for lesson ${lessonId}`);
+      throw new NotFoundException(`Nenhum pagamento encontrado para a aula ${lessonId}`);
 
     if (dto.action === 'release') {
       if (payment.status === 'RELEASED') return;
       if (payment.status !== 'HELD') {
         throw new BadRequestException(
-          `Payment in status ${payment.status} cannot be released`,
+          `Pagamento com status ${payment.status} não pode ser liberado`,
         );
       }
       const lesson = await this.prisma.lesson.findUnique({
@@ -380,7 +380,7 @@ export class PaymentsStripeService {
       });
       const instructor = lesson?.instructor;
       if (!instructor?.stripeAccountId) {
-        throw new BadRequestException('Instructor has no Stripe account');
+        throw new BadRequestException('O instrutor não possui conta Stripe');
       }
       const { platformFeeAmount, instructorAmount, instructorAmountCents } =
         this.computeSplit(payment.amount ?? 0);
@@ -416,7 +416,7 @@ export class PaymentsStripeService {
     // refund
     if (payment.status === 'REFUNDED') return;
     if (!payment.stripePaymentIntentId) {
-      throw new BadRequestException('Payment has no PaymentIntent to refund');
+      throw new BadRequestException('O pagamento não possui PaymentIntent para reembolso');
     }
     const refund = await this.stripe.refunds.create(
       {
@@ -468,10 +468,10 @@ export class PaymentsStripeService {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
     });
-    if (!payment) throw new NotFoundException(`Payment ${paymentId} not found`);
+    if (!payment) throw new NotFoundException(`Pagamento ${paymentId} não encontrado`);
     if (payment.status !== 'RELEASE_FAILED') {
       throw new BadRequestException(
-        `Payment status is ${payment.status} — expected RELEASE_FAILED`,
+        `O status do pagamento é ${payment.status} — esperado RELEASE_FAILED`,
       );
     }
 
@@ -490,7 +490,7 @@ export class PaymentsStripeService {
     }
 
     if (!payment.stripePaymentIntentId) {
-      throw new BadRequestException('Payment has no PaymentIntent to refund');
+      throw new BadRequestException('O pagamento não possui PaymentIntent para reembolso');
     }
     const refund = await this.stripe.refunds.create(
       {

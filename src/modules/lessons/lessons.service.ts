@@ -39,26 +39,26 @@ export class LessonsService {
       where: { id: createLessonDto.instructorId },
     });
     if (!instructor) {
-      throw new BadRequestException('Instructor not found');
+      throw new BadRequestException('Instrutor não encontrado');
     }
     if (instructor.credentialStatus !== 'APPROVED') {
       throw new BadRequestException(
-        `Instructor credential is ${instructor.credentialStatus} — only APPROVED is allowed`,
+        `A credencial do instrutor está ${instructor.credentialStatus} — somente APPROVED é permitida`,
       );
     }
     if (
       !instructor.credentialValidUntil ||
       instructor.credentialValidUntil <= new Date()
     ) {
-      throw new BadRequestException('Instructor DETRAN credential is expired');
+      throw new BadRequestException('A credencial DETRAN do instrutor está expirada');
     }
 
     // === STAGE 3: Instructor CNH checksum + expiry ===
     if (!validateCnh(instructor.cnhNumber ?? '').valid) {
-      throw new BadRequestException('Instructor CNH number is invalid');
+      throw new BadRequestException('O número da CNH do instrutor é inválido');
     }
     if (!instructor.cnhExpiry || new Date(instructor.cnhExpiry) <= new Date()) {
-      throw new BadRequestException('Instructor CNH is expired');
+      throw new BadRequestException('A CNH do instrutor está expirada');
     }
 
     // === STAGE 5: Vehicle belongs to instructor ===
@@ -68,7 +68,7 @@ export class LessonsService {
       });
       if (!vehicle || vehicle.instructorId !== createLessonDto.instructorId) {
         throw new BadRequestException(
-          'Vehicle does not belong to the selected instructor',
+          'O veículo não pertence ao instrutor selecionado',
         );
       }
     }
@@ -88,7 +88,7 @@ export class LessonsService {
 
       if (existingLesson) {
         throw new ConflictException(
-          'Slot is already occupied by another lesson',
+          'Este horário já está ocupado por outra aula',
         );
       }
 
@@ -108,7 +108,7 @@ export class LessonsService {
 
       if (isBusyConflict) {
         throw new ConflictException(
-          'Instructor is busy at this time (blocked slot)',
+          'O instrutor está indisponível neste horário (horário bloqueado)',
         );
       }
 
@@ -158,7 +158,7 @@ export class LessonsService {
     // C-019: Bloqueio de alteração se houver disputa aberta
     if (lesson?.disputeOpened && updateLessonDto.integrityHash) {
       throw new ForbiddenException(
-        'Cannot modify integrity hash while a dispute is open',
+        'Não é possível modificar o hash de integridade enquanto houver uma disputa aberta',
       );
     }
 
@@ -170,10 +170,10 @@ export class LessonsService {
 
   async checkIn(id: string, actorId: string): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
-    if (!lesson) throw new BadRequestException('Lesson not found');
+    if (!lesson) throw new BadRequestException('Aula não encontrada');
     if (lesson.instructorId !== actorId) {
       throw new ForbiddenException(
-        'Only the assigned instructor can check in this lesson',
+        'Apenas o instrutor responsável pode fazer check-in desta aula',
       );
     }
     return this.prisma.lesson.update({
@@ -188,11 +188,11 @@ export class LessonsService {
   async checkOut(id: string, actorId: string): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
     if (!lesson) {
-      throw new BadRequestException('Lesson not found');
+      throw new BadRequestException('Aula não encontrada');
     }
     if (lesson.instructorId !== actorId) {
       throw new ForbiddenException(
-        'Only the assigned instructor can check out this lesson',
+        'Apenas o instrutor responsável pode fazer check-out desta aula',
       );
     }
 
@@ -231,21 +231,21 @@ export class LessonsService {
   async cancelLesson(id: string, actorId: string): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
     if (!lesson) {
-      throw new BadRequestException('Lesson not found');
+      throw new BadRequestException('Aula não encontrada');
     }
     if (lesson.studentId !== actorId && lesson.instructorId !== actorId) {
       throw new ForbiddenException(
-        'Only the student or instructor of this lesson can cancel it',
+        'Apenas o aluno ou o instrutor desta aula pode cancelá-la',
       );
     }
     if (lesson.status === 'in-progress') {
       throw new BadRequestException(
-        'Cannot cancel a lesson that is in progress',
+        'Não é possível cancelar uma aula em andamento',
       );
     }
     if (lesson.status === 'completed' || lesson.status === 'cancelled') {
       throw new BadRequestException(
-        `Cannot cancel a lesson with status "${lesson.status}"`,
+        `Não é possível cancelar uma aula com status "${lesson.status}"`,
       );
     }
 
@@ -281,10 +281,10 @@ export class LessonsService {
     feedback: string,
   ): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
-    if (!lesson) throw new BadRequestException('Lesson not found');
+    if (!lesson) throw new BadRequestException('Aula não encontrada');
     if (lesson.instructorId !== actorId) {
       throw new ForbiddenException(
-        'Only the assigned instructor can give feedback on this lesson',
+        'Apenas o instrutor responsável pode avaliar esta aula',
       );
     }
     return this.prisma.lesson.update({
@@ -300,10 +300,10 @@ export class LessonsService {
     text: string,
   ): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
-    if (!lesson) throw new BadRequestException('Lesson not found');
+    if (!lesson) throw new BadRequestException('Aula não encontrada');
     if (lesson.studentId !== actorId) {
       throw new ForbiddenException(
-        'Only the assigned student can give feedback on this lesson',
+        'Apenas o aluno desta aula pode avaliá-la',
       );
     }
     const updatedLesson = await this.prisma.lesson.update({
@@ -345,15 +345,15 @@ export class LessonsService {
 
   async accept(id: string, actorId: string): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
-    if (!lesson) throw new BadRequestException('Lesson not found');
+    if (!lesson) throw new BadRequestException('Aula não encontrada');
     if (lesson.instructorId !== actorId) {
       throw new ForbiddenException(
-        'Only the assigned instructor can accept this lesson',
+        'Apenas o instrutor responsável pode aceitar esta aula',
       );
     }
     if (lesson.status !== 'pending_acceptance') {
       throw new BadRequestException(
-        `Cannot accept lesson with status "${lesson.status}"`,
+        `Não é possível aceitar uma aula com status "${lesson.status}"`,
       );
     }
 
@@ -363,7 +363,7 @@ export class LessonsService {
     });
     if (!pm) {
       throw new HttpException(
-        'Student has no default payment method',
+        'O aluno não possui um método de pagamento padrão',
         HttpStatus.PAYMENT_REQUIRED,
       );
     }
@@ -378,7 +378,7 @@ export class LessonsService {
         `Payment failed on accept for lesson ${id}: ${err.message}`,
       );
       throw new HttpException(
-        err.message ?? 'Payment failed — lesson remains pending',
+        err.message ?? 'Pagamento recusado — a aula permanece pendente',
         HttpStatus.PAYMENT_REQUIRED,
       );
     }
@@ -391,15 +391,15 @@ export class LessonsService {
 
   async reject(id: string, actorId: string): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
-    if (!lesson) throw new BadRequestException('Lesson not found');
+    if (!lesson) throw new BadRequestException('Aula não encontrada');
     if (lesson.instructorId !== actorId) {
       throw new ForbiddenException(
-        'Only the assigned instructor can reject this lesson',
+        'Apenas o instrutor responsável pode recusar esta aula',
       );
     }
     if (lesson.status !== 'pending_acceptance') {
       throw new BadRequestException(
-        `Cannot reject lesson with status "${lesson.status}"`,
+        `Não é possível recusar uma aula com status "${lesson.status}"`,
       );
     }
 
@@ -442,7 +442,7 @@ export class LessonsService {
     });
 
     if (!lesson) {
-      throw new BadRequestException('Lesson not found');
+      throw new BadRequestException('Aula não encontrada');
     }
 
     // Geofencing check (C-008): 50 meters
@@ -457,7 +457,7 @@ export class LessonsService {
 
       if (distance > 50) {
         throw new ForbiddenException(
-          `Biometry rejected: Distance from last telemetry is ${Math.round(distance)}m (max 50m)`,
+          `Biometria recusada: a distância do último ponto de telemetria é de ${Math.round(distance)}m (máximo 50m)`,
         );
       }
     }

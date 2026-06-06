@@ -38,7 +38,7 @@ export class AvailabilityController {
   ): Promise<Availability> {
     if (req.user.userId !== createAvailabilityDto.instructorId) {
       throw new ForbiddenException(
-        'You can only create availability for your own account',
+        'Você só pode criar disponibilidade para a sua própria conta',
       );
     }
     return this.availabilityService.create(createAvailabilityDto);
@@ -53,7 +53,7 @@ export class AvailabilityController {
     @Body() availabilities: AvailabilityInput[],
   ): Promise<Availability[]> {
     if (req.user.userId !== instructorId) {
-      throw new ForbiddenException('You can only update your own availability');
+      throw new ForbiddenException('Você só pode atualizar a sua própria disponibilidade');
     }
     return this.availabilityService.replaceInstructorAvailability(
       instructorId,

@@ -64,7 +64,7 @@ export class LadvProcessService {
         journeyStage: true,
       },
     });
-    if (!student) throw new NotFoundException(`Student ${studentId} not found`);
+    if (!student) throw new NotFoundException(`Aluno ${studentId} não encontrado`);
     const canBook =
       student.ladvOcrStatus === 'PASS' &&
       !!student.ladvValidUntil &&
@@ -102,10 +102,10 @@ export class LadvProcessService {
       });
     } catch (e: any) {
       if (e?.code === 'P2025') {
-        throw new NotFoundException(`Student ${studentId} not found`);
+        throw new NotFoundException(`Aluno ${studentId} não encontrado`);
       }
       this.logger.error(`persist failed: ${(e as Error).message}`);
-      throw new InternalServerErrorException('Failed to save LADV data');
+      throw new InternalServerErrorException('Falha ao salvar os dados da LADV');
     }
     await this.journey.refresh(studentId);
     return this.getMine(studentId);
@@ -163,14 +163,14 @@ export class LadvProcessService {
     } catch (e) {
       this.logger.error(`Extraction error: ${(e as Error).message}`);
       throw new BadRequestException(
-        'Failed to process LADV document — try uploading a clearer image or a valid PDF',
+        'Não foi possível processar o documento da LADV — envie uma imagem mais nítida ou um PDF válido',
       );
     }
 
     const parsed = extractLadvFields(recognition.text, recognition.confidence);
     if (parsed.status === 'FAIL') {
       throw new BadRequestException(
-        `LADV document failed validation (confidence ${recognition.confidence}%, keywords missing or unreadable)`,
+        `A LADV não passou na validação (confiança ${recognition.confidence}%, palavras-chave ausentes ou ilegíveis)`,
       );
     }
     return this.persist(studentId, parsed, filePath);
@@ -198,7 +198,7 @@ export class LadvProcessService {
     dto: ManualLadvDto,
   ): Promise<LadvStatusDto> {
     if (dto.ladvValidUntil <= new Date()) {
-      throw new BadRequestException('ladvValidUntil must be in the future');
+      throw new BadRequestException('A validade da LADV deve ser uma data futura');
     }
     return this.persist(
       studentId,

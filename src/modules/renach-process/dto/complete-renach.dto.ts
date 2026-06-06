@@ -6,7 +6,7 @@ export class CompleteRenachDto {
   @ApiProperty({ example: 'MS123456789' })
   @IsString()
   @Matches(/^[A-Z]{2}\d{9}$/, {
-    message: 'renachNumber must match UF + 9 digits (e.g. MS123456789)',
+    message: 'O número do RENACH deve conter a UF + 9 dígitos (ex.: MS123456789)',
   })
   renachNumber!: string;
 

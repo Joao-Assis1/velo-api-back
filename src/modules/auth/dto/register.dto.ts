@@ -91,7 +91,7 @@ export class RegisterDto {
 
   @IsOptional()
   @Matches(/^[A-Z]{2}$/, {
-    message: 'ufDomicile must be a 2-letter uppercase state code (e.g. MS)',
+    message: 'A UF de domicílio deve ser a sigla do estado com 2 letras maiúsculas (ex.: MS)',
   })
   ufDomicile?: string;
 

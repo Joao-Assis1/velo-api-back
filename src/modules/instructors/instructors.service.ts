@@ -171,7 +171,7 @@ export class InstructorsService {
       select: { id: true, email: true, name: true, stripeAccountId: true },
     });
     if (!instructor)
-      throw new NotFoundException(`Instructor ${instructorId} not found`);
+      throw new NotFoundException(`Instrutor ${instructorId} não encontrado`);
 
     let accountId = instructor.stripeAccountId;
     if (!accountId) {

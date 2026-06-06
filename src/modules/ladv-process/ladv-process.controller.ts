@@ -46,7 +46,7 @@ export class LadvProcessController {
   @Get('guide')
   @ApiOkResponse()
   guide(@Query('uf') uf: string) {
-    if (!uf) throw new BadRequestException('Query param "uf" is required');
+    if (!uf) throw new BadRequestException('O parâmetro "uf" é obrigatório');
     return this.service.getGuide(uf);
   }
 
@@ -73,7 +73,7 @@ export class LadvProcessController {
     if (this.testMode.isEnabled(req)) {
       return this.service.uploadTestMode(req.user.userId);
     }
-    if (!file) throw new BadRequestException('LADV file is required');
+    if (!file) throw new BadRequestException('O arquivo da LADV é obrigatório');
     return this.service.uploadFromFile(req.user.userId, file.path);
   }
 
