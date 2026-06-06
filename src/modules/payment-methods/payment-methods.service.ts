@@ -23,11 +23,24 @@ export class PaymentMethodsService {
 
   private async ensureAsaasCustomer(studentId: string): Promise<{
     customerId: string;
-    student: { id: string; email: string; name: string; cpf: string; phone: string | null };
+    student: {
+      id: string;
+      email: string;
+      name: string;
+      cpf: string;
+      phone: string | null;
+    };
   }> {
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },
-      select: { id: true, email: true, name: true, cpf: true, phone: true, asaasCustomerId: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        cpf: true,
+        phone: true,
+        asaasCustomerId: true,
+      },
     });
     if (!student) throw new NotFoundException(`Student ${studentId} not found`);
 
@@ -55,7 +68,11 @@ export class PaymentMethodsService {
   async addCard(studentId: string, dto: CreatePaymentMethodDto) {
     const { customerId, student } = await this.ensureAsaasCustomer(studentId);
 
-    let tokenResult: { creditCardToken: string; creditCardBrand: string; creditCardNumber: string };
+    let tokenResult: {
+      creditCardToken: string;
+      creditCardBrand: string;
+      creditCardNumber: string;
+    };
     try {
       tokenResult = await this.asaas.tokenizeCard({
         customer: customerId,
@@ -129,7 +146,11 @@ export class PaymentMethodsService {
   async seedTest(studentId: string) {
     const { customerId, student } = await this.ensureAsaasCustomer(studentId);
 
-    let tokenResult: { creditCardToken: string; creditCardBrand: string; creditCardNumber: string };
+    let tokenResult: {
+      creditCardToken: string;
+      creditCardBrand: string;
+      creditCardNumber: string;
+    };
     try {
       tokenResult = await this.asaas.tokenizeCard({
         customer: customerId,

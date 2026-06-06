@@ -9,7 +9,12 @@ import { EscrowRetryService } from './escrow-retry.service';
 @Module({
   imports: [PrismaModule, ConfigModule],
   controllers: [AsaasWebhooksController],
-  providers: [asaasClientProvider, AsaasClient, PaymentsService, EscrowRetryService],
+  providers: [
+    asaasClientProvider,
+    AsaasClient,
+    PaymentsService,
+    EscrowRetryService,
+  ],
   exports: [PaymentsService],
 })
 export class PaymentsModule {}

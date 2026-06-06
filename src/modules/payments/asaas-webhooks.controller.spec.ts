@@ -6,7 +6,9 @@ import { ASAAS_CLIENT } from './asaas.client';
 
 describe('AsaasWebhooksController', () => {
   let controller: AsaasWebhooksController;
-  let paymentsService: jest.Mocked<Pick<PaymentsService, 'handlePaymentWebhook' | 'handleTransferWebhook'>>;
+  let paymentsService: jest.Mocked<
+    Pick<PaymentsService, 'handlePaymentWebhook' | 'handleTransferWebhook'>
+  >;
   let asaasClient: { verifyWebhookToken: jest.Mock };
 
   beforeEach(async () => {

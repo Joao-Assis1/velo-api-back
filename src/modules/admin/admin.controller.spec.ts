@@ -45,7 +45,11 @@ describe('AdminController', () => {
 
     it('approves instructor and returns updated record', async () => {
       const now = new Date();
-      const future = new Date(now.getFullYear() + 3, now.getMonth(), now.getDate());
+      const future = new Date(
+        now.getFullYear() + 3,
+        now.getMonth(),
+        now.getDate(),
+      );
       prisma.instructor.findUnique.mockResolvedValue({
         id: 'inst-1',
         credentialValidUntil: future,
@@ -81,8 +85,13 @@ describe('AdminController', () => {
   describe('resolveReleaseFailed', () => {
     it('delegates to paymentsService', async () => {
       paymentsService.resolveReleaseFailed.mockResolvedValue({ message: 'ok' });
-      const result = await controller.resolveReleaseFailed('pay-1', { action: 'retry' });
-      expect(paymentsService.resolveReleaseFailed).toHaveBeenCalledWith('pay-1', { action: 'retry' });
+      const result = await controller.resolveReleaseFailed('pay-1', {
+        action: 'retry',
+      });
+      expect(paymentsService.resolveReleaseFailed).toHaveBeenCalledWith(
+        'pay-1',
+        { action: 'retry' },
+      );
       expect(result).toEqual({ message: 'ok' });
     });
   });

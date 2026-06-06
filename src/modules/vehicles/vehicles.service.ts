@@ -16,7 +16,10 @@ export class VehiclesService {
     });
   }
 
-  async upsertByInstructor(instructorId: string, vehicleData: UpdateVehicleDto) {
+  async upsertByInstructor(
+    instructorId: string,
+    vehicleData: UpdateVehicleDto,
+  ) {
     const { hasDoubleCommand, ...vehicleFields } = vehicleData;
 
     const existingVehicle = await this.prisma.vehicle.findFirst({

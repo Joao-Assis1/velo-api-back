@@ -56,7 +56,7 @@ describe('AsaasClient', () => {
         expect.stringContaining('/v3/customers/cus_123'),
         expect.objectContaining({
           headers: expect.objectContaining({
-            'access_token': 'test-api-key-123',
+            access_token: 'test-api-key-123',
             'Content-Type': 'application/json',
           }),
         }),
@@ -102,7 +102,9 @@ describe('AsaasClient', () => {
         creditCardToken: 'tok_123',
       });
 
-      const callArgs = fetchSpy.mock.calls[0][1] as RequestInit & { headers: Record<string, string> };
+      const callArgs = fetchSpy.mock.calls[0][1] as RequestInit & {
+        headers: Record<string, string>;
+      };
       expect(callArgs.headers).not.toHaveProperty('Idempotency-Key');
     });
   });
@@ -111,7 +113,9 @@ describe('AsaasClient', () => {
     it('deve lançar BadRequestException com a descrição quando resposta 4xx contém errors[]', async () => {
       fetchSpy.mockResolvedValue(
         mockResponse(
-          { errors: [{ code: 'invalid_card', description: 'Cartão inválido' }] },
+          {
+            errors: [{ code: 'invalid_card', description: 'Cartão inválido' }],
+          },
           400,
         ),
       );
@@ -132,9 +136,7 @@ describe('AsaasClient', () => {
     });
 
     it('deve lançar BadRequestException com mensagem em pt-BR quando errors[] está vazio', async () => {
-      fetchSpy.mockResolvedValue(
-        mockResponse({ errors: [] }, 400),
-      );
+      fetchSpy.mockResolvedValue(mockResponse({ errors: [] }, 400));
 
       await expect(client.getCustomer('cus_bad')).rejects.toThrow(
         BadRequestException,

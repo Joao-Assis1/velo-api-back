@@ -62,7 +62,10 @@ describe('LessonsService.create — validation chain', () => {
         LessonsService,
         { provide: PrismaService, useValue: prisma },
         { provide: ShieldService, useValue: {} },
-        { provide: PaymentsService, useValue: { charge: jest.fn(), resolveDispute: jest.fn() } },
+        {
+          provide: PaymentsService,
+          useValue: { charge: jest.fn(), resolveDispute: jest.fn() },
+        },
         { provide: JourneyService, useValue: journey },
         { provide: ValidationService, useValue: validation },
         {
@@ -175,7 +178,9 @@ describe('LessonsService.accept — payment integration', () => {
     prisma = {
       lesson: {
         findUnique: jest.fn().mockResolvedValue(pendingLesson),
-        update: jest.fn().mockResolvedValue({ ...pendingLesson, status: 'upcoming' }),
+        update: jest
+          .fn()
+          .mockResolvedValue({ ...pendingLesson, status: 'upcoming' }),
       },
     };
     paymentsService = { charge: jest.fn().mockResolvedValue({ id: 'pay-1' }) };
@@ -186,10 +191,16 @@ describe('LessonsService.accept — payment integration', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: ShieldService, useValue: {} },
         { provide: PaymentsService, useValue: paymentsService },
-        { provide: JourneyService, useValue: { assertCanScheduleLesson: jest.fn() } },
+        {
+          provide: JourneyService,
+          useValue: { assertCanScheduleLesson: jest.fn() },
+        },
         { provide: ValidationService, useValue: { validateCnh: jest.fn() } },
         { provide: ConfigService, useValue: { get: () => 'mock' } },
-        { provide: DOCUMENT_VALIDATION_PROVIDER, useValue: { validateCnh: jest.fn() } },
+        {
+          provide: DOCUMENT_VALIDATION_PROVIDER,
+          useValue: { validateCnh: jest.fn() },
+        },
       ],
     }).compile();
     service = mod.get(LessonsService);
@@ -197,7 +208,9 @@ describe('LessonsService.accept — payment integration', () => {
 
   it('calls paymentsService.charge (not Stripe) and returns upcoming lesson', async () => {
     const result = await service.accept('lsn-1', 'inst-1');
-    expect(paymentsService.charge).toHaveBeenCalledWith('stu-1', { lessonId: 'lsn-1' });
+    expect(paymentsService.charge).toHaveBeenCalledWith('stu-1', {
+      lessonId: 'lsn-1',
+    });
     expect(result.status).toBe('upcoming');
   });
 

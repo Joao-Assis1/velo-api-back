@@ -41,9 +41,15 @@ export class AsaasWebhooksController {
     }
 
     if (body.transfer?.id) {
-      await this.paymentsService.handleTransferWebhook(body.event, body.transfer.id);
+      await this.paymentsService.handleTransferWebhook(
+        body.event,
+        body.transfer.id,
+      );
     } else if (body.payment?.id) {
-      await this.paymentsService.handlePaymentWebhook(body.event, body.payment.id);
+      await this.paymentsService.handlePaymentWebhook(
+        body.event,
+        body.payment.id,
+      );
     }
 
     return { received: true };

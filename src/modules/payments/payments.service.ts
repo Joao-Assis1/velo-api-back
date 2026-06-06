@@ -33,10 +33,7 @@ export class PaymentsService {
     @Inject(ASAAS_CLIENT) private readonly asaas: AsaasClient,
   ) {}
 
-  async charge(
-    studentId: string,
-    dto: { lessonId: string },
-  ) {
+  async charge(studentId: string, dto: { lessonId: string }) {
     // 1. Find lesson and verify it belongs to this student
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: dto.lessonId },
@@ -118,17 +115,27 @@ export class PaymentsService {
   }
 
   async releaseEscrow(lessonId: string): Promise<void> {
-    const VALID_PIX_KEY_TYPES = ['CPF', 'CNPJ', 'EMAIL', 'PHONE', 'EVP'] as const;
+    const VALID_PIX_KEY_TYPES = [
+      'CPF',
+      'CNPJ',
+      'EMAIL',
+      'PHONE',
+      'EVP',
+    ] as const;
 
     // 1. Find Payment by lessonId
-    const payment = await this.prisma.payment.findFirst({ where: { lessonId } });
+    const payment = await this.prisma.payment.findFirst({
+      where: { lessonId },
+    });
     if (!payment) {
       throw new NotFoundException('Pagamento não encontrado para esta aula');
     }
 
     // 2. Idempotent: already RELEASED → no-op
     if (payment.status === 'RELEASED') {
-      this.logger.log(`Payment ${payment.id} já está liberado — ignorando (idempotente)`);
+      this.logger.log(
+        `Payment ${payment.id} já está liberado — ignorando (idempotente)`,
+      );
       return;
     }
 
@@ -140,9 +147,13 @@ export class PaymentsService {
     }
 
     // 4. Load lesson and check compliance
-    const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
     if (!lesson || !this.isValidForCompliance(lesson)) {
-      throw new BadRequestException('Aula não atende os critérios de compliance');
+      throw new BadRequestException(
+        'Aula não atende os critérios de compliance',
+      );
     }
 
     // 5. Load instructor and verify PIX key
@@ -150,12 +161,19 @@ export class PaymentsService {
       where: { id: lesson.instructorId },
       select: { pixKey: true, pixKeyType: true },
     });
-    if (!instructor?.pixKey || !VALID_PIX_KEY_TYPES.includes(instructor?.pixKeyType as any)) {
-      throw new BadRequestException('Instrutor não possui chave PIX válida cadastrada');
+    if (
+      !instructor?.pixKey ||
+      !VALID_PIX_KEY_TYPES.includes(instructor?.pixKeyType as any)
+    ) {
+      throw new BadRequestException(
+        'Instrutor não possui chave PIX válida cadastrada',
+      );
     }
 
     // 6. Compute split
-    const { platformFeeAmount, instructorAmount } = this.computeSplit(payment.amount);
+    const { platformFeeAmount, instructorAmount } = this.computeSplit(
+      payment.amount,
+    );
 
     // 7. Transfer to instructor via PIX
     const transfer = await this.asaas.transferPix(
@@ -213,13 +231,18 @@ export class PaymentsService {
     lessonId: string,
     dto: { action: 'release' | 'refund'; reason?: string },
   ): Promise<void> {
-    const payment = await this.prisma.payment.findFirst({ where: { lessonId } });
-    if (!payment) throw new NotFoundException('Pagamento não encontrado para esta aula');
+    const payment = await this.prisma.payment.findFirst({
+      where: { lessonId },
+    });
+    if (!payment)
+      throw new NotFoundException('Pagamento não encontrado para esta aula');
 
     if (dto.action === 'refund') {
       if (payment.status === 'REFUNDED') return; // idempotent
       if (!payment.asaasPaymentId) {
-        throw new BadRequestException('Pagamento sem ID Asaas — reembolso impossível');
+        throw new BadRequestException(
+          'Pagamento sem ID Asaas — reembolso impossível',
+        );
       }
       const result = await this.asaas.refund(
         payment.asaasPaymentId,
@@ -234,19 +257,30 @@ export class PaymentsService {
     }
   }
 
-  async handleTransferWebhook(event: string, asaasTransferId: string): Promise<void> {
+  async handleTransferWebhook(
+    event: string,
+    asaasTransferId: string,
+  ): Promise<void> {
     if (!['TRANSFER_DONE', 'TRANSFER_FAILED'].includes(event)) return;
 
-    const payment = await this.prisma.payment.findUnique({ where: { asaasTransferId } });
+    const payment = await this.prisma.payment.findUnique({
+      where: { asaasTransferId },
+    });
     if (!payment) return;
 
     if (event === 'TRANSFER_DONE') {
       if (payment.status === 'RELEASED') return; // idempotent
-      await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'RELEASED' } });
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'RELEASED' },
+      });
     } else {
       // TRANSFER_FAILED
       if (payment.status === 'HELD') return; // already reverted — idempotent
-      await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'HELD' } });
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'HELD' },
+      });
     }
   }
 
@@ -283,8 +317,11 @@ export class PaymentsService {
     paymentId: string,
     dto: { action: 'retry' | 'refund'; reason?: string },
   ) {
-    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
-    if (!payment) throw new NotFoundException(`Pagamento ${paymentId} não encontrado`);
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment)
+      throw new NotFoundException(`Pagamento ${paymentId} não encontrado`);
     if (payment.status !== 'RELEASE_FAILED') {
       throw new BadRequestException(
         `Status do pagamento é ${payment.status} — esperado RELEASE_FAILED`,
@@ -294,35 +331,59 @@ export class PaymentsService {
     if (dto.action === 'retry') {
       await this.prisma.payment.update({
         where: { id: paymentId },
-        data: { status: 'HELD', releaseAttempts: 0, lastReleaseAttemptAt: null },
+        data: {
+          status: 'HELD',
+          releaseAttempts: 0,
+          lastReleaseAttemptAt: null,
+        },
       });
-      return { message: 'Pagamento resetado para HELD — será reprocessado no próximo ciclo do cron' };
+      return {
+        message:
+          'Pagamento resetado para HELD — será reprocessado no próximo ciclo do cron',
+      };
     }
 
     // action === 'refund'
     if (!payment.asaasPaymentId) {
-      throw new BadRequestException('Pagamento sem ID Asaas — reembolso impossível');
+      throw new BadRequestException(
+        'Pagamento sem ID Asaas — reembolso impossível',
+      );
     }
-    const result = await this.asaas.refund(payment.asaasPaymentId, `refund-release-failed-${paymentId}`);
+    const result = await this.asaas.refund(
+      payment.asaasPaymentId,
+      `refund-release-failed-${paymentId}`,
+    );
     await this.prisma.payment.update({
       where: { id: paymentId },
       data: { status: 'REFUNDED', asaasRefundId: result.id },
     });
-    return { message: 'Pagamento reembolsado com sucesso', refundId: result.id };
+    return {
+      message: 'Pagamento reembolsado com sucesso',
+      refundId: result.id,
+    };
   }
 
-  async handlePaymentWebhook(event: string, asaasPaymentId: string): Promise<void> {
+  async handlePaymentWebhook(
+    event: string,
+    asaasPaymentId: string,
+  ): Promise<void> {
     const SUCCESS_EVENTS = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'];
     const FAILURE_EVENTS = ['PAYMENT_OVERDUE', 'PAYMENT_DELETED'];
 
-    if (!SUCCESS_EVENTS.includes(event) && !FAILURE_EVENTS.includes(event)) return;
+    if (!SUCCESS_EVENTS.includes(event) && !FAILURE_EVENTS.includes(event))
+      return;
 
-    const payment = await this.prisma.payment.findUnique({ where: { asaasPaymentId } });
+    const payment = await this.prisma.payment.findUnique({
+      where: { asaasPaymentId },
+    });
     if (!payment) return;
 
     const targetStatus = SUCCESS_EVENTS.includes(event) ? 'HELD' : 'FAILED';
     if (payment.status === targetStatus) return;
 
-    await this.prisma.payment.update({ where: { id: payment.id }, data: { status: targetStatus } });
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: targetStatus },
+    });
   }
 }

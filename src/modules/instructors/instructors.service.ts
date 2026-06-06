@@ -6,9 +6,7 @@ import { Instructor, Prisma } from '@prisma/client';
 
 @Injectable()
 export class InstructorsService {
-  constructor(
-    private prisma: PrismaService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   private readonly omitPassword = { password: true } as const;
 

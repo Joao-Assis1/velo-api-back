@@ -83,7 +83,7 @@ export class AsaasClient {
 
   private buildHeaders(idempotencyKey?: string): Record<string, string> {
     const headers: Record<string, string> = {
-      'access_token': this.apiKey,
+      access_token: this.apiKey,
       'Content-Type': 'application/json',
     };
 
@@ -114,7 +114,9 @@ export class AsaasClient {
     const data = await response.json();
 
     if (!response.ok) {
-      const errors = (data as { errors?: { code: string; description: string }[] }).errors;
+      const errors = (
+        data as { errors?: { code: string; description: string }[] }
+      ).errors;
       if (errors && errors.length > 0) {
         throw new BadRequestException(errors[0].description);
       }
@@ -144,7 +146,9 @@ export class AsaasClient {
     return this.request('POST', '/v3/customers', input);
   }
 
-  async getCustomer(id: string): Promise<{ id: string; name: string; email: string }> {
+  async getCustomer(
+    id: string,
+  ): Promise<{ id: string; name: string; email: string }> {
     return this.request('GET', `/v3/customers/${id}`);
   }
 
@@ -159,7 +163,12 @@ export class AsaasClient {
     paymentId: string,
     idempotencyKey?: string,
   ): Promise<{ id: string; status: string }> {
-    return this.request('POST', `/v3/payments/${paymentId}/refund`, undefined, idempotencyKey);
+    return this.request(
+      'POST',
+      `/v3/payments/${paymentId}/refund`,
+      undefined,
+      idempotencyKey,
+    );
   }
 
   async transferPix(
@@ -180,7 +189,5 @@ export class AsaasClient {
 
 @Injectable()
 export class AsaasClientHolder {
-  constructor(
-    @Inject(ASAAS_CLIENT) public readonly asaas: AsaasClient,
-  ) {}
+  constructor(@Inject(ASAAS_CLIENT) public readonly asaas: AsaasClient) {}
 }

@@ -19,7 +19,9 @@ const makeStudent = (overrides: object = {}) => ({
   ...overrides,
 });
 
-const makeDto = (overrides: Partial<CreatePaymentMethodDto> = {}): CreatePaymentMethodDto =>
+const makeDto = (
+  overrides: Partial<CreatePaymentMethodDto> = {},
+): CreatePaymentMethodDto =>
   Object.assign(new CreatePaymentMethodDto(), {
     studentId: 'student-uuid-1',
     cardNumber: '4111111111111111',
@@ -103,7 +105,10 @@ describe('PaymentMethodsService', () => {
       const student = makeStudent({ asaasCustomerId: null });
       mockPrisma.student.findUnique.mockResolvedValue(student);
       mockAsaas.createCustomer.mockResolvedValue({ id: 'cus_asaas_new' });
-      mockPrisma.student.update.mockResolvedValue({ ...student, asaasCustomerId: 'cus_asaas_new' });
+      mockPrisma.student.update.mockResolvedValue({
+        ...student,
+        asaasCustomerId: 'cus_asaas_new',
+      });
       mockAsaas.tokenizeCard.mockResolvedValue({
         creditCardToken: 'token_4111111111111111',
         creditCardBrand: 'VISA',
@@ -135,7 +140,9 @@ describe('PaymentMethodsService', () => {
         creditCardNumber: '1111',
       });
       mockPrisma.paymentMethod.count.mockResolvedValue(1);
-      mockPrisma.paymentMethod.create.mockResolvedValue(makePmRow({ isDefault: false }));
+      mockPrisma.paymentMethod.create.mockResolvedValue(
+        makePmRow({ isDefault: false }),
+      );
 
       await service.addCard('student-uuid-1', makeDto());
 
@@ -153,7 +160,11 @@ describe('PaymentMethodsService', () => {
       });
       mockPrisma.paymentMethod.count.mockResolvedValue(0);
       mockPrisma.paymentMethod.create.mockResolvedValue(
-        makePmRow({ asaasCreditCardToken: 'token_abc123', brand: 'MASTERCARD', last4: '5678' }),
+        makePmRow({
+          asaasCreditCardToken: 'token_abc123',
+          brand: 'MASTERCARD',
+          last4: '5678',
+        }),
       );
 
       const result = await service.addCard('student-uuid-1', makeDto());
@@ -186,9 +197,9 @@ describe('PaymentMethodsService', () => {
         new BadRequestException('Número do cartão é inválido'),
       );
 
-      await expect(service.addCard('student-uuid-1', makeDto())).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.addCard('student-uuid-1', makeDto()),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('throws NotFoundException when student does not exist', async () => {
@@ -209,7 +220,10 @@ describe('PaymentMethodsService', () => {
       const student = makeStudent({ asaasCustomerId: null });
       mockPrisma.student.findUnique.mockResolvedValue(student);
       mockAsaas.createCustomer.mockResolvedValue({ id: 'cus_asaas_seed' });
-      mockPrisma.student.update.mockResolvedValue({ ...student, asaasCustomerId: 'cus_asaas_seed' });
+      mockPrisma.student.update.mockResolvedValue({
+        ...student,
+        asaasCustomerId: 'cus_asaas_seed',
+      });
       mockAsaas.tokenizeCard.mockResolvedValue({
         creditCardToken: 'token_seed_visa',
         creditCardBrand: 'VISA',
@@ -246,7 +260,9 @@ describe('PaymentMethodsService', () => {
         creditCardBrand: 'VISA',
         creditCardNumber: '1111',
       });
-      mockPrisma.paymentMethod.findFirst.mockResolvedValue(makePmRow({ asaasCreditCardToken: 'token_seed_visa' }));
+      mockPrisma.paymentMethod.findFirst.mockResolvedValue(
+        makePmRow({ asaasCreditCardToken: 'token_seed_visa' }),
+      );
 
       const result = await service.seedTest('student-uuid-1');
 
@@ -263,7 +279,10 @@ describe('PaymentMethodsService', () => {
     it('soft-deletes payment method', async () => {
       const pm = makePmRow({ isDefault: false });
       mockPrisma.paymentMethod.findFirst.mockResolvedValue(pm);
-      mockPrisma.paymentMethod.update.mockResolvedValue({ ...pm, isDeleted: true });
+      mockPrisma.paymentMethod.update.mockResolvedValue({
+        ...pm,
+        isDeleted: true,
+      });
 
       const result = await service.remove('student-uuid-1', 'pm-uuid-1');
 
@@ -279,7 +298,7 @@ describe('PaymentMethodsService', () => {
       const pm = makePmRow({ isDefault: true });
       const nextPm = makePmRow({ id: 'pm-uuid-2', isDefault: false });
       mockPrisma.paymentMethod.findFirst
-        .mockResolvedValueOnce(pm)   // find target
+        .mockResolvedValueOnce(pm) // find target
         .mockResolvedValueOnce(nextPm); // find next
       mockPrisma.paymentMethod.update.mockResolvedValue({});
 
@@ -298,9 +317,9 @@ describe('PaymentMethodsService', () => {
     it('throws NotFoundException when not found', async () => {
       mockPrisma.paymentMethod.findFirst.mockResolvedValue(null);
 
-      await expect(service.remove('student-uuid-1', 'not-found')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.remove('student-uuid-1', 'not-found'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -323,9 +342,9 @@ describe('PaymentMethodsService', () => {
     it('throws NotFoundException when not found', async () => {
       mockPrisma.paymentMethod.findFirst.mockResolvedValue(null);
 
-      await expect(service.setDefault('student-uuid-1', 'not-found')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.setDefault('student-uuid-1', 'not-found'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

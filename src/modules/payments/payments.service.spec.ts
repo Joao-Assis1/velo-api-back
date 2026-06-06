@@ -82,7 +82,12 @@ describe('PaymentsService', () => {
   beforeEach(async () => {
     prisma = {
       lesson: { findUnique: jest.fn() },
-      payment: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+      payment: {
+        findFirst: jest.fn(),
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
       paymentMethod: { findFirst: jest.fn() },
       student: { findUnique: jest.fn() },
       instructor: { findUnique: jest.fn() },
@@ -112,7 +117,10 @@ describe('PaymentsService', () => {
       prisma.paymentMethod.findFirst.mockResolvedValue(basePaymentMethod);
       prisma.student.findUnique.mockResolvedValue(baseStudent);
       prisma.instructor.findUnique.mockResolvedValue(baseInstructor);
-      asaas.charge.mockResolvedValue({ id: ASAAS_PAYMENT_ID, status: 'PENDING' });
+      asaas.charge.mockResolvedValue({
+        id: ASAAS_PAYMENT_ID,
+        status: 'PENDING',
+      });
       prisma.payment.create.mockResolvedValue(basePayment);
     };
 
@@ -429,8 +437,14 @@ describe('PaymentsService', () => {
     describe('action: refund', () => {
       it('calls asaas.refund, sets REFUNDED, stores asaasRefundId', async () => {
         prisma.payment.findFirst.mockResolvedValue(heldPayment);
-        asaas.refund.mockResolvedValue({ id: refundedPaymentId, status: 'REFUNDED' });
-        prisma.payment.update.mockResolvedValue({ ...heldPayment, status: 'REFUNDED' });
+        asaas.refund.mockResolvedValue({
+          id: refundedPaymentId,
+          status: 'REFUNDED',
+        });
+        prisma.payment.update.mockResolvedValue({
+          ...heldPayment,
+          status: 'REFUNDED',
+        });
 
         await service.resolveDispute(LESSON_ID, { action: 'refund' });
 
@@ -445,7 +459,10 @@ describe('PaymentsService', () => {
       });
 
       it('is idempotent: already REFUNDED → no-op', async () => {
-        prisma.payment.findFirst.mockResolvedValue({ ...heldPayment, status: 'REFUNDED' });
+        prisma.payment.findFirst.mockResolvedValue({
+          ...heldPayment,
+          status: 'REFUNDED',
+        });
 
         await service.resolveDispute(LESSON_ID, { action: 'refund' });
 
@@ -454,7 +471,10 @@ describe('PaymentsService', () => {
       });
 
       it('throws BadRequestException when payment has no asaasPaymentId', async () => {
-        prisma.payment.findFirst.mockResolvedValue({ ...heldPayment, asaasPaymentId: null });
+        prisma.payment.findFirst.mockResolvedValue({
+          ...heldPayment,
+          asaasPaymentId: null,
+        });
 
         await expect(
           service.resolveDispute(LESSON_ID, { action: 'refund' }),
@@ -467,7 +487,9 @@ describe('PaymentsService', () => {
     describe('action: release', () => {
       it('delegates to releaseEscrow', async () => {
         prisma.payment.findFirst.mockResolvedValue(heldPayment);
-        const releaseSpy = jest.spyOn(service, 'releaseEscrow').mockResolvedValue(undefined);
+        const releaseSpy = jest
+          .spyOn(service, 'releaseEscrow')
+          .mockResolvedValue(undefined);
 
         await service.resolveDispute(LESSON_ID, { action: 'release' });
 
@@ -497,8 +519,14 @@ describe('PaymentsService', () => {
       prisma.payment.findFirst.mockResolvedValue(heldPayment);
       prisma.lesson.findUnique.mockResolvedValue(complianceLesson);
       prisma.instructor.findUnique.mockResolvedValue(baseInstructor);
-      asaas.transferPix.mockResolvedValue({ id: TRANSFER_ID, status: 'PENDING' });
-      prisma.payment.update.mockResolvedValue({ ...heldPayment, status: 'RELEASED' });
+      asaas.transferPix.mockResolvedValue({
+        id: TRANSFER_ID,
+        status: 'PENDING',
+      });
+      prisma.payment.update.mockResolvedValue({
+        ...heldPayment,
+        status: 'RELEASED',
+      });
     };
 
     it('happy path: calls transferPix and updates payment to RELEASED', async () => {
@@ -528,7 +556,10 @@ describe('PaymentsService', () => {
     });
 
     it('idempotent: already RELEASED → no-op, no transferPix call', async () => {
-      prisma.payment.findFirst.mockResolvedValue({ ...heldPayment, status: 'RELEASED' });
+      prisma.payment.findFirst.mockResolvedValue({
+        ...heldPayment,
+        status: 'RELEASED',
+      });
 
       await service.releaseEscrow(LESSON_ID);
 
@@ -539,13 +570,20 @@ describe('PaymentsService', () => {
     it('throws NotFoundException when payment does not exist for lesson', async () => {
       prisma.payment.findFirst.mockResolvedValue(null);
 
-      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(NotFoundException);
+      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws BadRequestException when payment is not HELD (PENDING)', async () => {
-      prisma.payment.findFirst.mockResolvedValue({ ...heldPayment, status: 'PENDING' });
+      prisma.payment.findFirst.mockResolvedValue({
+        ...heldPayment,
+        status: 'PENDING',
+      });
 
-      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(BadRequestException);
+      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when lesson does not pass compliance', async () => {
@@ -556,7 +594,9 @@ describe('PaymentsService', () => {
       });
       prisma.instructor.findUnique.mockResolvedValue(baseInstructor);
 
-      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(BadRequestException);
+      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when instructor has no pixKey', async () => {
@@ -568,7 +608,9 @@ describe('PaymentsService', () => {
         pixKeyType: null,
       });
 
-      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(BadRequestException);
+      await expect(service.releaseEscrow(LESSON_ID)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('split: platform gets 20%, instructor gets 80% of payment amount', async () => {
